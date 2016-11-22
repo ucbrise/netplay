@@ -1,0 +1,24 @@
+#!/bin/sh -e
+
+exec 2> /tmp/rc.local.log      # send stderr from rc.local to a log file
+exec 1>&2                      # send stdout to the same log file
+set -x                         # tell sh to display commands before execution
+
+export DPDK_DIR=/home/vagrant/dpdk-16.07
+export DPDK_TARGET=x86_64-native-linuxapp-gcc
+export DPDK_BUILD=$DPDK_DIR/$DPDK_TARGET
+
+# skip if already mounted
+mkdir -p /mnt/huge
+mount | grep -q /mnt/huge || mount -t hugetlbfs none /mnt/huge
+
+# idempotent
+modprobe uio_pci_generic
+
+# wait for $DPDK_DIR/tools to be available...
+while [ ! -d $DPDK_DIR/tools ]; do
+	sleep 1
+done
+
+$DPDK_DIR/tools/dpdk-devbind.py -b uio_pci_generic `ethtool -i eth1 | grep bus-info | awk '{print $2}'` || true
+$DPDK_DIR/tools/dpdk-devbind.py -b uio_pci_generic `ethtool -i eth2 | grep bus-info | awk '{print $2}'` || true
