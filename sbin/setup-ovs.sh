@@ -25,7 +25,7 @@ pushd $OVS_HOME
 $( $OVS_HOME/utilities/ovs-dev.py env )
 $OVS_HOME/utilities/ovs-dev.py \
   reset run --dpdk -c ${MASTER_COREMASK} -n 4 -r 1 --socket-mem 1024,0 \
-	--file-prefix "ovs" -w ${IFACE1},${IFACE2}
+	--file-prefix "ovs" #-w ${IFACE1},${IFACE2}
 
 ovs-vsctl set Open . other_config:n-dpdk-rxqs=1
 ovs-vsctl add-br b -- set bridge b datapath_type=netdev
