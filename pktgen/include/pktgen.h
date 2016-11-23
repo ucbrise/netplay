@@ -28,45 +28,52 @@
 namespace netplay {
 namespace pktgen {
 
-struct pmd_init {
-  inline int operator()(const char* iface, struct rte_mempool* mempool) {
-    int port = atoi(iface);
-    int cores[1] = { 0 };
-    if (netplay::dpdk::init_pmd_port(port, 1, 1, cores, cores, 256, 256, 0, 0, 0, mempool) != 0)
-      throw dpdk_exception("Could not intialize port");
-    return port;
-  }
-};
+#define TOKEN_BUCKET_CAPACITY   64
+#define RTE_BURST_SIZE          32
+#define HEADER_SIZE             54
 
-#define TOKEN_BUCKET_CAPACITY  32
-#define RTE_BURST_SIZE         32
-#define HEADER_SIZE            54
+#define REPORT_INTERVAL_SECS    10
 
+template<typename iface_init>
 class packet_generator {
  public:
-  packet_generator(const char* iface, struct rte_mempool* mempool,
-                   uint64_t rate, uint64_t time_limit) : bucket_(token_bucket(rate, TOKEN_BUCKET_CAPACITY)) {
+  packet_generator(netplay::dpdk::virtual_port<iface_init>* vport,
+                   uint64_t rate, uint64_t time_limit, int core)
+    : bucket_(token_bucket(rate, TOKEN_BUCKET_CAPACITY)) {
     srand (time(NULL));
 
+    vport_ = vport;
+    rate_ = rate;
+    time_limit_ = time_limit;
+    sent_pkts_ = 0;
+    core_ = core;
+  }
+
+  void generate(struct rte_mempool* mempool) {
     int ret = netplay::dpdk::mempool::mbuf_alloc_bulk(pkts_, HEADER_SIZE, RTE_BURST_SIZE, mempool);
     if (ret != 0) {
       fprintf(stderr, "Error allocating packets %d\n", ret);
       exit(-1);
     }
 
-    vport_ = new netplay::dpdk::virtual_port<pmd_init>(iface, mempool);
-    rate_ = rate;
-    time_limit_ = time_limit;
-  }
-
-  void generate() {
     uint64_t start = cursec();
+    uint64_t epoch = start;
+    uint64_t now;
     while (time_limit_ == 0 || cursec() - start < time_limit_) {
       update_pktbuf();
-      if (bucket_.consume(RTE_BURST_SIZE)) {
-        vport_->send_pkts(pkts_, RTE_BURST_SIZE);
+      if (rate_ == 0 || bucket_.consume(RTE_BURST_SIZE))
+        sent_pkts_ += vport_->send_pkts(pkts_, RTE_BURST_SIZE);
+
+      if ((now = cursec()) - epoch >= REPORT_INTERVAL_SECS) {
+        fprintf(stderr, "[Core %d] %" PRIu64 " packets sent in %" PRIu64 " secs\n",
+                core_, sent_pkts_, now - start);
+        epoch = now;
       }
     }
+  }
+
+  int core() {
+    return core_;
   }
 
  private:
@@ -96,10 +103,12 @@ class packet_generator {
   }
 
   struct rte_mbuf* pkts_[RTE_BURST_SIZE];
-  netplay::dpdk::virtual_port<pmd_init>* vport_;
+  netplay::dpdk::virtual_port<iface_init>* vport_;
   uint64_t rate_;
   uint64_t time_limit_;
   token_bucket bucket_;
+  uint64_t sent_pkts_;
+  int core_;
 };
 
 }

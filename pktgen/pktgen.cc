@@ -7,22 +7,23 @@
 #include <getopt.h>
 
 #include "dpdk_utils.h"
+#include "bess_init.h"
+#include "ovs_init.h"
+#include "pmd_init.h"
 #include "pktgen.h"
 
 const char* exec = "pktgen";
 const char* desc = "%s: Random packet generator\n";
 const char* usage =
   "usage: %s [OPTIONS] [INTERFACE]\n"
-  "where INTERFACE is the DPDK interface on which %s sends packets\n"
-  "\nINTERFACE has the following format: <vswitch>:<pmd-port>\n"
-  "  <vswitch>                      virtual switch (ovs, bess, etc.)\n"
-  "  <pmd-port>                     DPDK PMD port\n";
+  "where INTERFACE is the DPDK PMD port on which %s sends packets\n";
 const char* pktgen_opts =
   "\n%s options:\n"
+  "  -p, --secondary-to=PRIMARY     Run as secondary process to PRIMARY\n"
   "  -c, --core=CORE                CORE on which %s should run (default: 0)\n"
   "  -r, --rate-limit=RATE          RATE (pkts/s) at which %s sends packets \n"
   "                                 (0 implies no RATE limit, default: 0)\n"
-  "  -t, --time-limit=DURATION      DURATION for which %s should run\n" 
+  "  -t, --time-limit=DURATION      DURATION for which %s should run\n"
   "                                 (0 implies no DURATION limit, default: 0)\n";
 const char* other_opts =
   "\nOther options:\n"
@@ -59,6 +60,7 @@ void check_user() {
 int main(int argc, char** argv) {
 
   static struct option long_options[] = {
+    {"secondary-to", required_argument, NULL, 'p'},
     {"core", required_argument, NULL, 'c'},
     {"rate-limit", required_argument, NULL, 'r'},
     {"time-limit", required_argument, NULL, 't'},
@@ -67,13 +69,19 @@ int main(int argc, char** argv) {
   };
 
   int c;
+  int secondary = 0;
   int option_index = 0;
   int master_core = 0;
+  char* primary = (char*) exec;
   uint64_t rate_limit = 0;
   uint64_t time_limit = 0;
-  while ((c = getopt_long(argc, argv, "c:r:t:h", long_options, &option_index)) != -1) {
+  while ((c = getopt_long(argc, argv, "p:c:r:t:h", long_options, &option_index)) != -1) {
     switch (c) {
     case 0:
+      break;
+    case 'p':
+      secondary = 1;
+      primary = strdup(optarg);
       break;
     case 'c':
       master_core = atoi(optarg);
@@ -104,29 +112,29 @@ int main(int argc, char** argv) {
     return -1;
   }
 
-  char *vswitch;
-  char *iface;
-  vswitch = strsep(&argv[optind], ":");
-  iface = strsep(&argv[optind], ":");
-  if (vswitch == NULL || iface == NULL) {
-    fprintf(stderr, "%s: Invalid INTERFACE\n", exec);
-    prompt_help();
-    return -1;
-  }
+  char *iface = strdup(argv[optind]);
 
   check_user();
 
-  struct rte_mempool* mempool = netplay::dpdk::init_dpdk(vswitch, master_core);
-  netplay::dpdk::enumerate_pmd_ports();
-  
-  if (!strcmp("ovs", vswitch)) {
-    netplay::pktgen::packet_generator pktgen(iface, mempool, rate_limit, time_limit);
-    pktgen.generate();
-  } else if (!strcmp("bess", vswitch)) {
-    fprintf(stderr, "Virtual Switch interface %s is not yet supported.\n", vswitch);
-    return -1;
+  struct rte_mempool* mempool = netplay::dpdk::init_dpdk(primary, master_core, secondary);
+
+  if (!strcmp(exec, primary)) {
+    netplay::dpdk::virtual_port<netplay::dpdk::pmd_init>* vport =
+      new netplay::dpdk::virtual_port<netplay::dpdk::pmd_init>(iface, mempool);
+    netplay::pktgen::packet_generator<netplay::dpdk::pmd_init> pktgen(vport, rate_limit, time_limit, master_core);
+    pktgen.generate(mempool);
+  } else if (!strcmp("ovs", primary)) {
+    netplay::dpdk::virtual_port<netplay::dpdk::ovs_ring_init>* vport =
+      new netplay::dpdk::virtual_port<netplay::dpdk::ovs_ring_init>(iface, mempool);
+    netplay::pktgen::packet_generator<netplay::dpdk::ovs_ring_init> pktgen(vport, rate_limit, time_limit, master_core);
+    pktgen.generate(mempool);
+  } else if (!strcmp("bess", primary)) {
+    netplay::dpdk::virtual_port<netplay::dpdk::bess_ring_init>* vport =
+      new netplay::dpdk::virtual_port<netplay::dpdk::bess_ring_init>(iface, mempool);
+    netplay::pktgen::packet_generator<netplay::dpdk::bess_ring_init> pktgen(vport, rate_limit, time_limit, master_core);
+    pktgen.generate(mempool);
   } else {
-    fprintf(stderr, "Virtual Switch interface %s is not yet supported.\n", vswitch);
+    fprintf(stderr, "Primary interface %s is not yet supported.\n", primary);
     return -1;
   }
 

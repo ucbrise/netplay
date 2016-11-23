@@ -12,16 +12,16 @@ class token_bucket {
  public:
   token_bucket() : capacity_(0) {
     last_fill_time_ = 0;
-    rate_ = 0;
+    rate_ = 0.0;
     available_tokens_ = 0;
   }
 
   token_bucket(const uint64_t rate, const uint64_t max_burst)
-    : capacity_(max_burst) {
+    : capacity_((double)max_burst) {
 
-    last_fill_time_ = cur_time_us();  // Initialize with current time
-    rate_ = rate / 1e6;               // Convert from tokens/s to tokens/us
-    available_tokens_ = capacity_;    // Initially, token bucket is full
+    last_fill_time_ = cur_time_us();      // Initialize with current time
+    rate_ = (double) rate / (double) 1e6; // Convert from tokens/s to tokens/us
+    available_tokens_ = capacity_;        // Initially, token bucket is full
   }
 
   token_bucket(const token_bucket& other) : capacity_(other.capacity_) {
@@ -34,8 +34,8 @@ class token_bucket {
     const uint64_t now = cur_time_us();
 
     // Fill token bucket based on rate
-    const uint64_t delta = rate_ * (now - last_fill_time_);
-    available_tokens_ = std::max(capacity_, available_tokens_ + delta);
+    const double delta = rate_ * (now - last_fill_time_);
+    available_tokens_ = std::min(capacity_, available_tokens_ + delta);
 
     // Update last fill time for token bucket
     last_fill_time_ = now;
@@ -57,9 +57,9 @@ class token_bucket {
   }
 
   uint64_t last_fill_time_;
-  uint64_t rate_;
-  uint64_t available_tokens_;
-  const uint64_t capacity_;
+  double rate_;
+  double available_tokens_;
+  const double capacity_;
 };
 
 }
