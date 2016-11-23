@@ -33,7 +33,8 @@ const char* netplay_opts =
   "\nNetPlay options:\n"
   "  -m, --master-core=CORE         core on which master should run (default: 0)\n"
   "  -w, --writer-core-mask=MASK    core mask for NetPlay writers (default: 0x0)\n"
-  "  -r, --reader-core-mask=MASK    core mask for NetPlay readers (default: 0x0)\n";
+  "  -r, --reader-core-mask=MASK    core mask for NetPlay readers (default: 0x0)\n"
+  "  -g, --generate-packets=RATE    generate random packets (testing purposes only)\n";
 const char* other_opts =
   "\nOther options:\n"
   "  -h, --help                     display this help message\n";
@@ -157,6 +158,7 @@ void redirect_output(char* logprefix) {
 int main(int argc, char** argv) {
   int detach = 0;
   int nochdir = 0;
+  int pktgen = 0;
 
   static struct option long_options[] = {
     {"detach", no_argument, &detach, 1},
@@ -166,6 +168,7 @@ int main(int argc, char** argv) {
     {"master-core", required_argument, NULL, 'm'},
     {"writer-core-mask", required_argument, NULL, 'w'},
     {"reader-core-mask", required_argument, NULL, 'r'},
+    {"generate-packets", required_argument, NULL, 'g'},
     {"help", no_argument, NULL, 'h'},
     {NULL, 0, NULL, 0}
   };
@@ -177,7 +180,8 @@ int main(int argc, char** argv) {
   uint64_t writer_core_mask = 0x0;
   char* pidfile = NULL;
   char* logprefix = NULL;
-  while ((c = getopt_long(argc, argv, "m:w:r:hp::l::", long_options, &option_index)) != -1) {
+  uint64_t pktgen_rate_limit = 0;
+  while ((c = getopt_long(argc, argv, "m:w:r:hg:p::l::", long_options, &option_index)) != -1) {
     switch (c) {
     case 0:
       break;
@@ -202,6 +206,10 @@ int main(int argc, char** argv) {
       break;
     case 'r':
       reader_core_mask = (uint64_t) strtol(optarg, NULL, 0);
+      break;
+    case 'g':
+      pktgen = 1;
+      pktgen_rate_limit = (uint64_t) atoll(optarg);
       break;
     case 'h':
       print_help();
@@ -250,14 +258,14 @@ int main(int argc, char** argv) {
     redirect_output(logprefix);
   }
 
-  struct rte_mempool* mempool = netplay::dpdk::init_dpdk(vswitch, master_core);
+  struct rte_mempool* mempool = netplay::dpdk::init_dpdk(vswitch, master_core, 1);
   if (!strcmp("ovs", vswitch)) {
     netplay::netplay_daemon<netplay::dpdk::ovs_ring_init> netplayd(iface,
-        mempool, writer_core_mask, reader_core_mask);
+        mempool, writer_core_mask, reader_core_mask, master_core, pktgen, pktgen_rate_limit);
     netplayd.start();
   } else if (!strcmp("bess", vswitch)) {
     netplay::netplay_daemon<netplay::dpdk::bess_ring_init> netplayd(iface,
-        mempool, writer_core_mask, reader_core_mask);
+        mempool, writer_core_mask, reader_core_mask, master_core, pktgen, pktgen_rate_limit);
     netplayd.start();
   } else {
     fprintf(stderr, "Virtual Switch interface %s is not yet supported.\n", vswitch);

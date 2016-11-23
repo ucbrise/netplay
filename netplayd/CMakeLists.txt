@@ -9,10 +9,11 @@ find_package(Threads REQUIRED)
 
 set(INCLUDE include)
 set(DPDK_INCLUDE ../dpdk/include)
-set(PKTSTORE_INCLUDE ../pktstore/include)
+set(LOGSTORE_INCLUDE ../logstore/include)
+set(PKTGEN_INCLUDE ../pktgen/include)
 
-include_directories(${INCLUDE} ${DPDK_INCLUDE} ${PKTSTORE_INCLUDE} 
-  ${DPDK_INCLUDE_DIR})
+include_directories(${INCLUDE} ${DPDK_INCLUDE} ${LOGSTORE_INCLUDE} 
+  ${PKTGEN_INCLUDE} ${DPDK_INCLUDE_DIR})
 
 add_executable(netplayd netplayd.cc)
 target_link_libraries(netplayd ${CMAKE_THREAD_LIBS_INIT} ${DPDK_LIBRARIES} dl)

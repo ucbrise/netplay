@@ -15,7 +15,7 @@
 namespace netplay {
 
 #define BATCH_SIZE        32
-#define REFRESH_INTERVAL  3355443200ULL
+#define REFRESH_INTERVAL  33554432000ULL
 
 template<typename vport_init>
 class netplay_writer {
@@ -43,11 +43,11 @@ class netplay_writer {
         epoch = cursec();
         if (rec_pkts_ == 0) {
           fprintf(stderr, "[Core %d] WARN: No packets read in last refresh "
-                  " interval (%llu batches, %" PRIu64 " secs)...\n", core_,
+                  "interval (%llu batches, %" PRIu64 " secs)...\n", core_,
                   REFRESH_INTERVAL / BATCH_SIZE, elapsed);
         } else {
           fprintf(stderr, "[Core %d] %" PRIu64 " packets read in last refresh"
-                  " interval (%llu batches, %" PRIu64 " secs)...\n", core_, rec_pkts_,
+                  "interval (%llu batches, %" PRIu64 " secs)...\n", core_, rec_pkts_,
                   REFRESH_INTERVAL / BATCH_SIZE, elapsed);
         }
         req_pkts_ = 0;

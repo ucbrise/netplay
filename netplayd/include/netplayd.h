@@ -9,6 +9,7 @@
 #include "virtual_port.h"
 #include "netplay_writer.h"
 #include "netplay_reader.h"
+#include "pktgen.h"
 
 namespace netplay {
 
@@ -39,12 +40,20 @@ template<typename vport_init>
 class netplay_daemon {
  public:
   netplay_daemon(const char* iface, struct rte_mempool* mempool, uint32_t writer_core_mask,
-                 uint32_t reader_core_mask) {
+                 uint32_t reader_core_mask, int master_core, int pktgen, uint64_t pktgen_rate_limit) {
+
+    master_core_ = master_core;
+    
+    mempool_ = mempool;
     pkt_store_ = new packet_store();
     vport_ = new dpdk::virtual_port<vport_init>(iface, mempool);
 
     writer_core_mask_ = writer_core_mask;
     reader_core_mask_ = reader_core_mask;
+
+    pktgen_ = pktgen;
+    generator_ = new netplay::pktgen::packet_generator<vport_init>(vport_,
+        pktgen_rate_limit, 0, master_core_);
   }
 
   void start() {
@@ -70,6 +79,10 @@ class netplay_daemon {
       }
     }
 
+    if (pktgen_) {
+      generator_->generate(mempool_);
+    }
+
     for (uint64_t i = 0; i < MAX_WRITERS; i++) {
       if (writers_[i] != NULL)
         pthread_join(writer_thread_[i], NULL);
@@ -87,6 +100,9 @@ class netplay_daemon {
 
  private:
   int master_core_;
+
+  struct rte_mempool* mempool_;
+
   packet_store *pkt_store_;
   dpdk::virtual_port<vport_init> *vport_;
 
@@ -96,6 +112,9 @@ class netplay_daemon {
   pthread_t reader_thread_[MAX_READERS];
   netplay_writer<vport_init>* writers_[MAX_WRITERS];
   netplay_reader* readers_[MAX_READERS];
+
+  int pktgen_;
+  netplay::pktgen::packet_generator<vport_init>* generator_;
 };
 
 }
