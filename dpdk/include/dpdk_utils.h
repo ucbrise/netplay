@@ -28,48 +28,9 @@
 
 #include "dpdk_exception.h"
 
-// static const struct rte_eth_conf default_eth_conf = {
-//   .link_speeds = ETH_LINK_SPEED_AUTONEG, /* auto negotiate speed */
-//   .rxmode =
-//   {
-//     .mq_mode = ETH_MQ_RX_RSS,    /* Use RSS without DCB or VMDQ */
-//     .max_rx_pkt_len = 0,         /* valid only if jumbo is on */
-//     .split_hdr_size = 0,         /* valid only if HS is on */
-//     .header_split = 0,           /* Header Split off */
-//     .hw_ip_checksum = 0,         /* IP checksum offload */
-//     .hw_vlan_filter = 0,         /* VLAN filtering */
-//     .hw_vlan_strip = 0,          /* VLAN strip */
-//     .hw_vlan_extend = 0,         /* Extended VLAN */
-//     .jumbo_frame = 0,            /* Jumbo Frame support */
-//     .hw_strip_crc = 1,           /* CRC stripped by hardware */
-//     .enable_scatter = 0,
-//     .enable_lro = 0,
-//   },
-//   .txmode =
-//   {
-//     .mq_mode = ETH_MQ_TX_NONE, /* Disable DCB and VMDQ */
-//   },
-//   .lpbk_mode = 0,
-//   /* FIXME: Find supported RSS hashes from rte_eth_dev_get_info */
-//   .rx_adv_conf =
-//   {
-//     .rss_conf =
-//     {
-//       .rss_key = NULL,
-//       .rss_hf = ETH_RSS_IP | ETH_RSS_UDP | ETH_RSS_TCP | ETH_RSS_SCTP,
-//     },
-//   },
-//   /* No flow director */
-//   .fdir_conf =
-//   {
-//     .mode = RTE_FDIR_MODE_NONE,
-//   },
-//   /* No interrupt */
-//   .intr_conf =
-//   {
-//     .lsc = 0,
-//   },
-// };
+#define NUM_PFRAMES         512     // Number of pframes in the mempool
+#define CACHE_SIZE          32      // Size of per-core mempool cache
+#define METADATA_SLOT_SIZE  8       // size in bytes of a metadata slot
 
 namespace netplay {
 namespace dpdk {
@@ -77,6 +38,23 @@ namespace dpdk {
 typedef struct rte_mbuf** mbuf_array_t;
 
 namespace mempool {
+
+struct rte_mempool* init_mempool(int master_core,
+                                 unsigned int mempool_size,
+                                 unsigned int mcache_size,
+                                 unsigned short metadata_slots) {
+
+  int sid = rte_lcore_to_socket_id(master_core);
+
+  char name[256];
+  sprintf(name, "pframe%d", sid);
+  return rte_pktmbuf_pool_create(name,
+                                 mempool_size,
+                                 mcache_size,
+                                 metadata_slots * METADATA_SLOT_SIZE,
+                                 RTE_MBUF_DEFAULT_BUF_SIZE,
+                                 sid);
+}
 
 static void find_mempool_helper(struct rte_mempool *mp, void *ptr) {
   const struct rte_mempool **result = static_cast<const struct rte_mempool**>(ptr);
@@ -103,12 +81,6 @@ void mbuf_free(struct rte_mbuf* buf) {
   rte_pktmbuf_free(buf);
 }
 
-/* Using AVX for now. Revisit this decision someday */
-/* mbuf_alloc_bulk: Bulk alloc packets.
- *  array: Array to allocate into.
- *  len: Length
- *  cnt: Count
- */
 static inline int mbuf_alloc_bulk(mbuf_array_t array, uint16_t len, int cnt,
                                   struct rte_mempool* mempool) {
 
@@ -282,7 +254,7 @@ fail:
   return 1;
 }
 
-static int init_eal(const char* name, int core) {
+static int init_eal(const char* name, int core, int secondary) {
   /* As opposed to SoftNIC, this call only initializes the master thread.
    * We cannot rely on threads launched by DPDK within ZCSI, the threads
    * must be launched by the runtime */
@@ -317,10 +289,14 @@ static int init_eal(const char* name, int core) {
   sprintf(opt_socket_mem, "%s", socket_mem);
   for (i = 1; i < numa_count; i++) sprintf(opt_socket_mem + strlen(opt_socket_mem), ",%s", socket_mem);
 
-  rte_argv[rte_argc++] = "netplay";
+  char proc_name[256];
+  sprintf(proc_name, "netplay-%s", name);
+  rte_argv[rte_argc++] = proc_name;
 
-  rte_argv[rte_argc++] = "--proc-type";
-  rte_argv[rte_argc++] = "secondary";
+  if (secondary) {
+    rte_argv[rte_argc++] = "--proc-type";
+    rte_argv[rte_argc++] = "secondary";
+  }
 
   rte_argv[rte_argc++] = "--file-prefix";
   rte_argv[rte_argc++] = (char*) name;
@@ -347,7 +323,7 @@ static int init_eal(const char* name, int core) {
 
   /* rte_eal_init: Initializes EAL */
   ret = rte_eal_init(rte_argc, rte_argv);
-  if (rte_eal_process_type() != RTE_PROC_SECONDARY)
+  if (secondary && rte_eal_process_type() != RTE_PROC_SECONDARY)
     rte_panic("Not a secondary process");
 
   /* Change lcore ID */
@@ -355,17 +331,24 @@ static int init_eal(const char* name, int core) {
   return ret;
 }
 
-#define MAX_NAME_LEN 256
-struct rte_mempool* init_dpdk(const std::string& name, int core) {
-  if (name.length() >= MAX_NAME_LEN)
-    throw dpdk_exception("Invalid secondary name");
-
+struct rte_mempool* init_dpdk(const std::string& name, int core, int secondary) {
   // FIXME: Put back
   // rte_timer_subsystem_init();
-  if (init_eal(name.c_str(), core) < 0)
+  if (init_eal(name.c_str(), core, secondary) < 0)
     throw dpdk_exception("init_eal() failed");
 
-  return mempool::find_secondary_mempool();
+  struct rte_mempool* pool = NULL;
+  if (secondary) {
+    pool = mempool::find_secondary_mempool();
+  } else {
+    fprintf(stderr, "Initializing primary process mempool\n");
+    pool = mempool::init_mempool(core, NUM_PFRAMES, CACHE_SIZE, 1);
+    fprintf(stderr, "Created mempool %s\n", pool->name);
+  }
+
+  if (pool == NULL)
+    rte_panic("Pool is NULL\n");
+  return pool;
 }
 }
 }
