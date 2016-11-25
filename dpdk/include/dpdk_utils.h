@@ -303,10 +303,6 @@ static int init_eal(const char* name, int core, int secondary) {
   rte_argv[rte_argc++] = "-c";
   rte_argv[rte_argc++] = opt_lcore_bitmap;
 
-  /* This just makes sure that by default everything is blacklisted */
-  rte_argv[rte_argc++] = "-w";
-  rte_argv[rte_argc++] = "99:99.0";
-
   rte_argv[rte_argc++] = "--master-lcore";
   rte_argv[rte_argc++] = opt_master_lcore;
 
@@ -321,6 +317,9 @@ static int init_eal(const char* name, int core, int secondary) {
   /* reset getopt() */
   optind = 0;
 
+   for (i = 0; i < rte_argc; i++) {
+      printf("%s ", rte_argv[i]);
+   }
   /* rte_eal_init: Initializes EAL */
   ret = rte_eal_init(rte_argc, rte_argv);
   if (secondary && rte_eal_process_type() != RTE_PROC_SECONDARY)
