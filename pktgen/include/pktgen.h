@@ -68,6 +68,7 @@ class packet_generator {
         double pkt_rate = (double) sent_pkts_ / (double) (now - start);
         fprintf(stderr, "[Core %d] Packet rate = %lf\n",
                 core_, pkt_rate);
+        fflush(stderr);
         epoch = now;
       }
     }
