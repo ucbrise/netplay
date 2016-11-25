@@ -2,6 +2,7 @@
 #define NETPLAY_WRITER_H_
 
 #include <sys/time.h>
+#include <ctime>
 
 #include <rte_ether.h>
 #include <rte_ip.h>
@@ -79,9 +80,12 @@ class netplay_writer {
   }
 
   void process_batch(struct rte_mbuf** pkts, uint16_t cnt) {
+    std::time_t now = std::time(nullptr);
     for (int i = 0; i < cnt; i++) {
       slog::token_list tokens;
       uint32_t num_bytes = 0;
+
+      handle_->add_timestamp(tokens, (uint32_t)now);
 
       void* pkt = rte_pktmbuf_mtod(pkts[i], void*);
       struct ether_hdr *eth = (struct ether_hdr *) pkt;
