@@ -87,18 +87,18 @@ class packet_generator {
     // Generate random packets
     for (int i = 0; i < RTE_BURST_SIZE; i++) {
       struct ether_hdr* eth = rte_pktmbuf_mtod(pkts_[i], struct ether_hdr*);
-      eth->d_addr.addr_bytes[5] = rand();
-      eth->s_addr.addr_bytes[5] = rand();
+      eth->d_addr.addr_bytes[5] = 0;
+      eth->s_addr.addr_bytes[5] = 1;
       eth->ether_type = rte_cpu_to_be_16(0x0800);
 
       struct ipv4_hdr *ip = (struct ipv4_hdr *) (eth + 1);
-      ip->src_addr = rand();
-      ip->dst_addr = rand();
+      ip->src_addr = rand() % 256;
+      ip->dst_addr = rand() % 256;
       ip->next_proto_id = IPPROTO_TCP;
 
       struct tcp_hdr *tcp = (struct tcp_hdr *) (ip + 1);
-      tcp->src_port = rand() % 65536;
-      tcp->dst_port = rand() % 65536;
+      tcp->src_port = rand() % 10;
+      tcp->dst_port = rand() % 10;
     }
   }
 
