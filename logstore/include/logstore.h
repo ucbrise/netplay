@@ -47,16 +47,6 @@ struct logstore_storage {
   std::vector<size_t> stream_sizes;
 };
 
-void print_record(const unsigned char* buf, uint16_t len, token_list& tokens) {
-  fprintf(stderr, "[Len: %u, ", len);
-  for (uint16_t i = 0; i < len; i++)
-    fprintf(stderr, "%x ", buf[i]);
-  fprintf(stderr, "; token-list: ");
-  for (auto& token: tokens)
-    fprintf(stderr, "%u:%" PRIu64 " ", token.index_id(), token.data());
-  fprintf(stderr, "]\n");
-}
-
 class log_store {
  public:
   class handle {
@@ -121,8 +111,6 @@ class log_store {
         cur_offset_ = base_.request_bytes(data_block_size_);
         remaining_bytes_ = data_block_size_;
       }
-
-      print_record(record, record_len, tkns);
 
       base_.append_record(record, record_len, cur_offset_);
       base_.update_indexes(cur_id_, tkns);

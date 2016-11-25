@@ -17,6 +17,16 @@ namespace netplay {
 #define BATCH_SIZE        32
 #define REFRESH_INTERVAL  33554432000ULL
 
+void print_pkt(const unsigned char* buf, uint16_t len, token_list& tokens) {
+  fprintf(stderr, "[Len: %u, ", len);
+  for (uint16_t i = 0; i < len; i++)
+    fprintf(stderr, "%x ", buf[i]);
+  fprintf(stderr, "; token-list: ");
+  for (auto& token: tokens)
+    fprintf(stderr, "%u:%" PRIu64 " ", token.index_id(), token.data());
+  fprintf(stderr, "]\n");
+}
+
 template<typename vport_init>
 class netplay_writer {
  public:
@@ -99,6 +109,9 @@ class netplay_writer {
         fprintf(stderr, "Unhandled packet type.\n");
         continue;
       }
+#ifdef DEBUG
+      print_pkt((unsigned char*) pkt, num_bytes, tokens)
+#endif
       handle_->insert((unsigned char*) pkt, num_bytes, tokens);
     }
   }
