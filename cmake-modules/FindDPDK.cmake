@@ -8,6 +8,7 @@
 
 find_path(DPDK_INCLUDE_DIR rte_config.h
   PATH_SUFFIXES dpdk)
+find_library(DPDK_LIBRARY dpdk)
 find_library(DPDK_rte_hash_LIBRARY rte_hash)
 find_library(DPDK_rte_kvargs_LIBRARY rte_kvargs)
 find_library(DPDK_rte_mbuf_LIBRARY rte_mbuf)
@@ -24,6 +25,7 @@ find_library(DPDK_rte_pmd_ring_LIBRARY rte_pmd_ring)
 find_library(DPDK_rte_pmd_af_packet_LIBRARY rte_pmd_af_packet)
 
 set(check_LIBRARIES
+  ${DPDK_LIBRARY}
   ${DPDK_rte_hash_LIBRARY}
   ${DPDK_rte_kvargs_LIBRARY}
   ${DPDK_rte_mbuf_LIBRARY}
@@ -40,6 +42,7 @@ set(check_LIBRARIES
   ${DPDK_rte_pmd_af_packet_LIBRARY})
 
 mark_as_advanced(DPDK_INCLUDE_DIR
+  DPDK_LIBRARY
   DPDK_rte_hash_LIBRARY
   DPDK_rte_kvargs_LIBRARY
   DPDK_rte_mbuf_LIBRARY

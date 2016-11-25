@@ -13,4 +13,5 @@ set(DPDK_INCLUDE ../dpdk/include)
 include_directories(${INCLUDE} ${DPDK_INCLUDE} ${DPDK_INCLUDE_DIR})
 
 add_executable(pktgen pktgen.cc)
-target_link_libraries(pktgen ${DPDK_LIBRARIES} dl ${CMAKE_THREAD_LIBS_INIT})
+set(DPDK_OPT -Wl,--whole-archive ${DPDK_LIBRARY} -Wl,--no-whole-archive)
+target_link_libraries(pktgen ${DPDK_OPT} dl ${CMAKE_THREAD_LIBS_INIT})
