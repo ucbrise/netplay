@@ -5,11 +5,19 @@
 #include <pthread.h>
 
 #include <rte_mbuf.h>
+
+#include <thrift/protocol/TBinaryProtocol.h>
+#include <thrift/server/TThreadedServer.h>
+#include <thrift/transport/TSocket.h>
+#include <thrift/transport/TBufferTransports.h>
+#include <thrift/concurrency/PosixThreadFactory.h>
+
+#include <boost/make_shared.hpp>
+
 #include "packetstore.h"
 #include "virtual_port.h"
 #include "netplay_writer.h"
-#include "netplay_reader.h"
-#include "pktgen.h"
+#include "query_handler.h"
 
 namespace netplay {
 
@@ -28,32 +36,21 @@ void* writer_thread(void* arg) {
   return NULL;
 }
 
-void* reader_thread(void* arg) {
-  netplay_reader* reader = (netplay_reader*) arg;
-  dpdk::init_thread(reader->core());
-  reader->start();
-
-  return NULL;
-}
-
 template<typename vport_init>
 class netplay_daemon {
  public:
-  netplay_daemon(const char* iface, struct rte_mempool* mempool, uint32_t writer_core_mask,
-                 uint32_t reader_core_mask, int master_core, int pktgen, uint64_t pktgen_rate_limit) {
+  netplay_daemon(const char* iface, struct rte_mempool* mempool,
+                 int master_core, uint64_t writer_core_mask, 
+                 int query_server_port) {
 
     master_core_ = master_core;
-    
+    writer_core_mask_ = writer_core_mask;
+
+    query_server_port_ = query_server_port;
+
     mempool_ = mempool;
     pkt_store_ = new packet_store();
     vport_ = new dpdk::virtual_port<vport_init>(iface, mempool);
-
-    writer_core_mask_ = writer_core_mask;
-    reader_core_mask_ = reader_core_mask;
-
-    pktgen_ = pktgen;
-    generator_ = new netplay::pktgen::packet_generator<vport_init>(vport_,
-        pktgen_rate_limit, 0, master_core_);
   }
 
   void start() {
@@ -68,29 +65,32 @@ class netplay_daemon {
       }
     }
 
-    for (uint64_t i = 0; i < MAX_READERS; i++) {
-      if (CORE_SET(reader_core_mask_, i)) {
-        packet_store::handle* handle = pkt_store_->get_handle();
-        readers_[i] = new netplay_reader(i, handle);
-        pthread_create(&reader_thread_[i], NULL, &reader_thread,
-                       (void*) readers_[i]);
-      } else {
-        readers_[i] = NULL;
-      }
-    }
+    // Initialize query handler
+    {
+      using namespace ::apache::thrift;
+      using namespace ::apache::thrift::protocol;
+      using namespace ::apache::thrift::transport;
+      using namespace ::apache::thrift::server;
+      using namespace ::netplay::thrift;
 
-    if (pktgen_) {
-      generator_->generate(mempool_);
+      TThreadedServer server(
+        boost::make_shared<NetPlayQueryServiceProcessor>(
+          boost::make_shared<query_handler>(pkt_store_->get_handle())),
+        boost::make_shared<TServerSocket>(query_server_port_), //port
+        boost::make_shared<TBufferedTransportFactory>(),
+        boost::make_shared<TBinaryProtocolFactory>());
+
+      fprintf(stderr, "Starting query server on port %d\n", query_server_port_);
+      try {
+        server.serve();
+      } catch (std::exception& e) {
+        fprintf(stderr, "Query server crashed: %s\n", e.what());
+      }
     }
 
     for (uint64_t i = 0; i < MAX_WRITERS; i++) {
       if (writers_[i] != NULL)
         pthread_join(writer_thread_[i], NULL);
-    }
-
-    for (uint64_t i = 0; i < MAX_READERS; i++) {
-      if (readers_[i] != NULL)
-        pthread_join(reader_thread_[i], NULL);
     }
   }
 
@@ -100,21 +100,17 @@ class netplay_daemon {
 
  private:
   int master_core_;
+  uint64_t writer_core_mask_;
+
+  int query_server_port_;
 
   struct rte_mempool* mempool_;
 
   packet_store *pkt_store_;
   dpdk::virtual_port<vport_init> *vport_;
 
-  uint64_t writer_core_mask_;
-  uint64_t reader_core_mask_;
   pthread_t writer_thread_[MAX_WRITERS];
-  pthread_t reader_thread_[MAX_READERS];
   netplay_writer<vport_init>* writers_[MAX_WRITERS];
-  netplay_reader* readers_[MAX_READERS];
-
-  int pktgen_;
-  netplay::pktgen::packet_generator<vport_init>* generator_;
 };
 
 }
