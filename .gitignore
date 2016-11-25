@@ -38,6 +38,11 @@ netplay-results
 ls-results
 thrift/gen
 
+# Third party dirs
+3rdparty/dpdk-16.07/
+3rdparty/ovs/
+3rdparty/thrift/
+
 # Vagrant files
 .vagrant
 
