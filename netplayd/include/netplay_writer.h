@@ -49,7 +49,8 @@ class netplay_writer {
           double write_rate = (double) rec_pkts_ / (double) elapsed;
           fprintf(stderr, "[Core %d] %" PRIu64 " packets read in last refresh "
                   "interval (%llu batches, %" PRIu64 " secs, %lf pkts/s)...\n",
-                  core_, rec_pkts_, REFRESH_INTERVAL / BATCH_SIZE, elapsed);
+                  core_, rec_pkts_, REFRESH_INTERVAL / BATCH_SIZE, elapsed, 
+                  write_rate);
         }
         req_pkts_ = 0;
         rec_pkts_ = 0;
