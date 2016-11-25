@@ -11,7 +11,12 @@ endif()
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++11 -g3 -ggdb3 -Ofast -march=native -Werror -D_GNU_SOURCE -Wall -Wextra -Wcast-align -Wno-write-strings -Wno-missing-field-initializers")
 enable_language(C)
 
-set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake-modules)
+# Set 3rd party includes/libs
+set(DPDK_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/3rdparty/dpdk-16.07/build/include)
+set(DPDK_LIB_DIR ${PROJECT_SOURCE_DIR}/3rdparty/dpdk-16.07/build/lib)
+
+set(THRIFT_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/3rdparty/thrift/build/include)
+set(THRIFT_LIB_DIR ${PROJECT_SOURCE_DIR}/3rdparty/thrift/build/lib)
 
 add_subdirectory(netplayd)
 add_subdirectory(pktgen)
