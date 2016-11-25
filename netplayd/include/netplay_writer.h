@@ -2,7 +2,9 @@
 #define NETPLAY_WRITER_H_
 
 #include <sys/time.h>
+
 #include <ctime>
+#include <chrono>
 
 #include <rte_ether.h>
 #include <rte_ip.h>
@@ -43,7 +45,7 @@ class netplay_writer {
   void start() {
     struct rte_mbuf* pkts[BATCH_SIZE];
 
-    uint64_t epoch = cursec();
+    uint64_t epoch = curusec();
     while (1) {
       uint16_t recv = vport_->recv_pkts(pkts, BATCH_SIZE);
       process_batch(pkts, recv);
@@ -51,13 +53,13 @@ class netplay_writer {
       req_pkts_ += BATCH_SIZE;
 
       if (req_pkts_ >= REFRESH_INTERVAL || rec_pkts_ >= REPORT_INTERVAL) {
-        uint64_t elapsed = cursec() - epoch;
-        epoch = cursec();
+        uint64_t elapsed = curusec() - epoch;
+        epoch = curusec();
         if (rec_pkts_ == 0) {
           fprintf(stderr, "[Core %d] WARN: No packets read since last epoch "
-                  "(%" PRIu64 " secs)...\n", core_, elapsed);
+                  "(%" PRIu64 " secs)...\n", core_, (elapsed / 1e6));
         } else {
-          double write_rate = (double) rec_pkts_ / (double) elapsed;
+          double write_rate = (double) (rec_pkts_ * 1e6) / (double) elapsed;
           fprintf(stderr, "[Core %d] %" PRIu64 " packets read in last epoch "
                   "(%" PRIu64 " secs, %lf pkts/s)...\n", core_,  rec_pkts_, 
                   elapsed, write_rate);
@@ -78,6 +80,12 @@ class netplay_writer {
     struct timeval t;
     gettimeofday(&t, NULL);
     return t.tv_sec;
+  }
+
+  inline uint64_t curusec() {
+    using namespace ::std::chrono;
+    auto ts = steady_clock::now().time_since_epoch();
+    return duration_cast<std::chrono::microseconds>(ts).count();
   }
 
   void process_batch(struct rte_mbuf** pkts, uint16_t cnt) {
