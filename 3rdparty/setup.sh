@@ -1,10 +1,10 @@
 #!/bin/sh
 set -e
 
-thrid_party="`dirname "$0"`"
-thrid_party="`cd "$thrid_party"; pwd`"
+third_party="`dirname "$0"`"
+third_party="`cd "$thrid_party"; pwd`"
 
-echo "Working directory: $thrid_party"
+echo "Working directory: $third_party"
 
 # Upgrade packages
 sudo apt-get update
@@ -22,8 +22,8 @@ sudo apt-get install -y linux-generic linux-headers-generic linux-virtual \
 num_cores=`cat /proc/cpuinfo | grep processor | wc -l`
 
 # Download DPDK
-cd $thrid_party
-export DPDK_DIR=$thrid_party/dpdk-16.07
+cd $third_party
+export DPDK_DIR=$third_party/dpdk-16.07
 echo "DPDK_DIR=$DPDK_DIR"
 if [ ! -d "$DPDK_DIR" ]; then
   echo "Downloading DPDK..."
@@ -39,16 +39,25 @@ cd $DPDK_BUILD
 sudo make -j${num_cores}
 
 # Build OVS
-cd $thrid_party
-git clone https://github.com/openvswitch/ovs.git
+cd $third_party
+export OVS_DIR=$third_party/ovs
+echo "OVS_DIR=$OVS_DIR"
+if [ ! -d "$OVS_DIR" ]; then
+  git clone https://github.com/openvswitch/ovs.git
+fi
 cd ovs/
 $( utilities/ovs-dev.py env )
 ./utilities/ovs-dev.py --O3 --Ofast --with-dpdk=$DPDK_BUILD conf make
 
 # Build Thrift
-cd $thrid_party
-git clone https://git-wip-us.apache.org/repos/asf/thrift.git
+cd $third_party
+export THRIFT_DIR=$third_party/thrift
+echo "THRIFT_DIR=$THRIFT_DIR"
+if [ ! -d "$THRIFT_DIR" ]; then
+  git clone https://git-wip-us.apache.org/repos/asf/thrift.git
+fi
 cd thrift
 ./bootstrap.sh
-./configure --with-lua=no
+./configure --with-lua=no --prefix="$THRIFT_DIR/build"
 make -j${num_cores}
+make install
