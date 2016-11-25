@@ -17,7 +17,7 @@ namespace netplay {
 #define BATCH_SIZE        32
 #define REFRESH_INTERVAL  33554432000ULL
 
-void print_pkt(const unsigned char* buf, uint16_t len, token_list& tokens) {
+void print_pkt(const unsigned char* buf, uint16_t len, slog::token_list& tokens) {
   fprintf(stderr, "[Len: %u, ", len);
   for (uint16_t i = 0; i < len; i++)
     fprintf(stderr, "%x ", buf[i]);
