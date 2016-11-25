@@ -54,6 +54,7 @@ void print_record(const unsigned char* buf, uint16_t len, token_list& tokens) {
   fprintf(stderr, "; token-list: ");
   for (auto& token: tokens)
     fprintf(stderr, "%u:%" PRIu64 " ", token.index_id(), token.data());
+  fprintf(stderr, "]\n");
 }
 
 class log_store {
