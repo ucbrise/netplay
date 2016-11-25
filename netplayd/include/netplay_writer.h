@@ -50,7 +50,7 @@ class netplay_writer {
       rec_pkts_ += recv;
       req_pkts_ += BATCH_SIZE;
 
-      if (req_pkts_ == REFRESH_INTERVAL || rec_pkts_ == REPORT_INTERVAL) {
+      if (req_pkts_ >= REFRESH_INTERVAL || rec_pkts_ >= REPORT_INTERVAL) {
         uint64_t elapsed = cursec() - epoch;
         epoch = cursec();
         if (rec_pkts_ == 0) {
