@@ -26,5 +26,15 @@ cd ovs/
 $( utilities/ovs-dev.py env )
 ./utilities/ovs-dev.py --O3 --Ofast --with-dpdk=$DPDK_BUILD conf make
 
+# Install Thrift
+cd /home/vagrant
+git clone https://git-wip-us.apache.org/repos/asf/thrift.git
+cd thrift
+./bootstrap.sh
+./configure --with-lua=no
+make -j${num_cores}
+make install
+cd ..
+
 # Switch ownership of $HOME back to vagrant
 chown -R vagrant:vagrant /home/vagrant
