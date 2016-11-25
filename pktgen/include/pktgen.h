@@ -65,8 +65,9 @@ class packet_generator {
         sent_pkts_ += vport_->send_pkts(pkts_, RTE_BURST_SIZE);
 
       if ((now = cursec()) - epoch >= REPORT_INTERVAL_SECS) {
-        fprintf(stderr, "[Core %d] %" PRIu64 " packets sent in %" PRIu64 " secs\n",
-                core_, sent_pkts_, now - start);
+        double pkt_rate = (double) sent_pkts_ / (double) (now - start);
+        fprintf(stderr, "[Core %d] Packet rate = %lf\n",
+                core_, pkt_rate);
         epoch = now;
       }
     }
