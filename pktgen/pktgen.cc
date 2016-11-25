@@ -112,7 +112,7 @@ int main(int argc, char** argv) {
     return -1;
   }
 
-  fprintf(stderr, "rate_limit=%" PRIu64 ", time_limit=" PRIu64 "\n",
+  fprintf(stderr, "rate_limit=%" PRIu64 ", time_limit=%" PRIu64 "\n",
           rate_limit, time_limit);
 
   char *iface = strdup(argv[optind]);
