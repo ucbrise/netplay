@@ -15,7 +15,7 @@
 namespace netplay {
 
 #define BATCH_SIZE        32
-#define REFRESH_INTERVAL  33554432000ULL
+#define REFRESH_INTERVAL  3355443200ULL
 
 void print_pkt(const unsigned char* buf, uint16_t len, slog::token_list& tokens) {
   fprintf(stderr, "[Len: %u, ", len);
@@ -53,15 +53,14 @@ class netplay_writer {
         epoch = cursec();
         if (rec_pkts_ == 0) {
           fprintf(stderr, "[Core %d] WARN: No packets read in last refresh "
-                  "interval (%llu batches, %" PRIu64 " secs)...\n", core_,
-                  REFRESH_INTERVAL / BATCH_SIZE, elapsed);
+                  "interval (%" PRIu64 " secs)...\n", core_, elapsed);
         } else {
           double write_rate = (double) rec_pkts_ / (double) elapsed;
           fprintf(stderr, "[Core %d] %" PRIu64 " packets read in last refresh "
-                  "interval (%llu batches, %" PRIu64 " secs, %lf pkts/s)...\n",
-                  core_, rec_pkts_, REFRESH_INTERVAL / BATCH_SIZE, elapsed, 
-                  write_rate);
+                  "interval (%" PRIu64 " secs, %lf pkts/s)...\n", core_, 
+                  rec_pkts_, elapsed, write_rate);
         }
+        fflush(stderr);
         req_pkts_ = 0;
         rec_pkts_ = 0;
       }
