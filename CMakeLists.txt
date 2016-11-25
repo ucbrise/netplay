@@ -15,6 +15,7 @@ set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake-modules)
 
 add_subdirectory(netplayd)
 add_subdirectory(pktgen)
+add_subdirectory(thrift)
 
 # Testing framework
 # Build google testing framework
