@@ -55,14 +55,15 @@ class netplay_writer {
       if (req_pkts_ >= REFRESH_INTERVAL || rec_pkts_ >= REPORT_INTERVAL) {
         uint64_t elapsed = curusec() - epoch;
         epoch = curusec();
+        uint64_t elapsed_sec = (elapsed / 1e6);
         if (rec_pkts_ == 0) {
           fprintf(stderr, "[Core %d] WARN: No packets read since last epoch "
-                  "(%" PRIu64 " secs)...\n", core_, (elapsed / 1e6));
+                  "(%" PRIu64 " secs)...\n", core_, elapsed_sec);
         } else {
           double write_rate = (double) (rec_pkts_ * 1e6) / (double) elapsed;
           fprintf(stderr, "[Core %d] %" PRIu64 " packets read in last epoch "
                   "(%" PRIu64 " secs, %lf pkts/s)...\n", core_,  rec_pkts_, 
-                  elapsed, write_rate);
+                  elapsed_sec, write_rate);
         }
         fflush(stderr);
         req_pkts_ = 0;
