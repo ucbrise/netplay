@@ -60,7 +60,7 @@ class log_store {
      */
     handle(log_store& base, uint64_t request_batch_size = 32,
            uint64_t data_block_size = 32 * 40)
-        : base_(base) {
+      : base_(base) {
       id_block_size_ = request_batch_size;
       remaining_ids_ = 0;
       cur_id_ = 0;
@@ -181,14 +181,6 @@ class log_store {
       return base_.num_records();
     }
 
-    /** Atomically get the size of the currently readable portion of the log-store.
-     *
-     * @return The size in bytes of the currently readable portion of the log-store.
-     */
-    uint64_t size() const {
-      return base_.size();
-    }
-
     /** Get storage statistics
      *
      * @param storage_stats The storage structure which will be populated with
@@ -254,22 +246,22 @@ class log_store {
    */
   uint32_t add_index(uint32_t token_length) {
     switch (token_length) {
-      case 1:
-        return OFFSET1 + idx1_->push_back(new __index1);
-      case 2:
-        return OFFSET2 + idx2_->push_back(new __index2);
-      case 3:
-        return OFFSET3 + idx3_->push_back(new __index3);
-      case 4:
-        return OFFSET4 + idx4_->push_back(new __index4);
-      case 5:
-        return OFFSET5 + idx5_->push_back(new __index5);
-      case 6:
-        return OFFSET6 + idx6_->push_back(new __index6);
-      case 7:
-        return OFFSET7 + idx7_->push_back(new __index7);
-      case 8:
-        return OFFSET8 + idx8_->push_back(new __index8);
+    case 1:
+      return OFFSET1 + idx1_->push_back(new __index1);
+    case 2:
+      return OFFSET2 + idx2_->push_back(new __index2);
+    case 3:
+      return OFFSET3 + idx3_->push_back(new __index3);
+    case 4:
+      return OFFSET4 + idx4_->push_back(new __index4);
+    case 5:
+      return OFFSET5 + idx5_->push_back(new __index5);
+    case 6:
+      return OFFSET6 + idx6_->push_back(new __index6);
+    case 7:
+      return OFFSET7 + idx7_->push_back(new __index7);
+    case 8:
+      return OFFSET8 + idx8_->push_back(new __index8);
     }
 
     return 0;
@@ -422,46 +414,46 @@ class log_store {
         /* Query relevant index */
         std::unordered_set<uint64_t> filter_res;
         switch (idx) {
-          case 1: {
-            filter(filter_res, idx1_->at(off), basic.token_beg(),
-                   basic.token_end(), max_rid, conjunction_results);
-            break;
-          }
-          case 2: {
-            filter(filter_res, idx2_->at(off), basic.token_beg(),
-                   basic.token_end(), max_rid, conjunction_results);
-            break;
-          }
-          case 4: {
-            filter(filter_res, idx3_->at(off), basic.token_beg(),
-                   basic.token_end(), max_rid, conjunction_results);
-            break;
-          }
-          case 8: {
-            filter(filter_res, idx4_->at(off), basic.token_beg(),
-                   basic.token_end(), max_rid, conjunction_results);
-            break;
-          }
-          case 16: {
-            filter(filter_res, idx5_->at(off), basic.token_beg(),
-                   basic.token_end(), max_rid, conjunction_results);
-            break;
-          }
-          case 32: {
-            filter(filter_res, idx6_->at(off), basic.token_beg(),
-                   basic.token_end(), max_rid, conjunction_results);
-            break;
-          }
-          case 64: {
-            filter(filter_res, idx7_->at(off), basic.token_beg(),
-                   basic.token_end(), max_rid, conjunction_results);
-            break;
-          }
-          case 128: {
-            filter(filter_res, idx8_->at(off), basic.token_beg(),
-                   basic.token_end(), max_rid, conjunction_results);
-            break;
-          }
+        case 1: {
+          filter(filter_res, idx1_->at(off), basic.token_beg(),
+                 basic.token_end(), max_rid, conjunction_results);
+          break;
+        }
+        case 2: {
+          filter(filter_res, idx2_->at(off), basic.token_beg(),
+                 basic.token_end(), max_rid, conjunction_results);
+          break;
+        }
+        case 4: {
+          filter(filter_res, idx3_->at(off), basic.token_beg(),
+                 basic.token_end(), max_rid, conjunction_results);
+          break;
+        }
+        case 8: {
+          filter(filter_res, idx4_->at(off), basic.token_beg(),
+                 basic.token_end(), max_rid, conjunction_results);
+          break;
+        }
+        case 16: {
+          filter(filter_res, idx5_->at(off), basic.token_beg(),
+                 basic.token_end(), max_rid, conjunction_results);
+          break;
+        }
+        case 32: {
+          filter(filter_res, idx6_->at(off), basic.token_beg(),
+                 basic.token_end(), max_rid, conjunction_results);
+          break;
+        }
+        case 64: {
+          filter(filter_res, idx7_->at(off), basic.token_beg(),
+                 basic.token_end(), max_rid, conjunction_results);
+          break;
+        }
+        case 128: {
+          filter(filter_res, idx8_->at(off), basic.token_beg(),
+                 basic.token_end(), max_rid, conjunction_results);
+          break;
+        }
         }
         /* Stop this sequence of conjunctions if filter results are empty */
         if (filter_res.empty())
@@ -540,38 +532,38 @@ class log_store {
       /* Update relevant index */
       uint64_t key = token.data();
       switch (idx) {
-        case 1: {
-          idx1_->at(off)->add_entry(key, record_id);
-          break;
-        }
-        case 2: {
-          idx2_->at(off)->add_entry(key, record_id);
-          break;
-        }
-        case 4: {
-          idx3_->at(off)->add_entry(key, record_id);
-          break;
-        }
-        case 8: {
-          idx4_->at(off)->add_entry(key, record_id);
-          break;
-        }
-        case 16: {
-          idx5_->at(off)->add_entry(key, record_id);
-          break;
-        }
-        case 32: {
-          idx6_->at(off)->add_entry(key, record_id);
-          break;
-        }
-        case 64: {
-          idx7_->at(off)->add_entry(key, record_id);
-          break;
-        }
-        case 128: {
-          idx8_->at(off)->add_entry(key, record_id);
-          break;
-        }
+      case 1: {
+        idx1_->at(off)->add_entry(key, record_id);
+        break;
+      }
+      case 2: {
+        idx2_->at(off)->add_entry(key, record_id);
+        break;
+      }
+      case 4: {
+        idx3_->at(off)->add_entry(key, record_id);
+        break;
+      }
+      case 8: {
+        idx4_->at(off)->add_entry(key, record_id);
+        break;
+      }
+      case 16: {
+        idx5_->at(off)->add_entry(key, record_id);
+        break;
+      }
+      case 32: {
+        idx6_->at(off)->add_entry(key, record_id);
+        break;
+      }
+      case 64: {
+        idx7_->at(off)->add_entry(key, record_id);
+        break;
+      }
+      case 128: {
+        idx8_->at(off)->add_entry(key, record_id);
+        break;
+      }
       }
     }
   }
