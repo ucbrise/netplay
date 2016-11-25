@@ -18,8 +18,8 @@ CORE0=$((MASTER_LCORE + 1))
 #CORE1=$((MASTER_LCORE + 2))
 PMD_MASK=$(printf "0x%x" $((2**(CORE0))))
 
-IFACE1=${2-"0000:00:08.0"}
-IFACE2=${3-"0000:00:09.0"}
+#IFACE1=${2-"0000:00:08.0"}
+#IFACE2=${3-"0000:00:09.0"}
 
 pushd $OVS_HOME
 $( $OVS_HOME/utilities/ovs-dev.py env )
@@ -34,9 +34,9 @@ ovs-vsctl set Open . other_config:n-handler-threads=1
 ovs-vsctl set Open . other_config:n-revalidator-threads=1
 ovs-vsctl set Open . other_config:max-idle=10000
 
-iface="dpdk0"
-echo "Setting up physical interface ${iface}"
-ovs-vsctl add-port b ${iface} -- set Interface ${iface} type=dpdk
+# iface="dpdk0"
+# echo "Setting up physical interface ${iface}"
+# ovs-vsctl add-port b ${iface} -- set Interface ${iface} type=dpdk
 
 # iface="dpdk1"
 # echo "Setting up physical interface ${iface}"
@@ -49,9 +49,9 @@ ovs-vsctl add-port b ${iface} -- set Interface ${iface} type=dpdkr
 ovs-ofctl del-flows b
 
 # Reroute traffic from dpdk0 -> dpdkr0
-src_port=1
-dst_port=2
-echo "ovs-ofctl add-flow b in_port=${src_port},actions=output:${dst_port}"
-ovs-ofctl add-flow b in_port=${src_port},actions=output:${dst_port}
-
+# src_port=1
+# dst_port=2
+# echo "ovs-ofctl add-flow b in_port=${src_port},actions=output:${dst_port}"
+# ovs-ofctl add-flow b in_port=${src_port},actions=output:${dst_port}
+ovs-ofctl add-flow b in_port=1,actions=in_port
 # Mirror dpdk1 -> dpdkr0
