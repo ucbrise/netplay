@@ -33,20 +33,6 @@ class parse_exception : public std::exception {
   const std::string& msg_;
 };
 
-class lex_exception : public std::exception {
- public:
-  lex_exception(const std::string& msg)
-      : msg_(msg) {
-  }
-
-  const char* what() const noexcept {
-    return msg_.c_str();
-  }
-
- private:
-  const std::string& msg_;
-};
-
 struct lex_token {
   lex_token(const int i, const std::string& val)
       : id(i),
@@ -102,13 +88,13 @@ class lexer {
         return lex_token(END, "");
       case '|': {
         if (stream_.get() != '|')
-          throw lex_exception(
+          throw parse_exception(
               "Invalid token starting with |; did you mean ||?");
         return lex_token(OR, "||");
       }
       case '&': {
         if (stream_.get() != '&')
-          throw lex_exception(
+          throw parse_exception(
               "Invalid token starting with &; did you mean &&?");
         return lex_token(AND, "&&");
       }
@@ -130,7 +116,7 @@ class lexer {
         return lex_token(RIGHT, ")");
       case '=': {
         if (stream_.get() != '=')
-          throw lex_exception(
+          throw parse_exception(
               "Invalid token starting with =; did you mean ==?");
         return lex_token(OPERATOR, "==");
       }
@@ -148,7 +134,7 @@ class lexer {
       }
       default: {
         if (!opvalid(c))
-          throw lex_exception("All operands must conform to [a-zA-Z0-9_.]+");
+          throw parse_exception("All operands must conform to [a-zA-Z0-9_.]+");
 
         if (c == 'i') {
           if (stream_.get() == 'n' && iswspace(stream_.peek()))
