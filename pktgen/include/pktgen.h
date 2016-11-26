@@ -32,7 +32,7 @@ namespace pktgen {
 #define RTE_BURST_SIZE          32
 #define HEADER_SIZE             54
 
-#define REPORT_INTERVAL         10000000ULL
+#define REPORT_INTERVAL         100000000ULL
 
 template<typename iface_init>
 class packet_generator {
@@ -56,19 +56,18 @@ class packet_generator {
       fprintf(stderr, "Error allocating packets %d\n", ret);
       exit(-1);
     }
-
-    uint64_t start = cursec();
-    while (time_limit_ == 0 || cursec() - start < time_limit_) {
+    init_pktbuf();
+    uint64_t start = curusec();
+    while (time_limit_ == 0 || curusec() - start < time_limit_) {
       update_pktbuf();
       if (rate_ == 0 || bucket_.consume(RTE_BURST_SIZE))
         sent_pkts_ += vport_->send_pkts(pkts_, RTE_BURST_SIZE);
 
       if (sent_pkts_ >= REPORT_INTERVAL) {
-        uint64_t now = cursec();
+        uint64_t now = curusec();
         tot_sent_pkts_ += sent_pkts_;
-        double pkt_rate = (double) tot_sent_pkts_ / (double) (now - start);
-        fprintf(stderr, "[Core %d] Packet rate = %lf\n",
-                core_, pkt_rate);
+        double pkt_rate = (double) (tot_sent_pkts_ * 1e6) / (double) (now - start);
+        fprintf(stderr, "[Core %d] Packet rate = %lf\n", core_, pkt_rate);
         fflush(stderr);
         sent_pkts_ = 0;
       }
@@ -80,11 +79,13 @@ class packet_generator {
   }
 
  private:
-  uint64_t cursec() {
-    return std::time(NULL);
+  inline uint64_t curusec() {
+    using namespace ::std::chrono;
+    auto ts = steady_clock::now().time_since_epoch();
+    return duration_cast<std::chrono::microseconds>(ts).count();
   }
 
-  void update_pktbuf() {
+  void init_pktbuf() {
     // Generate random packets
     for (int i = 0; i < RTE_BURST_SIZE; i++) {
       struct ether_hdr* eth = rte_pktmbuf_mtod(pkts_[i], struct ether_hdr*);
@@ -93,9 +94,24 @@ class packet_generator {
       eth->ether_type = rte_cpu_to_be_16(0x0800);
 
       struct ipv4_hdr *ip = (struct ipv4_hdr *) (eth + 1);
+      ip->src_addr = 0;
+      ip->dst_addr = 0;
+      ip->next_proto_id = IPPROTO_TCP;
+
+      struct tcp_hdr *tcp = (struct tcp_hdr *) (ip + 1);
+      tcp->src_port = 0;
+      tcp->dst_port = 0;
+    }
+  }
+
+  void update_pktbuf() {
+    // Generate random packets
+    for (int i = 0; i < RTE_BURST_SIZE; i++) {
+      struct ether_hdr* eth = rte_pktmbuf_mtod(pkts_[i], struct ether_hdr*);
+
+      struct ipv4_hdr *ip = (struct ipv4_hdr *) (eth + 1);
       ip->src_addr = rand() % 256;
       ip->dst_addr = rand() % 256;
-      ip->next_proto_id = IPPROTO_TCP;
 
       struct tcp_hdr *tcp = (struct tcp_hdr *) (ip + 1);
       tcp->src_port = rand() % 10;
