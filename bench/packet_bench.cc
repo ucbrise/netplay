@@ -158,11 +158,10 @@ class packet_loader {
         double throughput = 0;
         fprintf(stderr, "Starting benchmark.\n");
         try {
-          uint64_t total_ops = 0;
           timestamp_t start = get_timestamp();
           while (limiter->local_ops() < thread_ops) {
             set_tokens(tokens, idx);
-            total_ops = limiter->insert_packet(datas_[idx], datalens_[idx], tokens);
+            limiter->insert_packet(datas_[idx], datalens_[idx], tokens);
             idx++;
           }
           timestamp_t end = get_timestamp();
@@ -186,6 +185,8 @@ class packet_loader {
       CPU_SET(i, &cpuset);
       int rc = pthread_setaffinity_np(workers.back().native_handle(),
                                       sizeof(cpu_set_t), &cpuset);
+      if (rc != 0)
+        fprintf(stderr, "Error calling pthread_setaffinity_np: %d\n", rc);
     }
 
 #ifdef MEASURE_CPU
