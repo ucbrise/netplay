@@ -25,9 +25,9 @@ static const uint32_t prefix_mask[33] = {
 
 class query_utils {
  public:
-  uint32_t now = UINT32_MAX;
+  static uint32_t now = UINT32_MAX;
 
-  static filter_query expression_to_filter_query(packet_store::handle* h, const std::string& exp) {
+  static slog::filter_query expression_to_filter_query(packet_store::handle* h, const std::string& exp) {
     now = std::time(NULL);
 
   }
@@ -93,7 +93,7 @@ class query_utils {
 
   static uint32_t ip_string_to_uint32(const char* ip_string) {
     unsigned char ipbytes[4];
-    sscanf(ip_string, "%uhh.%uhh.%uhh.%uhh", &ipbytes[3], &ipbytes[2], &ipbytes[1], &ipbytes[0]);
+    sscanf(ip_string, "%hhu.%hhu.%hhu.%hhu", &ipbytes[3], &ipbytes[2], &ipbytes[1], &ipbytes[0]);
     return ipbytes[0] | ipbytes[1] << 8 | ipbytes[2] << 16 | ipbytes[3] << 24;
   }
 
@@ -138,7 +138,7 @@ class query_utils {
           throw parse_exception("Cannot see into the future");
       } else if (time_string[4] == '-') {
         try {
-          uint32_t secs = std::stoi(time_string.subtr(5));
+          uint32_t secs = std::stoi(time_string.substr(5));
           time = now - secs;
         } catch (std::exception& e) {
           throw parse_exception("Malformed time value; format: now[-value]");  
@@ -155,20 +155,20 @@ class query_utils {
     }
 
     if (op == "==") {
-      return basic_filter(index_id, time, time);
+      return slog::basic_filter(index_id, time, time);
     } else if (op == "!=") {
-      return basic_filter(index_id, time, time);
+      return slog::basic_filter(index_id, time, time);
     } else if (op == "<") {
-      return basic_filter(index_id, 0, time - 1);
+      return slog::basic_filter(index_id, 0, time - 1);
     } else if (op == "<=") {
-      return basic_filter(index_id, 0, time);
+      return slog::basic_filter(index_id, 0, time);
     } else if (op == ">") {
-      return basic_filter(index_id, time - 1, now);
+      return slog::basic_filter(index_id, time - 1, now);
     } else if (op == ">=") {
-      return basic_filter(index_id, time, now);
+      return slog::basic_filter(index_id, time, now);
     }
   }
-}
+};
 
 }
 
