@@ -90,6 +90,36 @@ void print_expression(expression* exp) {
   }
 }
 
+void free_expression(expression* exp) {
+  switch (exp->type) {
+    case expression_type::PREDICATE: {
+      predicate *p = (predicate*) exp;
+      delete p;
+      break;
+    }
+    case expression_type::NOT: {
+      negation *n = (negation*) exp;
+      free_expression(n->child);
+      delete n;
+      break;
+    }
+    case expression_type::AND: {
+      conjunction *c = (conjunction*) exp;
+      for (size_t i = 0; i < c->children.size(); i++)
+        free_expression(c->children[i]);
+      delete c;
+      break;
+    }
+    case expression_type::OR: {
+      disjunction *d = (disjunction*) exp;
+      for (size_t i = 0; i < d->children.size(); i++)
+        free_expression(d->children[i]);
+      delete d;
+      break;
+    }
+  }
+}
+
 }
 
 #endif  // EXPRESSION_H_

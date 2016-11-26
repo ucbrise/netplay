@@ -27,7 +27,8 @@ class query_utils {
  public:
   static uint32_t now;
 
-  static slog::filter_query expression_to_filter_query(packet_store::handle* h, const std::string& exp) {
+  static slog::filter_query expression_to_filter_query(packet_store::handle* h,
+      const std::string& exp) {
     now = std::time(NULL);
     slog::filter_query query;
     parser p(exp);
@@ -40,26 +41,37 @@ class query_utils {
       slog::filter_conjunction conj;
       conjunction* c = (conjunction*) e;
       for (expression* child : c->children) {
-        if (child->type != expression_type::PREDICATE)
+        if (child->type != expression_type::PREDICATE) {
+          free_expression(e);
           throw parse_exception("Filter expression not in DNF");
+        }
         conj.push_back(predicate_to_basic_filter(h, (predicate*) child));
       }
       query.push_back(conj);
     } else if (e->type == expression_type::OR) {
       disjunction *d = (disjunction*) e;
-      for (expression* dchild: d->children) {
-        if (dchild->type != expression_type::AND)
+      for (expression* dchild : d->children) {
+        if (dchild->type != expression_type::AND) {
+          free_expression(e);
           throw parse_exception("Filter expression not in DNF");
+        }
         slog::filter_conjunction conj;
         conjunction* c = (conjunction*) dchild;
         for (expression* cchild : c->children) {
-          if (cchild->type != expression_type::PREDICATE)
+          if (cchild->type != expression_type::PREDICATE) {
+            free_expression(e);
             throw parse_exception("Filter expression not in DNF");
+          }
           conj.push_back(predicate_to_basic_filter(h, (predicate*) cchild));
         }
         query.push_back(conj);
       }
     }
+    
+    free_expression(e);
+
+    // TODO: reduce conjunctions
+    
     return query;
   }
 
@@ -98,7 +110,7 @@ class query_utils {
       uint32_t ip = ip_string_to_uint32(ip_string.c_str());
       return slog::basic_filter(index_id, ip, ip);
     } else {
-      throw parse_exception("IP ranges are specified with \'in\' operator and prefix notation");
+      throw parse_exception("Specify IP ranges with prefix notation");
     }
   }
 
@@ -122,10 +134,10 @@ class query_utils {
                                          ip & prefix_mask[32]);
   }
 
-  static uint32_t ip_string_to_uint32(const char* ip_string) {
-    unsigned char ipbytes[4];
-    sscanf(ip_string, "%hhu.%hhu.%hhu.%hhu", &ipbytes[3], &ipbytes[2], &ipbytes[1], &ipbytes[0]);
-    return ipbytes[0] | ipbytes[1] << 8 | ipbytes[2] << 16 | ipbytes[3] << 24;
+  static uint32_t ip_string_to_uint32(const char* ip) {
+    unsigned char tmp[4];
+    sscanf(ip, "%hhu.%hhu.%hhu.%hhu", &tmp[3], &tmp[2], &tmp[1], &tmp[0]);
+    return tmp[0] | tmp[1] << 8 | tmp[2] << 16 | tmp[3] << 24;
   }
 
   static slog::basic_filter port_filter(uint32_t index_id, const std::string& op,
@@ -150,7 +162,7 @@ class query_utils {
     } else if (op == ">=") {
       return slog::basic_filter(index_id, port, UINT16_MAX);
     } else {
-      throw parse_exception("Port ranges are expressed with <,>,<=,>= operators");
+      throw parse_exception("Specify port ranges with <,>,<=,>= operators");
     }
   }
 
@@ -197,6 +209,8 @@ class query_utils {
       return slog::basic_filter(index_id, time - 1, now);
     } else if (op == ">=") {
       return slog::basic_filter(index_id, time, now);
+    } else {
+      throw parse_exception("Specify time ranges with <,>,<=,>= operators");
     }
   }
 };
