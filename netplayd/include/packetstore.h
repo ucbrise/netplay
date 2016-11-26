@@ -44,6 +44,26 @@ class packet_store {
       list.push_back(slog::token_t(store_.timestamp_idx_id_, timestamp));
     }
 
+    uint32_t srcip_idx() {
+      return srcip_idx_id_;
+    }
+
+    uint32_t dstip_idx() {
+      return dstip_idx_id_;
+    }
+
+    uint32_t srcport_idx() {
+      return srcport_idx_id_;
+    }
+
+    uint32_t dstport_idx() {
+      return dstport_idx_id_;
+    }
+
+    uint32_t timestamp_idx() {
+      return timestamp_idx_id_;
+    }
+
    private:
     packet_store& store_;
   };
