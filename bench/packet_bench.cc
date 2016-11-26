@@ -250,10 +250,10 @@ int main(int argc, char** argv) {
   }
 
   if (rate_limit == 0) {
-    packet_loader<> loader();
+    packet_loader<> loader;
     loader.load_packets(num_threads, 0);
   } else {
-    packet_loader<rate_limiter> loader();
+    packet_loader<rate_limiter> loader;
     loader.load_packets(num_threads, rate_limit);
   }
 
