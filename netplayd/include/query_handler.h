@@ -2,6 +2,7 @@
 
 #include "NetPlayQueryService.h"
 #include "packetstore.h"
+#include "query_utils.h"
 #include "netplay_types.h"
 
 namespace netplay {
