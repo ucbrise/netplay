@@ -123,8 +123,9 @@ class NetPlayQueryService_filter_pargs {
 };
 
 typedef struct _NetPlayQueryService_filter_result__isset {
-  _NetPlayQueryService_filter_result__isset() : success(false) {}
+  _NetPlayQueryService_filter_result__isset() : success(false), e(false) {}
   bool success :1;
+  bool e :1;
 } _NetPlayQueryService_filter_result__isset;
 
 class NetPlayQueryService_filter_result {
@@ -137,14 +138,19 @@ class NetPlayQueryService_filter_result {
 
   virtual ~NetPlayQueryService_filter_result() throw();
   std::set<int64_t>  success;
+  QueryException e;
 
   _NetPlayQueryService_filter_result__isset __isset;
 
   void __set_success(const std::set<int64_t> & val);
 
+  void __set_e(const QueryException& val);
+
   bool operator == (const NetPlayQueryService_filter_result & rhs) const
   {
     if (!(success == rhs.success))
+      return false;
+    if (!(e == rhs.e))
       return false;
     return true;
   }
@@ -160,8 +166,9 @@ class NetPlayQueryService_filter_result {
 };
 
 typedef struct _NetPlayQueryService_filter_presult__isset {
-  _NetPlayQueryService_filter_presult__isset() : success(false) {}
+  _NetPlayQueryService_filter_presult__isset() : success(false), e(false) {}
   bool success :1;
+  bool e :1;
 } _NetPlayQueryService_filter_presult__isset;
 
 class NetPlayQueryService_filter_presult {
@@ -170,6 +177,7 @@ class NetPlayQueryService_filter_presult {
 
   virtual ~NetPlayQueryService_filter_presult() throw();
   std::set<int64_t> * success;
+  QueryException e;
 
   _NetPlayQueryService_filter_presult__isset __isset;
 

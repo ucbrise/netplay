@@ -117,19 +117,27 @@ uint32_t NetPlayQueryService_filter_result::read(::apache::thrift::protocol::TPr
         if (ftype == ::apache::thrift::protocol::T_SET) {
           {
             this->success.clear();
-            uint32_t _size14;
-            ::apache::thrift::protocol::TType _etype17;
-            xfer += iprot->readSetBegin(_etype17, _size14);
-            uint32_t _i18;
-            for (_i18 = 0; _i18 < _size14; ++_i18)
+            uint32_t _size16;
+            ::apache::thrift::protocol::TType _etype19;
+            xfer += iprot->readSetBegin(_etype19, _size16);
+            uint32_t _i20;
+            for (_i20 = 0; _i20 < _size16; ++_i20)
             {
-              int64_t _elem19;
-              xfer += iprot->readI64(_elem19);
-              this->success.insert(_elem19);
+              int64_t _elem21;
+              xfer += iprot->readI64(_elem21);
+              this->success.insert(_elem21);
             }
             xfer += iprot->readSetEnd();
           }
           this->__isset.success = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      case 1:
+        if (ftype == ::apache::thrift::protocol::T_STRUCT) {
+          xfer += this->e.read(iprot);
+          this->__isset.e = true;
         } else {
           xfer += iprot->skip(ftype);
         }
@@ -156,13 +164,17 @@ uint32_t NetPlayQueryService_filter_result::write(::apache::thrift::protocol::TP
     xfer += oprot->writeFieldBegin("success", ::apache::thrift::protocol::T_SET, 0);
     {
       xfer += oprot->writeSetBegin(::apache::thrift::protocol::T_I64, static_cast<uint32_t>(this->success.size()));
-      std::set<int64_t> ::const_iterator _iter20;
-      for (_iter20 = this->success.begin(); _iter20 != this->success.end(); ++_iter20)
+      std::set<int64_t> ::const_iterator _iter22;
+      for (_iter22 = this->success.begin(); _iter22 != this->success.end(); ++_iter22)
       {
-        xfer += oprot->writeI64((*_iter20));
+        xfer += oprot->writeI64((*_iter22));
       }
       xfer += oprot->writeSetEnd();
     }
+    xfer += oprot->writeFieldEnd();
+  } else if (this->__isset.e) {
+    xfer += oprot->writeFieldBegin("e", ::apache::thrift::protocol::T_STRUCT, 1);
+    xfer += this->e.write(oprot);
     xfer += oprot->writeFieldEnd();
   }
   xfer += oprot->writeFieldStop();
@@ -200,19 +212,27 @@ uint32_t NetPlayQueryService_filter_presult::read(::apache::thrift::protocol::TP
         if (ftype == ::apache::thrift::protocol::T_SET) {
           {
             (*(this->success)).clear();
-            uint32_t _size21;
-            ::apache::thrift::protocol::TType _etype24;
-            xfer += iprot->readSetBegin(_etype24, _size21);
-            uint32_t _i25;
-            for (_i25 = 0; _i25 < _size21; ++_i25)
+            uint32_t _size23;
+            ::apache::thrift::protocol::TType _etype26;
+            xfer += iprot->readSetBegin(_etype26, _size23);
+            uint32_t _i27;
+            for (_i27 = 0; _i27 < _size23; ++_i27)
             {
-              int64_t _elem26;
-              xfer += iprot->readI64(_elem26);
-              (*(this->success)).insert(_elem26);
+              int64_t _elem28;
+              xfer += iprot->readI64(_elem28);
+              (*(this->success)).insert(_elem28);
             }
             xfer += iprot->readSetEnd();
           }
           this->__isset.success = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      case 1:
+        if (ftype == ::apache::thrift::protocol::T_STRUCT) {
+          xfer += this->e.read(iprot);
+          this->__isset.e = true;
         } else {
           xfer += iprot->skip(ftype);
         }
@@ -1022,6 +1042,9 @@ void NetPlayQueryServiceClient::recv_filter(std::set<int64_t> & _return)
     // _return pointer has now been filled
     return;
   }
+  if (result.__isset.e) {
+    throw result.e;
+  }
   throw ::apache::thrift::TApplicationException(::apache::thrift::TApplicationException::MISSING_RESULT, "filter failed: unknown result");
 }
 
@@ -1301,6 +1324,9 @@ void NetPlayQueryServiceProcessor::process_filter(int32_t seqid, ::apache::thrif
   try {
     iface_->filter(result.success, args.query);
     result.__isset.success = true;
+  } catch (QueryException &e) {
+    result.e = e;
+    result.__isset.e = true;
   } catch (const std::exception& e) {
     if (this->eventHandler_.get() != NULL) {
       this->eventHandler_->handlerError(ctx, "NetPlayQueryService.filter");
@@ -1625,6 +1651,10 @@ void NetPlayQueryServiceConcurrentClient::recv_filter(std::set<int64_t> & _retur
         // _return pointer has now been filled
         sentry.commit();
         return;
+      }
+      if (result.__isset.e) {
+        sentry.commit();
+        throw result.e;
       }
       // in a bad state, don't commit
       throw ::apache::thrift::TApplicationException(::apache::thrift::TApplicationException::MISSING_RESULT, "filter failed: unknown result");

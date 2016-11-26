@@ -1,5 +1,5 @@
 thrift -gen cpp -out . netplay.thrift
-#rm -rf $gen/*/*skeleton*
+rm -rf *skeleton*
 
 FILES=./*.cpp
 for f in $FILES

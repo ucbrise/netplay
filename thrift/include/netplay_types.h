@@ -21,6 +21,8 @@ namespace netplay { namespace thrift {
 
 class Storage;
 
+class QueryException;
+
 typedef struct _Storage__isset {
   _Storage__isset() : dlog_size(false), olog_size(false), idx_sizes(false), stream_sizes(false) {}
   bool dlog_size :1;
@@ -80,6 +82,54 @@ class Storage {
 void swap(Storage &a, Storage &b);
 
 inline std::ostream& operator<<(std::ostream& out, const Storage& obj)
+{
+  obj.printTo(out);
+  return out;
+}
+
+typedef struct _QueryException__isset {
+  _QueryException__isset() : message(false) {}
+  bool message :1;
+} _QueryException__isset;
+
+class QueryException : public ::apache::thrift::TException {
+ public:
+
+  QueryException(const QueryException&);
+  QueryException& operator=(const QueryException&);
+  QueryException() : message() {
+  }
+
+  virtual ~QueryException() throw();
+  std::string message;
+
+  _QueryException__isset __isset;
+
+  void __set_message(const std::string& val);
+
+  bool operator == (const QueryException & rhs) const
+  {
+    if (!(message == rhs.message))
+      return false;
+    return true;
+  }
+  bool operator != (const QueryException &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const QueryException & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+  virtual void printTo(std::ostream& out) const;
+  mutable std::string thriftTExceptionMessageHolder_;
+  const char* what() const throw();
+};
+
+void swap(QueryException &a, QueryException &b);
+
+inline std::ostream& operator<<(std::ostream& out, const QueryException& obj)
 {
   obj.printTo(out);
   return out;
