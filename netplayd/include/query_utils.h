@@ -4,7 +4,7 @@
 #include <ctime>
 
 #include "filterops.h"
-#include "expressions.h"
+#include "expression.h"
 #include "parse.h"
 
 namespace netplay {
