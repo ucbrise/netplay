@@ -176,13 +176,13 @@ class packet_loader {
 
       // Create a cpu_set_t object representing a set of CPUs. Clear it and mark
       // only CPU i as set.
-      cpu_set_t cpuset;
-      CPU_ZERO(&cpuset);
-      CPU_SET(i, &cpuset);
-      int rc = pthread_setaffinity_np(workers.back().native_handle(),
-                                      sizeof(cpu_set_t), &cpuset);
-      if (rc != 0)
-        fprintf(stderr, "Error calling pthread_setaffinity_np: %d\n", rc);
+      // cpu_set_t cpuset;
+      // CPU_ZERO(&cpuset);
+      // CPU_SET(i, &cpuset);
+      // int rc = pthread_setaffinity_np(workers.back().native_handle(),
+      //                                 sizeof(cpu_set_t), &cpuset);
+      // if (rc != 0)
+      //   fprintf(stderr, "Error calling pthread_setaffinity_np: %d\n", rc);
     }
 
 #ifdef MEASURE_CPU
