@@ -44,7 +44,7 @@ class rate_limiter {
     local_ops_ = 0;
     last_ts_ = high_resolution_clock::now();
     tspec_.tv_sec = 0;
-    fprintf(stderr, "10000 ops per %" PRI64 " ns.\n", min_ns_per_10000_ops);
+    fprintf(stderr, "10000 ops per %" PRId64 " ns.\n", min_ns_per_10000_ops);
   }
 
   uint64_t insert_packet(unsigned char* data, uint16_t len, token_list& tkns) {
