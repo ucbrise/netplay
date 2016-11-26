@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 #include <stdlib.h>
-#include <sys/time.h>
+#include <ctime>
 
 #include <rte_config.h>
 #include <rte_malloc.h>
@@ -32,7 +32,7 @@ namespace pktgen {
 #define RTE_BURST_SIZE          32
 #define HEADER_SIZE             54
 
-#define REPORT_INTERVAL_SECS    10
+#define REPORT_INTERVAL         10000000ULL
 
 template<typename iface_init>
 class packet_generator {
@@ -58,13 +58,13 @@ class packet_generator {
 
     uint64_t start = cursec();
     uint64_t epoch = start;
-    uint64_t now;
     while (time_limit_ == 0 || cursec() - start < time_limit_) {
       update_pktbuf();
       if (rate_ == 0 || bucket_.consume(RTE_BURST_SIZE))
         sent_pkts_ += vport_->send_pkts(pkts_, RTE_BURST_SIZE);
 
-      if ((now = cursec()) - epoch >= REPORT_INTERVAL_SECS) {
+      if (send_pkts_ >= REPORT_INTERVAL) {
+        uint64_t now = cursec();
         double pkt_rate = (double) sent_pkts_ / (double) (now - start);
         fprintf(stderr, "[Core %d] Packet rate = %lf\n",
                 core_, pkt_rate);
@@ -80,9 +80,7 @@ class packet_generator {
 
  private:
   uint64_t cursec() {
-    struct timeval t;
-    gettimeofday(&t, NULL);
-    return t.tv_sec;
+    return std::time(NULL);
   }
 
   void update_pktbuf() {
