@@ -135,7 +135,7 @@ class packet_loader {
       sports_.push_back(rand() % 10);
       dports_.push_back(rand() % 10);
     }
-    fprintf(stderr, "Generated %zu packets.\n", num_attrs);
+    fprintf(stderr, "Generated %zu packets.\n", srcips_.size());
   }
 
   // Throughput benchmarks
