@@ -32,11 +32,11 @@ class query_utils {
     slog::filter_query query;
     parser p(exp);
     expression* e = p.parse();
-    if (e.type == expression_type::PREDICATE) {
+    if (e->type == expression_type::PREDICATE) {
       slog::filter_conjunction c;
       c.push_back(predicate_to_basic_filter(h, (predicate*) e));
       query.push_back(c);
-    } else if (e.type == expression_type::AND) {
+    } else if (e->type == expression_type::AND) {
       slog::filter_conjunction conj;
       conjunction* c = (conjunction*) e;
       for (expression* child : c->children) {
@@ -45,7 +45,7 @@ class query_utils {
         conj.push_back(predicate_to_basic_filter(h, (predicate*) child));
       }
       query.push_back(conj);
-    } else if (e.type == expression_type::OR) {
+    } else if (e->type == expression_type::OR) {
       disjunction *d = (disjunction*) e;
       for (expression* dchild: d->children) {
         if (dchild->type != expression_type::AND)
