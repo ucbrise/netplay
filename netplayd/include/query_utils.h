@@ -33,11 +33,11 @@ class query_utils {
     parser p(exp);
     expression* e = p.parse();
     if (e.type == expression_type::PREDICATE) {
-      filter_conjunction c;
+      slog::filter_conjunction c;
       c.push_back(predicate_to_basic_filter(h, (predicate*) e));
       query.push_back(c);
     } else if (e.type == expression_type::AND) {
-      filter_conjunction conj;
+      slog::filter_conjunction conj;
       conjunction* c = (conjunction*) e;
       for (expression* child : c->children) {
         if (child->type != expression_type::PREDICATE)
@@ -50,7 +50,7 @@ class query_utils {
       for (expression* dchild: d->children) {
         if (dchild->type != expression_type::AND)
           throw parse_exception("Filter expression not in DNF");
-        filter_conjunction conj;
+        slog::filter_conjunction conj;
         conjunction* c = (conjunction*) dchild;
         for (expression* cchild : c->children) {
           if (cchild->type != expression_type::PREDICATE)
