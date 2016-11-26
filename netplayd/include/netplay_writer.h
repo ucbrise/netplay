@@ -66,10 +66,11 @@ class netplay_writer {
           fprintf(stderr, "[Core %d] WARN: No packets read since last epoch "
                   "(%" PRIu64 " secs)...\n", core_, elapsed_sec);
         } else {
-          double write_rate = (double) (tot_rec_pkts_ * 1e6) / (double) elapsed_tot;
+          double write_rate = (double) (rec_pkts_ * 1e6) / (double) elapsed;
+          double write_rate_tot = (double) (tot_rec_pkts_ * 1e6) / (double) elapsed_tot;
           fprintf(stderr, "[Core %d] %" PRIu64 " packets read in last epoch "
-                  "(%" PRIu64 " secs, %lf pkts/s)...\n", core_,  rec_pkts_,
-                  elapsed_sec, write_rate);
+                  "(%" PRIu64 " secs, %lf pkts/s, tot: %lf pkts/s)...\n", 
+                  core_, rec_pkts_, elapsed_sec, write_rate, write_rate_tot);
         }
         fflush(stderr);
         req_pkts_ = 0;
@@ -91,13 +92,13 @@ class netplay_writer {
     handle_->add_dst_port(tokens_, 0);
   }
 
-  void set_tokens(token_list& tokens, uint32_t time, uint32_t srcip,
-                  uint32_t dstip, uint16_t sport, uint16_t dport) {
-    tokens[0].update_data(time);
-    tokens[1].update_data(srcip);
-    tokens[2].update_data(dstip);
-    tokens[3].update_data(sport);
-    tokens[4].update_data(dport);
+  void set_tokens(uint32_t time, uint32_t srcip, uint32_t dstip,
+                  uint16_t sport, uint16_t dport) {
+    tokens_[0].update_data(time);
+    tokens_[1].update_data(srcip);
+    tokens_[2].update_data(dstip);
+    tokens_[3].update_data(sport);
+    tokens_[4].update_data(dport);
   }
 
   inline uint64_t curusec() {
