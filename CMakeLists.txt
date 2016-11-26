@@ -18,9 +18,10 @@ set(DPDK_LIB_DIR ${PROJECT_SOURCE_DIR}/3rdparty/dpdk-16.07/build/lib)
 set(THRIFT_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/3rdparty/thrift/build/include)
 set(THRIFT_LIB_DIR ${PROJECT_SOURCE_DIR}/3rdparty/thrift/build/lib)
 
+add_subdirectory(thrift)
 add_subdirectory(netplayd)
 add_subdirectory(pktgen)
-add_subdirectory(thrift)
+add_subdirectory(bench)
 
 # Testing framework
 # Build google testing framework
