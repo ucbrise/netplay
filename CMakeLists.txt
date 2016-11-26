@@ -12,11 +12,19 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++11 -g3 -ggdb3 -Ofast -march=na
 enable_language(C)
 
 # Set 3rd party includes/libs
-set(DPDK_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/3rdparty/dpdk-16.07/build/include)
-set(DPDK_LIB_DIR ${PROJECT_SOURCE_DIR}/3rdparty/dpdk-16.07/build/lib)
+if(EXISTS ${PROJECT_SOURCE_DIR}/3rdparty/dpdk-16.07)
+	set(DPDK_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/3rdparty/dpdk-16.07/build/include)
+	set(DPDK_LIB_DIR ${PROJECT_SOURCE_DIR}/3rdparty/dpdk-16.07/build/lib)
+else()
+  message(FATAL_ERROR "Ensure DPDK is installed by runnning 3rdparty/setup.sh")
+endif()
 
-set(THRIFT_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/3rdparty/thrift/build/include)
-set(THRIFT_LIB_DIR ${PROJECT_SOURCE_DIR}/3rdparty/thrift/build/lib)
+if(EXISTS ${PROJECT_SOURCE_DIR}/3rdparty/thrift)
+  set(THRIFT_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/3rdparty/thrift/build/include)
+  set(THRIFT_LIB_DIR ${PROJECT_SOURCE_DIR}/3rdparty/thrift/build/lib)
+else()
+  message(FATAL_ERROR "Ensure Apache is installed by runnning 3rdparty/setup.sh")
+endif()
 
 add_subdirectory(thrift)
 add_subdirectory(netplayd)
@@ -25,7 +33,7 @@ add_subdirectory(bench)
 
 # Testing framework
 # Build google testing framework
-#add_subdirectory(external/gtest-1.7.0)
+#add_subdirectory(3rdparty/gtest-1.7.0)
 
 # Build and run all tests for succinct
 #add_subdirectory(test)
