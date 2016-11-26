@@ -175,7 +175,7 @@ class packet_loader {
       }));
 
       // Create a cpu_set_t object representing a set of CPUs. Clear it and mark
-      only CPU i as set.
+      // only CPU i as set.
       cpu_set_t cpuset;
       CPU_ZERO(&cpuset);
       CPU_SET(i, &cpuset);
