@@ -102,7 +102,7 @@ template<class rlimiter = rate_limiter_inf>
 class packet_loader {
  public:
   static const uint64_t kReportRecordInterval = 11111;
-  static const uint64_t kMaxNumPkts = 60 * 1e6;
+  static const uint64_t kMaxNumPkts = 600 * 1e6;
 
   packet_loader() {
     store_ = new packet_store();
@@ -125,20 +125,16 @@ class packet_loader {
     tokens[1].update_data(dstips_[idx]);
     tokens[2].update_data(sports_[idx]);
     tokens[3].update_data(dports_[idx]);
-    tokens[4].update_data(timestamps_[idx]);
+    tokens[4].update_data(std::time(NULL));
   }
 
   void generate_pkts() {
     std::string attr_line;
-    unsigned char data[PKT_LEN] = {};
-    while (timestamps_.size() < kMaxNumPkts) {
-      timestamps_.push_back(std::time(NULL));
+    while (data_.size() < kMaxNumPkts) {
       srcips_.push_back(rand() % 256);
       dstips_.push_back(rand() % 256);
       sports_.push_back(rand() % 10);
       dports_.push_back(rand() % 10);
-      datas_.push_back(data);
-      datalens_.push_back(PKT_LEN);
     }
     fprintf(stderr, "Generated %zu packets.\n", timestamps_.size());
   }
@@ -151,6 +147,7 @@ class packet_loader {
     for (uint32_t i = 0; i < num_threads; i++) {
       workers.push_back(std::thread([i, worker_rate, thread_ops, this] {
         uint64_t idx = thread_ops * i;
+        unsigned char data[PKT_LEN] = {};
         packet_store::handle* handle = store_->get_handle();
         token_list tokens;
         init_tokens(tokens, handle);
@@ -161,7 +158,7 @@ class packet_loader {
           timestamp_t start = get_timestamp();
           while (limiter->local_ops() < thread_ops) {
             set_tokens(tokens, idx);
-            limiter->insert_packet(datas_[idx], datalens_[idx], tokens);
+            limiter->insert_packet(data, PKT_LEN, tokens);
             idx++;
           }
           timestamp_t end = get_timestamp();
@@ -209,17 +206,13 @@ class packet_loader {
 #ifdef MEASURE_CPU
     cpu_measure_thread.join();
 #endif
-
   }
 
  private:
-  std::vector<uint32_t> timestamps_;
   std::vector<uint32_t> srcips_;
   std::vector<uint32_t> dstips_;
   std::vector<uint16_t> sports_;
   std::vector<uint16_t> dports_;
-  std::vector<unsigned char*> datas_;
-  std::vector<uint16_t> datalens_;
 
   packet_store *store_;
 };
