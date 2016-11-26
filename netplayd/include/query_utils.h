@@ -30,8 +30,36 @@ class query_utils {
   static slog::filter_query expression_to_filter_query(packet_store::handle* h, const std::string& exp) {
     now = std::time(NULL);
     slog::filter_query query;
-    assert(h != NULL);
-    assert(exp.size() != 0);
+    parser p(exp);
+    expression* e = p.parse();
+    if (e.type == expression_type::PREDICATE) {
+      filter_conjunction c;
+      c.push_back(predicate_to_basic_filter(h, (predicate*) e));
+      query.push_back(c);
+    } else if (e.type == expression_type::AND) {
+      filter_conjunction conj;
+      conjunction* c = (conjunction*) e;
+      for (expression* child : c->children) {
+        if (child->type != expression_type::PREDICATE)
+          throw parse_exception("Filter expression not in DNF");
+        conj.push_back(predicate_to_basic_filter(h, (predicate*) child));
+      }
+      query.push_back(conj);
+    } else if (e.type == expression_type::OR) {
+      disjunction *d = (disjunction*) e;
+      for (expression* dchild: d->children) {
+        if (dchild->type != expression_type::AND)
+          throw parse_exception("Filter expression not in DNF");
+        filter_conjunction conj;
+        conjunction* c = (conjunction*) dchild;
+        for (expression* cchild : c->children) {
+          if (cchild->type != expression_type::PREDICATE)
+            throw parse_exception("Filter expression not in DNF");
+          conj.push_back(predicate_to_basic_filter(h, (predicate*) cchild));
+        }
+        query.push_back(conj);
+      }
+    }
     return query;
   }
 
@@ -126,8 +154,8 @@ class query_utils {
     }
   }
 
-  static slog::basic_filter time_filter(uint32_t index_id, const std::string& op, 
-    const std::string& time_string) {
+  static slog::basic_filter time_filter(uint32_t index_id, const std::string& op,
+                                        const std::string& time_string) {
     size_t loc = time_string.find("now");
     uint32_t time = 0;
     if (loc != std::string::npos) {
@@ -136,7 +164,7 @@ class query_utils {
 
       if (time_string.length() == 3) {
         time = now;
-        
+
         if (op.find(">") != std::string::npos)
           throw parse_exception("Cannot see into the future");
       } else if (time_string[4] == '-') {
@@ -144,7 +172,7 @@ class query_utils {
           uint32_t secs = std::stoi(time_string.substr(5));
           time = now - secs;
         } catch (std::exception& e) {
-          throw parse_exception("Malformed time value; format: now[-value]");  
+          throw parse_exception("Malformed time value; format: now[-value]");
         }
       } else {
         throw parse_exception("Malformed time value; format: now[-value]");
