@@ -71,7 +71,7 @@ class rate_limiter {
   struct timespec tspec_;
   high_resolution_clock::time_point last_ts_;
   uint64_t local_ops_;
-  unsigned long long min_ns_per_10000_ops;
+  long long min_ns_per_10000_ops;
   packet_store::handle* handle_;
 };
 
