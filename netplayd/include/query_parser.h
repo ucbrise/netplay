@@ -1,5 +1,5 @@
-#ifndef PARSE_H_
-#define PARSE_H_
+#ifndef QUERY_PARSER_H_
+#define QUERY_PARSER_H_
 
 #include <cwctype>
 #include <cctype>
@@ -319,4 +319,4 @@ class parser {
 
 }
 
-#endif	// PARSE_H_
+#endif	// QUERY_PARSER_H_

@@ -25,11 +25,14 @@ static const uint32_t prefix_mask[33] = {
 
 class query_utils {
  public:
-  static uint32_t now = UINT32_MAX;
+  static uint32_t now;
 
   static slog::filter_query expression_to_filter_query(packet_store::handle* h, const std::string& exp) {
     now = std::time(NULL);
-
+    slog::filter_query query;
+    assert(h != NULL);
+    assert(exp.size() != 0);
+    return query;
   }
 
  private:
