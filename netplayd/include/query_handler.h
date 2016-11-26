@@ -1,4 +1,5 @@
 #include <cassert>
+#include <ctime>
 
 #include "NetPlayQueryService.h"
 #include "packetstore.h"
@@ -6,6 +7,8 @@
 #include "netplay_types.h"
 
 namespace netplay {
+
+uint32_t query_utils::now = std::time(NULL);
 
 class query_handler : virtual public thrift::NetPlayQueryServiceIf {
  public:
