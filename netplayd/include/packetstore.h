@@ -12,7 +12,7 @@ namespace netplay {
  * efficient rich semantics. See https://cs.berkeley.edu/~anuragk/netplay.pdf
  * for details.
  */
-class packet_store {
+class packet_store: public slog::log_store {
  public:
 
   /** Type definitions **/
@@ -98,11 +98,10 @@ class packet_store {
    * @return Number of packets in the packet store.
    */
   uint64_t num_pkts() {
-    return store_.num_records();
+    return num_records();
   }
 
  private:
-  slog::log_store store_;
   uint32_t srcip_idx_id_;
   uint32_t dstip_idx_id_;
   uint32_t srcport_idx_id_;
