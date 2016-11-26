@@ -1,6 +1,8 @@
 #ifndef SLOG_FILTEROPS_H_
 #define SLOG_FILTEROPS_H_
 
+#include <inttypes.h>
+
 namespace slog {
 
 struct basic_filter {
