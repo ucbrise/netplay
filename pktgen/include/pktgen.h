@@ -46,6 +46,7 @@ class packet_generator {
     rate_ = rate;
     time_limit_ = time_limit;
     sent_pkts_ = 0;
+    tot_sent_pkts_ = 0;
     core_ = core;
   }
 
@@ -63,12 +64,14 @@ class packet_generator {
       if (rate_ == 0 || bucket_.consume(RTE_BURST_SIZE))
         sent_pkts_ += vport_->send_pkts(pkts_, RTE_BURST_SIZE);
 
-      if (send_pkts_ >= REPORT_INTERVAL) {
+      if (sent_pkts_ >= REPORT_INTERVAL) {
         uint64_t now = cursec();
-        double pkt_rate = (double) sent_pkts_ / (double) (now - start);
+        tot_sent_pkts_ += sent_pkts_;
+        double pkt_rate = (double) tot_sent_pkts_ / (double) (now - start);
         fprintf(stderr, "[Core %d] Packet rate = %lf\n",
                 core_, pkt_rate);
         fflush(stderr);
+        sent_pkts_ = 0;
         epoch = now;
       }
     }
@@ -108,6 +111,7 @@ class packet_generator {
   uint64_t time_limit_;
   token_bucket bucket_;
   uint64_t sent_pkts_;
+  uint64_t tot_sent_pkts_;
   int core_;
 };
 
