@@ -102,7 +102,7 @@ template<class rlimiter = rate_limiter_inf>
 class packet_loader {
  public:
   static const uint64_t kReportRecordInterval = 11111;
-  static const uint64_t kMaxNumPkts = 600 * 1e6;
+  static const uint64_t kMaxNumPkts = 300 * 1e6;
 
   packet_loader() {
     store_ = new packet_store();
@@ -175,14 +175,14 @@ class packet_loader {
       }));
 
       // Create a cpu_set_t object representing a set of CPUs. Clear it and mark
-      // only CPU i as set.
-      // cpu_set_t cpuset;
-      // CPU_ZERO(&cpuset);
-      // CPU_SET(i, &cpuset);
-      // int rc = pthread_setaffinity_np(workers.back().native_handle(),
-      //                                 sizeof(cpu_set_t), &cpuset);
-      // if (rc != 0)
-      //   fprintf(stderr, "Error calling pthread_setaffinity_np: %d\n", rc);
+      only CPU i as set.
+      cpu_set_t cpuset;
+      CPU_ZERO(&cpuset);
+      CPU_SET(i, &cpuset);
+      int rc = pthread_setaffinity_np(workers.back().native_handle(),
+                                      sizeof(cpu_set_t), &cpuset);
+      if (rc != 0)
+        fprintf(stderr, "Error calling pthread_setaffinity_np: %d\n", rc);
     }
 
 #ifdef MEASURE_CPU
