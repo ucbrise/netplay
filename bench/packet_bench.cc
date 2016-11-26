@@ -129,20 +129,19 @@ class packet_loader {
   }
 
   void generate_pkts() {
-    std::string attr_line;
-    while (data_.size() < kMaxNumPkts) {
+    while (srcips_.size() < kMaxNumPkts) {
       srcips_.push_back(rand() % 256);
       dstips_.push_back(rand() % 256);
       sports_.push_back(rand() % 10);
       dports_.push_back(rand() % 10);
     }
-    fprintf(stderr, "Generated %zu packets.\n", timestamps_.size());
+    fprintf(stderr, "Generated %zu packets.\n", num_attrs);
   }
 
   // Throughput benchmarks
   void load_packets(const uint32_t num_threads, const uint64_t rate_limit) {
     std::vector<std::thread> workers;
-    uint64_t thread_ops = timestamps_.size() / num_threads;
+    uint64_t thread_ops = srcips_.size() / num_threads;
     uint64_t worker_rate = rate_limit / num_threads;
     for (uint32_t i = 0; i < num_threads; i++) {
       workers.push_back(std::thread([i, worker_rate, thread_ops, this] {
