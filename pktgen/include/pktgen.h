@@ -58,7 +58,6 @@ class packet_generator {
     }
 
     uint64_t start = cursec();
-    uint64_t epoch = start;
     while (time_limit_ == 0 || cursec() - start < time_limit_) {
       update_pktbuf();
       if (rate_ == 0 || bucket_.consume(RTE_BURST_SIZE))
@@ -72,7 +71,6 @@ class packet_generator {
                 core_, pkt_rate);
         fflush(stderr);
         sent_pkts_ = 0;
-        epoch = now;
       }
     }
   }
