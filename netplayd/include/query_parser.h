@@ -25,7 +25,7 @@ class parse_exception : public std::exception {
       : msg_(msg) {
   }
 
-  const char* what() const _NOEXCEPT {
+  const char* what() const noexcept {
     return msg_.c_str();
   }
 
@@ -39,7 +39,7 @@ class lex_exception : public std::exception {
       : msg_(msg) {
   }
 
-  const char* what() const _NOEXCEPT {
+  const char* what() const noexcept {
     return msg_.c_str();
   }
 
