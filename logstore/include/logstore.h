@@ -26,7 +26,6 @@
 #include "offsetlog.h"
 #include "filterops.h"
 #include "utils.h"
-#include "exceptions.h"
 
 #define OFFSETMIN 1024
 #define OFFSET1 1024

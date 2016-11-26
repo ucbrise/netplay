@@ -46,8 +46,7 @@ struct basic_filter {
 };
 
 typedef std::vector<basic_filter> filter_conjunction;
-typedef std::vector<filter_conjunction> filter_disjunction;
-typedef filter_disjunction filter_query;
+typedef std::vector<filter_conjunction> filter_query;
 
 }
 
