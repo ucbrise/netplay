@@ -5,7 +5,7 @@
 
 #include "filterops.h"
 #include "expression.h"
-#include "parse.h"
+#include "query_parser.h"
 
 namespace netplay {
 
