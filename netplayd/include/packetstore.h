@@ -20,7 +20,7 @@ class packet_store: public slog::log_store {
   class handle : public slog::log_store::handle {
    public:
     handle(packet_store& store)
-        : slog::log_store::handle(store.store_),
+        : slog::log_store::handle(store),
           store_(store) {
     }
 
@@ -75,11 +75,11 @@ class packet_store: public slog::log_store {
    * Source IP, Destination IP, Source Port, Destination Port and Timestamp.
    */
   packet_store() {
-    srcip_idx_id_ = store_.add_index(4);
-    dstip_idx_id_ = store_.add_index(4);
-    srcport_idx_id_ = store_.add_index(2);
-    dstport_idx_id_ = store_.add_index(2);
-    timestamp_idx_id_ = store_.add_index(4);
+    srcip_idx_id_ = add_index(4);
+    dstip_idx_id_ = add_index(4);
+    srcport_idx_id_ = add_index(2);
+    dstport_idx_id_ = add_index(2);
+    timestamp_idx_id_ = add_index(4);
   }
 
   /**
