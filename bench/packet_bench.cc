@@ -25,7 +25,7 @@ using namespace ::slog;
 using namespace ::std::chrono;
 
 const char* usage =
-  "Usage: %s -n [numthreads] -r [ratelimit] -t [maxtime] [data] [attrs]\n";
+  "Usage: %s -n [numthreads] -r [ratelimit]\n";
 
 typedef uint64_t timestamp_t;
 
@@ -44,7 +44,7 @@ class rate_limiter {
     local_ops_ = 0;
     last_ts_ = high_resolution_clock::now();
     tspec_.tv_sec = 0;
-    fprintf(stderr, "10000 ops per %lld ns.\n", min_ns_per_10000_ops);
+    fprintf(stderr, "10000 ops per %" PRI64 " ns.\n", min_ns_per_10000_ops);
   }
 
   uint64_t insert_packet(unsigned char* data, uint16_t len, token_list& tkns) {
@@ -148,8 +148,6 @@ class packet_loader {
     std::vector<std::thread> workers;
     uint64_t thread_ops = timestamps_.size() / num_threads;
     uint64_t worker_rate = rate_limit / num_threads;
-
-    fprintf(stderr, "Setting timebound to %llu us\n", timebound);
     for (uint32_t i = 0; i < num_threads; i++) {
       workers.push_back(std::thread([i, worker_rate, thread_ops, this] {
         uint64_t idx = thread_ops * i;
