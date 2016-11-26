@@ -26,7 +26,7 @@ void print_pkt(const unsigned char* buf, uint16_t len, slog::token_list& tokens)
   for (uint16_t i = 0; i < len; i++)
     fprintf(stderr, "%x ", buf[i]);
   fprintf(stderr, "; token-list: ");
-  for (auto& token: tokens)
+  for (auto& token : tokens)
     fprintf(stderr, "%u:%" PRIu64 " ", token.index_id(), token.data());
   fprintf(stderr, "]\n");
 }
@@ -41,6 +41,8 @@ class netplay_writer {
     core_ = core;
     vport_ = vport;
     handle_ = handle;
+
+    init_tokens();
   }
 
   void start() {
@@ -66,7 +68,7 @@ class netplay_writer {
         } else {
           double write_rate = (double) (tot_rec_pkts_ * 1e6) / (double) elapsed_tot;
           fprintf(stderr, "[Core %d] %" PRIu64 " packets read in last epoch "
-                  "(%" PRIu64 " secs, %lf pkts/s)...\n", core_,  rec_pkts_, 
+                  "(%" PRIu64 " secs, %lf pkts/s)...\n", core_,  rec_pkts_,
                   elapsed_sec, write_rate);
         }
         fflush(stderr);
@@ -81,10 +83,21 @@ class netplay_writer {
   }
 
  private:
-  uint64_t cursec() {
-    struct timeval t;
-    gettimeofday(&t, NULL);
-    return t.tv_sec;
+  void init_tokens() {
+    handle_->add_timestamp(tokens_, 0);
+    handle_->add_src_ip(tokens_, 0);
+    handle_->add_dst_ip(tokens_, 0);
+    handle_->add_src_port(tokens_, 0);
+    handle_->add_dst_port(tokens_, 0);
+  }
+
+  void set_tokens(token_list& tokens, uint32_t time, uint32_t srcip,
+                  uint32_t dstip, uint16_t sport, uint16_t dport) {
+    tokens[0].update_data(time);
+    tokens[1].update_data(srcip);
+    tokens[2].update_data(dstip);
+    tokens[3].update_data(sport);
+    tokens[4].update_data(dport);
   }
 
   inline uint64_t curusec() {
@@ -96,10 +109,7 @@ class netplay_writer {
   void process_batch(struct rte_mbuf** pkts, uint16_t cnt) {
     std::time_t now = std::time(nullptr);
     for (int i = 0; i < cnt; i++) {
-      slog::token_list tokens;
       uint32_t num_bytes = 0;
-
-      handle_->add_timestamp(tokens, (uint32_t)now);
 
       void* pkt = rte_pktmbuf_mtod(pkts[i], void*);
       struct ether_hdr *eth = (struct ether_hdr *) pkt;
@@ -108,34 +118,35 @@ class netplay_writer {
       struct ipv4_hdr *ip = (struct ipv4_hdr *) (eth + 1);
       num_bytes += sizeof(struct ipv4_hdr);
 
-      handle_->add_src_ip(tokens, ip->src_addr);
-      handle_->add_dst_ip(tokens, ip->dst_addr);
       if (ip->next_proto_id == IPPROTO_TCP) {
         struct tcp_hdr *tcp = (struct tcp_hdr *) (ip + 1);
         num_bytes += sizeof(struct tcp_hdr);
 
-        handle_->add_src_port(tokens, tcp->src_port);
-        handle_->add_dst_port(tokens, tcp->dst_port);
+        set_tokens((uint32_t) now, ip->src_addr, ip->dst_addr, tcp->src_port,
+                   tcp->dst_port);
       } else if (ip->next_proto_id == IPPROTO_UDP) {
         struct udp_hdr *udp = (struct udp_hdr *) (ip + 1);
         num_bytes += sizeof(struct udp_hdr);
 
-        handle_->add_src_port(tokens, udp->src_port);
-        handle_->add_dst_port(tokens, udp->dst_port);
+        set_tokens((uint32_t) now, ip->src_addr, ip->dst_addr, udp->src_port,
+                   udp->dst_port);
       } else {
         fprintf(stderr, "Unhandled packet type.\n");
         continue;
       }
 #ifdef DEBUG
-      print_pkt((unsigned char*) pkt, num_bytes, tokens)
+      print_pkt((unsigned char*) pkt, num_bytes, tokens);
 #endif
-      handle_->insert((unsigned char*) pkt, num_bytes, tokens);
+      handle_->insert((unsigned char*) pkt, num_bytes, tokens_);
     }
   }
 
   int core_;
   dpdk::virtual_port<vport_init>* vport_;
+
   packet_store::handle* handle_;
+  slog::token_list tokens_;
+
   uint64_t rec_pkts_;
   uint64_t req_pkts_;
   uint64_t tot_rec_pkts_;
