@@ -21,7 +21,7 @@ namespace netplay { namespace thrift {
 class NetPlayQueryServiceIf {
  public:
   virtual ~NetPlayQueryServiceIf() {}
-  virtual void filter(std::set<int64_t> & _return, const std::string& query) = 0;
+  virtual void filter(std::vector<int64_t> & _return, const std::string& query) = 0;
   virtual void get(std::string& _return, const int64_t record_id) = 0;
   virtual void extract(std::string& _return, const int64_t record_id, const int16_t off, const int16_t len) = 0;
   virtual int64_t numRecords() = 0;
@@ -55,7 +55,7 @@ class NetPlayQueryServiceIfSingletonFactory : virtual public NetPlayQueryService
 class NetPlayQueryServiceNull : virtual public NetPlayQueryServiceIf {
  public:
   virtual ~NetPlayQueryServiceNull() {}
-  void filter(std::set<int64_t> & /* _return */, const std::string& /* query */) {
+  void filter(std::vector<int64_t> & /* _return */, const std::string& /* query */) {
     return;
   }
   void get(std::string& /* _return */, const int64_t /* record_id */) {
@@ -137,12 +137,12 @@ class NetPlayQueryService_filter_result {
   }
 
   virtual ~NetPlayQueryService_filter_result() throw();
-  std::set<int64_t>  success;
+  std::vector<int64_t>  success;
   QueryException e;
 
   _NetPlayQueryService_filter_result__isset __isset;
 
-  void __set_success(const std::set<int64_t> & val);
+  void __set_success(const std::vector<int64_t> & val);
 
   void __set_e(const QueryException& val);
 
@@ -176,7 +176,7 @@ class NetPlayQueryService_filter_presult {
 
 
   virtual ~NetPlayQueryService_filter_presult() throw();
-  std::set<int64_t> * success;
+  std::vector<int64_t> * success;
   QueryException e;
 
   _NetPlayQueryService_filter_presult__isset __isset;
@@ -616,9 +616,9 @@ class NetPlayQueryServiceClient : virtual public NetPlayQueryServiceIf {
   boost::shared_ptr< ::apache::thrift::protocol::TProtocol> getOutputProtocol() {
     return poprot_;
   }
-  void filter(std::set<int64_t> & _return, const std::string& query);
+  void filter(std::vector<int64_t> & _return, const std::string& query);
   void send_filter(const std::string& query);
-  void recv_filter(std::set<int64_t> & _return);
+  void recv_filter(std::vector<int64_t> & _return);
   void get(std::string& _return, const int64_t record_id);
   void send_get(const int64_t record_id);
   void recv_get(std::string& _return);
@@ -687,7 +687,7 @@ class NetPlayQueryServiceMultiface : virtual public NetPlayQueryServiceIf {
     ifaces_.push_back(iface);
   }
  public:
-  void filter(std::set<int64_t> & _return, const std::string& query) {
+  void filter(std::vector<int64_t> & _return, const std::string& query) {
     size_t sz = ifaces_.size();
     size_t i = 0;
     for (; i < (sz - 1); ++i) {
@@ -766,9 +766,9 @@ class NetPlayQueryServiceConcurrentClient : virtual public NetPlayQueryServiceIf
   boost::shared_ptr< ::apache::thrift::protocol::TProtocol> getOutputProtocol() {
     return poprot_;
   }
-  void filter(std::set<int64_t> & _return, const std::string& query);
+  void filter(std::vector<int64_t> & _return, const std::string& query);
   int32_t send_filter(const std::string& query);
-  void recv_filter(std::set<int64_t> & _return, const int32_t seqid);
+  void recv_filter(std::vector<int64_t> & _return, const int32_t seqid);
   void get(std::string& _return, const int64_t record_id);
   int32_t send_get(const int64_t record_id);
   void recv_get(std::string& _return, const int32_t seqid);

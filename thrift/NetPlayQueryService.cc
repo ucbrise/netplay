@@ -114,20 +114,19 @@ uint32_t NetPlayQueryService_filter_result::read(::apache::thrift::protocol::TPr
     switch (fid)
     {
       case 0:
-        if (ftype == ::apache::thrift::protocol::T_SET) {
+        if (ftype == ::apache::thrift::protocol::T_LIST) {
           {
             this->success.clear();
             uint32_t _size16;
             ::apache::thrift::protocol::TType _etype19;
-            xfer += iprot->readSetBegin(_etype19, _size16);
+            xfer += iprot->readListBegin(_etype19, _size16);
+            this->success.resize(_size16);
             uint32_t _i20;
             for (_i20 = 0; _i20 < _size16; ++_i20)
             {
-              int64_t _elem21;
-              xfer += iprot->readI64(_elem21);
-              this->success.insert(_elem21);
+              xfer += iprot->readI64(this->success[_i20]);
             }
-            xfer += iprot->readSetEnd();
+            xfer += iprot->readListEnd();
           }
           this->__isset.success = true;
         } else {
@@ -161,15 +160,15 @@ uint32_t NetPlayQueryService_filter_result::write(::apache::thrift::protocol::TP
   xfer += oprot->writeStructBegin("NetPlayQueryService_filter_result");
 
   if (this->__isset.success) {
-    xfer += oprot->writeFieldBegin("success", ::apache::thrift::protocol::T_SET, 0);
+    xfer += oprot->writeFieldBegin("success", ::apache::thrift::protocol::T_LIST, 0);
     {
-      xfer += oprot->writeSetBegin(::apache::thrift::protocol::T_I64, static_cast<uint32_t>(this->success.size()));
-      std::set<int64_t> ::const_iterator _iter22;
-      for (_iter22 = this->success.begin(); _iter22 != this->success.end(); ++_iter22)
+      xfer += oprot->writeListBegin(::apache::thrift::protocol::T_I64, static_cast<uint32_t>(this->success.size()));
+      std::vector<int64_t> ::const_iterator _iter21;
+      for (_iter21 = this->success.begin(); _iter21 != this->success.end(); ++_iter21)
       {
-        xfer += oprot->writeI64((*_iter22));
+        xfer += oprot->writeI64((*_iter21));
       }
-      xfer += oprot->writeSetEnd();
+      xfer += oprot->writeListEnd();
     }
     xfer += oprot->writeFieldEnd();
   } else if (this->__isset.e) {
@@ -209,20 +208,19 @@ uint32_t NetPlayQueryService_filter_presult::read(::apache::thrift::protocol::TP
     switch (fid)
     {
       case 0:
-        if (ftype == ::apache::thrift::protocol::T_SET) {
+        if (ftype == ::apache::thrift::protocol::T_LIST) {
           {
             (*(this->success)).clear();
-            uint32_t _size23;
-            ::apache::thrift::protocol::TType _etype26;
-            xfer += iprot->readSetBegin(_etype26, _size23);
-            uint32_t _i27;
-            for (_i27 = 0; _i27 < _size23; ++_i27)
+            uint32_t _size22;
+            ::apache::thrift::protocol::TType _etype25;
+            xfer += iprot->readListBegin(_etype25, _size22);
+            (*(this->success)).resize(_size22);
+            uint32_t _i26;
+            for (_i26 = 0; _i26 < _size22; ++_i26)
             {
-              int64_t _elem28;
-              xfer += iprot->readI64(_elem28);
-              (*(this->success)).insert(_elem28);
+              xfer += iprot->readI64((*(this->success))[_i26]);
             }
-            xfer += iprot->readSetEnd();
+            xfer += iprot->readListEnd();
           }
           this->__isset.success = true;
         } else {
@@ -987,7 +985,7 @@ uint32_t NetPlayQueryService_storageFootprint_presult::read(::apache::thrift::pr
   return xfer;
 }
 
-void NetPlayQueryServiceClient::filter(std::set<int64_t> & _return, const std::string& query)
+void NetPlayQueryServiceClient::filter(std::vector<int64_t> & _return, const std::string& query)
 {
   send_filter(query);
   recv_filter(_return);
@@ -1007,7 +1005,7 @@ void NetPlayQueryServiceClient::send_filter(const std::string& query)
   oprot_->getTransport()->flush();
 }
 
-void NetPlayQueryServiceClient::recv_filter(std::set<int64_t> & _return)
+void NetPlayQueryServiceClient::recv_filter(std::vector<int64_t> & _return)
 {
 
   int32_t rseqid = 0;
@@ -1579,7 +1577,7 @@ void NetPlayQueryServiceProcessor::process_storageFootprint(int32_t seqid, ::apa
   return processor;
 }
 
-void NetPlayQueryServiceConcurrentClient::filter(std::set<int64_t> & _return, const std::string& query)
+void NetPlayQueryServiceConcurrentClient::filter(std::vector<int64_t> & _return, const std::string& query)
 {
   int32_t seqid = send_filter(query);
   recv_filter(_return, seqid);
@@ -1603,7 +1601,7 @@ int32_t NetPlayQueryServiceConcurrentClient::send_filter(const std::string& quer
   return cseqid;
 }
 
-void NetPlayQueryServiceConcurrentClient::recv_filter(std::set<int64_t> & _return, const int32_t seqid)
+void NetPlayQueryServiceConcurrentClient::recv_filter(std::vector<int64_t> & _return, const int32_t seqid)
 {
 
   int32_t rseqid = 0;

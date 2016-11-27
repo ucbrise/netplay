@@ -407,7 +407,7 @@ class filter_result:
   """
 
   thrift_spec = (
-    (0, TType.SET, 'success', (TType.I64,None), None, ), # 0
+    (0, TType.LIST, 'success', (TType.I64,None), None, ), # 0
     (1, TType.STRUCT, 'e', (QueryException, QueryException.thrift_spec), None, ), # 1
   )
 
@@ -425,13 +425,13 @@ class filter_result:
       if ftype == TType.STOP:
         break
       if fid == 0:
-        if ftype == TType.SET:
-          self.success = set()
-          (_etype17, _size14) = iprot.readSetBegin()
+        if ftype == TType.LIST:
+          self.success = []
+          (_etype17, _size14) = iprot.readListBegin()
           for _i18 in xrange(_size14):
             _elem19 = iprot.readI64()
-            self.success.add(_elem19)
-          iprot.readSetEnd()
+            self.success.append(_elem19)
+          iprot.readListEnd()
         else:
           iprot.skip(ftype)
       elif fid == 1:
@@ -451,11 +451,11 @@ class filter_result:
       return
     oprot.writeStructBegin('filter_result')
     if self.success is not None:
-      oprot.writeFieldBegin('success', TType.SET, 0)
-      oprot.writeSetBegin(TType.I64, len(self.success))
+      oprot.writeFieldBegin('success', TType.LIST, 0)
+      oprot.writeListBegin(TType.I64, len(self.success))
       for iter20 in self.success:
         oprot.writeI64(iter20)
-      oprot.writeSetEnd()
+      oprot.writeListEnd()
       oprot.writeFieldEnd()
     if self.e is not None:
       oprot.writeFieldBegin('e', TType.STRUCT, 1)

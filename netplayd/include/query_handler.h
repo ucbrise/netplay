@@ -16,11 +16,9 @@ class query_handler : virtual public thrift::NetPlayQueryServiceIf {
     handle_ = handle;
   }
 
-  void filter(std::set<int64_t>& _return, const std::string& query) {
-    // Your implementation goes here
-    assert(_return.empty());
-    fprintf(stderr, "input query: [%s]\n", query.c_str());
+  void filter(std::vector<int64_t>& _return, const std::string& query) {
 
+    // Parse query
     slog::filter_query q;
     try {
       q = query_utils::expression_to_filter_query(handle_, query);
@@ -30,14 +28,21 @@ class query_handler : virtual public thrift::NetPlayQueryServiceIf {
       qe.message = std::string(e.what());
       throw qe;
     } catch (std::exception& e) {
-      thrift::QueryException qe;
       fprintf(stderr, "Other exception: %s\n", e.what());
+      thrift::QueryException qe;
       qe.message = std::string(e.what());
       throw qe;
-    } 
-    fprintf(stderr, "parsed query: ");
-    slog::print_filter_query(q);
-    fprintf(stderr, "\n");
+    }
+
+    // Compute results
+    std::unordered_set<uint64_t> res;
+    handle_->filter(res, q);
+
+    // Copy into vector
+    _return.reserve(res.size());
+    for (uint64_t r: res) {
+      _return.insert(r);
+    }
   }
 
   void get(std::string& _return, const int64_t record_id) {

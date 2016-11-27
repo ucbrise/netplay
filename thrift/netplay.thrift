@@ -13,7 +13,7 @@ exception QueryException {
 
 service NetPlayQueryService {
 	// Supported operations
-	set<i64> filter(1:string query) throws (1: QueryException e),
+	list<i64> filter(1:string query) throws (1: QueryException e),
 	binary get(1:i64 record_id),
 	binary extract(1:i64 record_id, 2:i16 off, 3:i16 len),
 
