@@ -35,14 +35,17 @@ class query_utils {
     parser p(exp);
     fprintf(stderr, "about to parse...\n");
     expression* e = p.parse();
-    fprintf(stderr, "parsing done.\n");
+    fprintf(stderr, "parsing done: ");
     print_expression(e);
+    fprintf(stderr, "\n");
 
     if (e->type == expression_type::PREDICATE) {
+      fprintf(stderr, "predicate type parsing...\n");
       slog::filter_conjunction c;
       c.push_back(predicate_to_basic_filter(h, (predicate*) e));
       query.push_back(c);
     } else if (e->type == expression_type::AND) {
+      fprintf(stderr, "conjunction type parsing...\n");
       slog::filter_conjunction conj;
       conjunction* c = (conjunction*) e;
       for (expression* child : c->children) {
@@ -54,6 +57,7 @@ class query_utils {
       }
       query.push_back(conj);
     } else if (e->type == expression_type::OR) {
+      fprintf(stderr, "disjunction type parsing...\n");
       disjunction *d = (disjunction*) e;
       for (expression* dchild : d->children) {
         if (dchild->type != expression_type::AND) {
