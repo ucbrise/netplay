@@ -33,6 +33,9 @@ class query_utils {
     slog::filter_query query;
     parser p(exp);
     expression* e = p.parse();
+
+    print_expression(e);
+    
     if (e->type == expression_type::PREDICATE) {
       slog::filter_conjunction c;
       c.push_back(predicate_to_basic_filter(h, (predicate*) e));
@@ -71,7 +74,7 @@ class query_utils {
     free_expression(e);
 
     // TODO: reduce conjunctions
-    
+
     return query;
   }
 

@@ -19,7 +19,14 @@ class query_handler : virtual public thrift::NetPlayQueryServiceIf {
   void filter(std::set<int64_t>& _return, const std::string& query) {
     // Your implementation goes here
     assert(_return.empty());
-    auto q = query_utils::expression_to_filter_query(handle_, query);
+    slog::filter_query q;
+    try {
+      q = query_utils::expression_to_filter_query(handle_, query);
+    } catch (std::exception& e) {
+      QueryException qe;
+      qe.message = std::string(e.what());
+      throw qe;
+    }
 
     fprintf(stderr, "input query: %s\n", query.c_str());
     fprintf(stderr, "parsed query: \n");
