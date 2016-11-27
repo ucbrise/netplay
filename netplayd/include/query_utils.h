@@ -87,7 +87,9 @@ class query_utils {
  private:
   static slog::basic_filter predicate_to_basic_filter(packet_store::handle* h,
       predicate* p) {
-
+    fprintf(stderr, "converting predicate to filter: ");
+    print_expression(p);
+    fprintf(stderr, "\n");
     // TODO: replace this with a map lookup
     if (p->attr == "src_ip") {
       return ip_filter(h->srcip_idx(), p->op, p->value);

@@ -26,6 +26,7 @@ class query_handler : virtual public thrift::NetPlayQueryServiceIf {
       q = query_utils::expression_to_filter_query(handle_, query);
     } catch (std::exception& e) {
       thrift::QueryException qe;
+      fprintf(stderr, "Query Exception: %s\n", e.what());
       qe.message = std::string(e.what());
       throw qe;
     }
