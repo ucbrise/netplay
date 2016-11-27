@@ -208,6 +208,7 @@ class query_utils {
         if (op.find(">") != std::string::npos)
           throw parse_exception("Cannot see into the future");
       } else {
+        fprintf(stderr, "checking if relative: ");
         loc = time_string.find_first_of('-');
         if (loc == 4) {
           fprintf(stderr, "relative to now; ");
