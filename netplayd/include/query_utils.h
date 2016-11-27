@@ -74,11 +74,46 @@ class query_utils {
     free_expression(e);
 
     // TODO: reduce conjunctions
+    typedef slog::filter_query::iterator iterator_t;
+    for (iterator_t i = query.begin(); i != query.end();) {
+      if (!reduce_conjunction(*i))
+        i = query.erase(i);
+      else
+        i++;
+    }
 
     return query;
   }
 
  private:
+  static bool reduce_conjunction(slog::filter_conjunction& conj) {
+    typedef slog::filter_conjunction::iterator iterator_t;
+    for (iterator_t i = conj.begin(); i != conj.end();) {
+      uint32_t id = i->index_id();
+      uint64_t beg = i->token_beg();
+      uint64_t end = i->token_end();
+
+      for (iterator_t j = i + 1; j != conj.end(); ) {
+        if (j->index_id() == id) {
+          beg = std::max(beg, j->token_beg());
+          end = std::min(end, j->token_end());
+          j = conj.erase(j);
+        } else {
+          j++;
+        }
+      }
+      
+      if (beg <= end) {
+        i->token_beg(beg);
+        i->token_end(end);
+        i++;
+      } else {
+        return false;
+      }
+    }
+    return true;
+  }
+
   static slog::basic_filter predicate_to_basic_filter(packet_store::handle* h,
       predicate* p) {
     // TODO: replace this with a map lookup
