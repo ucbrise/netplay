@@ -210,9 +210,9 @@ class query_utils {
       } else {
         fprintf(stderr, "checking if relative: ");
         loc = time_string.find("-");
-        // if (loc != std::string::npos && loc == 4) {
-        //   fprintf(stderr, "relative to now; ");
-        //   fflush(stderr);
+        fprintf(stderr, "loc: %zu; ", loc);
+        if (loc != std::string::npos && loc == 4) {
+          fprintf(stderr, "relative to now; ");
         //   try {
         //     std::string secs_str = time_string.substr(5);
         //     fprintf(stderr, "secs = %s ", secs_str.c_str());
@@ -222,9 +222,9 @@ class query_utils {
         //   } catch (std::exception& e) {
         //     throw parse_exception("Malformed relative time value; format: now[-value]");
         //   }
-        // } else {
-        //   throw parse_exception("Malformed relative time value; format: now[-value]");
-        // }
+        } else {
+          throw parse_exception("Malformed relative time value; format: now[-value]");
+        }
         time = now;
       }
     } else {
