@@ -85,6 +85,8 @@ class Client(Iface):
     iprot.readMessageEnd()
     if result.success is not None:
       return result.success
+    if result.e is not None:
+      raise result.e
     raise TApplicationException(TApplicationException.MISSING_RESULT, "filter failed: unknown result")
 
   def get(self, record_id):
@@ -241,6 +243,9 @@ class Processor(Iface, TProcessor):
       msg_type = TMessageType.REPLY
     except (TTransport.TTransportException, KeyboardInterrupt, SystemExit):
       raise
+    except QueryException as e:
+      msg_type = TMessageType.REPLY
+      result.e = e
     except Exception as ex:
       msg_type = TMessageType.EXCEPTION
       logging.exception(ex)
@@ -398,14 +403,17 @@ class filter_result:
   """
   Attributes:
    - success
+   - e
   """
 
   thrift_spec = (
     (0, TType.SET, 'success', (TType.I64,None), None, ), # 0
+    (1, TType.STRUCT, 'e', (QueryException, QueryException.thrift_spec), None, ), # 1
   )
 
-  def __init__(self, success=None,):
+  def __init__(self, success=None, e=None,):
     self.success = success
+    self.e = e
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -426,6 +434,12 @@ class filter_result:
           iprot.readSetEnd()
         else:
           iprot.skip(ftype)
+      elif fid == 1:
+        if ftype == TType.STRUCT:
+          self.e = QueryException()
+          self.e.read(iprot)
+        else:
+          iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
@@ -443,6 +457,10 @@ class filter_result:
         oprot.writeI64(iter20)
       oprot.writeSetEnd()
       oprot.writeFieldEnd()
+    if self.e is not None:
+      oprot.writeFieldBegin('e', TType.STRUCT, 1)
+      self.e.write(oprot)
+      oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
 
@@ -453,6 +471,7 @@ class filter_result:
   def __hash__(self):
     value = 17
     value = (value * 31) ^ hash(self.success)
+    value = (value * 31) ^ hash(self.e)
     return value
 
   def __repr__(self):
