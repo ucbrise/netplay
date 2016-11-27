@@ -149,7 +149,7 @@ class query_utils {
     }
 
     return std::pair<uint32_t, uint32_t>(ip & prefix_mask[prefix],
-                                         ip & prefix_mask[32]);
+                                         ip | (~prefix_mask[32 - prefix]));
   }
 
   static uint32_t ip_string_to_uint32(const char* ip) {

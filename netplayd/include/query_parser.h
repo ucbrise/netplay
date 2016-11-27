@@ -21,7 +21,7 @@ namespace netplay {
 
 class parse_exception : public std::exception {
  public:
-  parse_exception(const std::string msg)
+  parse_exception(const std::string& msg)
       : msg_(msg) {
   }
 
