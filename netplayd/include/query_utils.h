@@ -211,7 +211,7 @@ class query_utils {
         fprintf(stderr, "checking if relative: ");
         loc = time_string.find("-");
         fprintf(stderr, "loc: %zu; ", loc);
-        if (loc != std::string::npos && loc == 4) {
+        if (loc != std::string::npos && loc == 3) {
           fprintf(stderr, "relative to now; ");
         //   try {
         //     std::string secs_str = time_string.substr(5);
