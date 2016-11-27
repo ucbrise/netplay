@@ -6,8 +6,8 @@ set -o errexit
 # 3: Interface 2 (0000:00:09.0)
 
 BASE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd)"
-OVS_HOME="$BASE_DIR/../../ovs"
-DPDK_LIB="$BASE_DIR/../../dpdk-16.07/x86_64-native-linuxapp-gcc/lib"
+OVS_HOME="$BASE_DIR/../3rdparty/ovs"
+DPDK_LIB="$BASE_DIR/../3rdparty/dpdk-16.07/build/lib"
 export LD_LIBRARY_PATH="${DPDK_LIB}:${LD_LIBRARY_PATH}"
 echo $OVS_HOME
 

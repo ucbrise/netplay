@@ -61,3 +61,5 @@ cd thrift
 ./configure --with-lua=no --prefix="$THRIFT_DIR/build"
 make -j${num_cores}
 make install
+cd lib/py
+sudo python setup.py install
