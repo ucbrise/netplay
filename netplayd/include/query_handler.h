@@ -41,7 +41,7 @@ class query_handler : virtual public thrift::NetPlayQueryServiceIf {
     // Copy into vector
     _return.reserve(res.size());
     for (uint64_t r: res) {
-      _return.insert(r);
+      _return.push_back(r);
     }
   }
 
