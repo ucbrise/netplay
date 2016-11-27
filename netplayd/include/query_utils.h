@@ -132,7 +132,7 @@ class query_utils {
     }
   }
 
-  static std::pair<uint64_t, uint64_t> ip_range(const std::string& ip_string) {
+  static std::pair<uint32_t, uint32_t> ip_range(const std::string& ip_string) {
     size_t loc = ip_string.find_first_of('/');
     uint32_t ip = 0;
     uint32_t prefix = 32;
@@ -148,7 +148,7 @@ class query_utils {
       throw parse_exception("Malformed IP range: " + ip_string);
     }
 
-    return std::pair<uint64_t, uint64_t>(ip & prefix_mask[prefix],
+    return std::pair<uint32_t, uint32_t>(ip & prefix_mask[prefix],
                                          ip & prefix_mask[32]);
   }
 
