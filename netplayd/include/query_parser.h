@@ -21,7 +21,7 @@ namespace netplay {
 
 class parse_exception : public std::exception {
  public:
-  parse_exception(const std::string& msg)
+  parse_exception(const std::string msg)
       : msg_(msg) {
   }
 
@@ -30,7 +30,7 @@ class parse_exception : public std::exception {
   }
 
  private:
-  const std::string& msg_;
+  const std::string msg_;
 };
 
 struct lex_token {
