@@ -35,7 +35,7 @@ class query_handler : virtual public thrift::NetPlayQueryServiceIf {
       qe.message = std::string(e.what());
       throw qe;
     } 
-    fprintf(stderr, "parsed query: \n");
+    fprintf(stderr, "parsed query: ");
     slog::print_filter_query(q);
     fprintf(stderr, "\n");
   }
