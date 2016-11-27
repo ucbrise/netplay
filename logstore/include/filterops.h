@@ -55,8 +55,8 @@ void print_filter_query(const filter_query& query) {
   for (size_t i = 0; i < query.size(); i++) {
     fprintf(stderr, "AND(");
     filter_conjunction conj = query[i];
-    for (size_t j = 0; j < conj.size(); i++) {
-      basic_filter f = conj[i];
+    for (size_t j = 0; j < conj.size(); j++) {
+      basic_filter f = conj[j];
       fprintf(stderr, "BasicFilter(%" PRIu32 ": %" PRIu64 ", %" PRIu64 ")",
               f.index_id(), f.token_beg(), f.token_end());
       if (j != conj.size() - 1)
