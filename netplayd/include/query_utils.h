@@ -31,11 +31,13 @@ class query_utils {
       const std::string& exp) {
     now = std::time(NULL);
     slog::filter_query query;
+    fprintf(stderr, "creating parser...\n");
     parser p(exp);
+    fprintf(stderr, "about to parse...\n");
     expression* e = p.parse();
-
+    fprintf(stderr, "parsing done.\n");
     print_expression(e);
-    
+
     if (e->type == expression_type::PREDICATE) {
       slog::filter_conjunction c;
       c.push_back(predicate_to_basic_filter(h, (predicate*) e));
