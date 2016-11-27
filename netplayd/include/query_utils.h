@@ -209,22 +209,23 @@ class query_utils {
           throw parse_exception("Cannot see into the future");
       } else {
         fprintf(stderr, "checking if relative: ");
-        loc = time_string.find("-");
-        if (loc != std::string::npos && loc == 4) {
-          fprintf(stderr, "relative to now; ");
-          fflush(stderr);
-          try {
-            std::string secs_str = time_string.substr(5);
-            fprintf(stderr, "secs = %s ", secs_str.c_str());
-            fflush(stderr);
-            uint32_t secs = std::stoi(secs_str);
-            time = now - secs;
-          } catch (std::exception& e) {
-            throw parse_exception("Malformed relative time value; format: now[-value]");
-          }
-        } else {
-          throw parse_exception("Malformed relative time value; format: now[-value]");
-        }
+        // loc = time_string.find("-");
+        // if (loc != std::string::npos && loc == 4) {
+        //   fprintf(stderr, "relative to now; ");
+        //   fflush(stderr);
+        //   try {
+        //     std::string secs_str = time_string.substr(5);
+        //     fprintf(stderr, "secs = %s ", secs_str.c_str());
+        //     fflush(stderr);
+        //     uint32_t secs = std::stoi(secs_str);
+        //     time = now - secs;
+        //   } catch (std::exception& e) {
+        //     throw parse_exception("Malformed relative time value; format: now[-value]");
+        //   }
+        // } else {
+        //   throw parse_exception("Malformed relative time value; format: now[-value]");
+        // }
+        time = 0;
       }
     } else {
       fprintf(stderr, "no now reference; ");
