@@ -207,16 +207,19 @@ class query_utils {
 
         if (op.find(">") != std::string::npos)
           throw parse_exception("Cannot see into the future");
-      } else if (time_string[4] == '-') {
-        fprintf(stderr, "relative to now; ");
-        try {
-          uint32_t secs = std::stoi(time_string.substr(5));
-          time = now - secs;
-        } catch (std::exception& e) {
+      } else {
+        loc = time_string.find_first_of('-');
+        if (loc == 4) {
+          fprintf(stderr, "relative to now; ");
+          try {
+            uint32_t secs = std::stoi(time_string.substr(5));
+            time = now - secs;
+          } catch (std::exception& e) {
+            throw parse_exception("Malformed relative time value; format: now[-value]");
+          }
+        } else {
           throw parse_exception("Malformed relative time value; format: now[-value]");
         }
-      } else {
-        throw parse_exception("Malformed relative time value; format: now[-value]");
       }
     } else {
       fprintf(stderr, "no now reference; ");
