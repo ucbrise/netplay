@@ -199,7 +199,7 @@ class query_utils {
     if (loc != std::string::npos) {
       fprintf(stderr, "has now reference; ");
       if (loc != 0)
-        throw parse_exception("Malformed time value; format: now[-value]");
+        throw parse_exception("Malformed relative time value; format: now[-value]");
 
       if (time_string.length() == 3) {
         fprintf(stderr, "just now; ");
@@ -213,17 +213,17 @@ class query_utils {
           uint32_t secs = std::stoi(time_string.substr(5));
           time = now - secs;
         } catch (std::exception& e) {
-          throw parse_exception("Malformed time value; format: now[-value]");
+          throw parse_exception("Malformed relative time value; format: now[-value]");
         }
       } else {
-        throw parse_exception("Malformed time value; format: now[-value]");
+        throw parse_exception("Malformed relative time value; format: now[-value]");
       }
     } else {
       fprintf(stderr, "no now reference; ");
       try {
         time = std::stol(time_string);
       } catch (std::exception& e) {
-        throw parse_exception("Malformed time value; format: now[-value]");
+        throw parse_exception("Malformed relative time value; format: now[-value]");
       }
     }
 
