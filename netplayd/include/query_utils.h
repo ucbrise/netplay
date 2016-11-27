@@ -213,15 +213,15 @@ class query_utils {
         fprintf(stderr, "loc: %zu; ", loc);
         if (loc != std::string::npos && loc == 3) {
           fprintf(stderr, "relative to now; ");
-        //   try {
-        //     std::string secs_str = time_string.substr(5);
-        //     fprintf(stderr, "secs = %s ", secs_str.c_str());
-        //     fflush(stderr);
-        //     uint32_t secs = std::stoi(secs_str);
-        //     time = now - secs;
-        //   } catch (std::exception& e) {
-        //     throw parse_exception("Malformed relative time value; format: now[-value]");
-        //   }
+          try {
+            std::string secs_str = time_string.substr(5);
+            fprintf(stderr, "secs = %s ", secs_str.c_str());
+            fflush(stderr);
+            uint32_t secs = std::stoi(secs_str);
+            time = now - secs;
+          } catch (std::exception& e) {
+            throw parse_exception("Malformed relative time value; format: now[-value]");
+          }
         } else {
           throw parse_exception("Malformed relative time value; format: now[-value]");
         }
