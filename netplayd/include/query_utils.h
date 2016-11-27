@@ -209,7 +209,7 @@ class query_utils {
           throw parse_exception("Cannot see into the future");
       } else {
         fprintf(stderr, "checking if relative: ");
-        // loc = time_string.find("-");
+        loc = time_string.find("-");
         // if (loc != std::string::npos && loc == 4) {
         //   fprintf(stderr, "relative to now; ");
         //   fflush(stderr);
@@ -225,7 +225,7 @@ class query_utils {
         // } else {
         //   throw parse_exception("Malformed relative time value; format: now[-value]");
         // }
-        time = 0;
+        time = now;
       }
     } else {
       fprintf(stderr, "no now reference; ");

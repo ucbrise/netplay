@@ -32,6 +32,7 @@ class query_handler : virtual public thrift::NetPlayQueryServiceIf {
     }
     fprintf(stderr, "parsed query: \n");
     slog::print_filter_query(q);
+    fprintf(stderr, "\n");
   }
 
   void get(std::string& _return, const int64_t record_id) {
