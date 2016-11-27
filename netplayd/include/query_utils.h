@@ -214,7 +214,7 @@ class query_utils {
         if (loc != std::string::npos && loc == 3) {
           fprintf(stderr, "relative to now; ");
           try {
-            std::string secs_str = time_string.substr(5);
+            std::string secs_str = time_string.substr(4);
             fprintf(stderr, "secs = %s ", secs_str.c_str());
             fflush(stderr);
             uint32_t secs = std::stoi(secs_str);
