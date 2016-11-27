@@ -1,6 +1,8 @@
 #ifndef QUERY_UTILS_H_
 #define QUERY_UTILS_H_
 
+#include <inttypes.h>
+
 #include <ctime>
 
 #include "filterops.h"
@@ -108,17 +110,22 @@ class query_utils {
 
   static slog::basic_filter ip_filter(uint32_t index_id, const std::string& op,
                                       const std::string& ip_string) {
+    fprintf(stderr, "ip filter: ");
     if (op == "in") {
       auto range = ip_range(ip_string);
+      fprintf(stderr, "range: %" PRIu32 ", %" PRIu32 "\n", range.first, range.second);
       return slog::basic_filter(index_id, range.first, range.second);
     } else if (op == "!in") {
       auto range = ip_range(ip_string);
+      fprintf(stderr, "range: %" PRIu32 ", %" PRIu32 "\n", range.first, range.second);
       return slog::basic_filter(index_id, range.first, range.second);
     } else if (op == "==") {
       uint32_t ip = ip_string_to_uint32(ip_string.c_str());
+      fprintf(stderr, "range: %" PRIu32 ", %" PRIu32 "\n", ip, ip);
       return slog::basic_filter(index_id, ip, ip);
     } else if (op == "!=") {
       uint32_t ip = ip_string_to_uint32(ip_string.c_str());
+      fprintf(stderr, "range: %" PRIu32 ", %" PRIu32 "\n", ip, ip);
       return slog::basic_filter(index_id, ip, ip);
     } else {
       throw parse_exception("Specify IP ranges with prefix notation");
@@ -154,6 +161,7 @@ class query_utils {
   static slog::basic_filter port_filter(uint32_t index_id, const std::string& op,
                                         const std::string& port_string) {
     uint16_t port = 0;
+    fprintf(stderr, "port filter: ");
     try {
       port = std::stoi(port_string);
     } catch (std::exception& e) {
@@ -161,16 +169,22 @@ class query_utils {
     }
 
     if (op == "==") {
+      fprintf(stderr, "range: %" PRIu16 ", %" PRIu16 "\n", port, port);
       return slog::basic_filter(index_id, port, port);
     } else if (op == "!=") {
+      fprintf(stderr, "range: %" PRIu16 ", %" PRIu16 "\n", port, port);
       return slog::basic_filter(index_id, port, port);
     } else if (op == "<") {
+      fprintf(stderr, "range: %" PRIu16 ", %" PRIu16 "\n", 0, port - 1);
       return slog::basic_filter(index_id, 0, port - 1);
     } else if (op == "<=") {
+      fprintf(stderr, "range: %" PRIu16 ", %" PRIu16 "\n", 0, port);
       return slog::basic_filter(index_id, 0, port);
     } else if (op == ">") {
+      fprintf(stderr, "range: %" PRIu16 ", %" PRIu16 "\n", port + 1, UINT16_MAX);
       return slog::basic_filter(index_id, port + 1, UINT16_MAX);
     } else if (op == ">=") {
+      fprintf(stderr, "range: %" PRIu16 ", %" PRIu16 "\n", port, UINT16_MAX);
       return slog::basic_filter(index_id, port, UINT16_MAX);
     } else {
       throw parse_exception("Specify port ranges with <,>,<=,>= operators");
@@ -179,18 +193,22 @@ class query_utils {
 
   static slog::basic_filter time_filter(uint32_t index_id, const std::string& op,
                                         const std::string& time_string) {
+    fprintf(stderr, "time filter: ");
     size_t loc = time_string.find("now");
     uint32_t time = 0;
     if (loc != std::string::npos) {
+      fprintf(stderr, "has now reference; ");
       if (loc != 0)
         throw parse_exception("Malformed time value; format: now[-value]");
 
       if (time_string.length() == 3) {
+        fprintf(stderr, "just now; ");
         time = now;
 
         if (op.find(">") != std::string::npos)
           throw parse_exception("Cannot see into the future");
       } else if (time_string[4] == '-') {
+        fprintf(stderr, "relative to now; ");
         try {
           uint32_t secs = std::stoi(time_string.substr(5));
           time = now - secs;
@@ -201,6 +219,7 @@ class query_utils {
         throw parse_exception("Malformed time value; format: now[-value]");
       }
     } else {
+      fprintf(stderr, "no now reference; ");
       try {
         time = std::stol(time_string);
       } catch (std::exception& e) {
@@ -209,16 +228,22 @@ class query_utils {
     }
 
     if (op == "==") {
+      fprintf(stderr, "range: %" PRIu32 ", %" PRIu32 "\n", time, time);
       return slog::basic_filter(index_id, time, time);
     } else if (op == "!=") {
+      fprintf(stderr, "range: %" PRIu32 ", %" PRIu32 "\n", time, time);
       return slog::basic_filter(index_id, time, time);
     } else if (op == "<") {
+      fprintf(stderr, "range: %" PRIu32 ", %" PRIu32 "\n", 0, time - 1);
       return slog::basic_filter(index_id, 0, time - 1);
     } else if (op == "<=") {
+      fprintf(stderr, "range: %" PRIu32 ", %" PRIu32 "\n", 0, time);
       return slog::basic_filter(index_id, 0, time);
     } else if (op == ">") {
+      fprintf(stderr, "range: %" PRIu32 ", %" PRIu32 "\n", time - 1, now);
       return slog::basic_filter(index_id, time - 1, now);
     } else if (op == ">=") {
+      fprintf(stderr, "range: %" PRIu32 ", %" PRIu32 "\n", time, now);
       return slog::basic_filter(index_id, time, now);
     } else {
       throw parse_exception("Specify time ranges with <,>,<=,>= operators");
