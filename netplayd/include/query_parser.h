@@ -167,7 +167,7 @@ class lexer {
 
  private:
   bool opvalid(int c) {
-    return isalnum(c) || c == '.' || c == '_' || c == '/';
+    return isalnum(c) || c == '.' || c == '_' || c == '/' || c == '-';
   }
 
   std::stringstream stream_;
