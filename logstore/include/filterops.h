@@ -28,6 +28,13 @@ struct basic_filter {
     : basic_filter(index_id, token, token) {
   }
 
+  basic_filter& operator=(const basic_filter& filter) {
+    index_id_ = filter.index_id_;
+    token_beg_ = filter.token_beg_;
+    token_end_ = filter.token_end_;
+    return *this;
+  }
+
   uint32_t index_id() {
     return index_id_;
   }
@@ -38,6 +45,14 @@ struct basic_filter {
 
   uint64_t token_end() {
     return token_end_;
+  }
+
+  void token_beg(uint64_t val) {
+    token_beg_ = val;
+  }
+
+  void token_end(uint64_t val) {
+    token_end_ = val;
   }
 
  private:
