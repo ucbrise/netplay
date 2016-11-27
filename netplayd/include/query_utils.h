@@ -212,8 +212,12 @@ class query_utils {
         loc = time_string.find_first_of('-');
         if (loc == 4) {
           fprintf(stderr, "relative to now; ");
+          fflush(stderr);
           try {
-            uint32_t secs = std::stoi(time_string.substr(5));
+            std::string secs_str = time_string.substr(5);
+            fprintf(stderr, "secs = %s ", secs_str.c_str());
+            fflush(stderr);
+            uint32_t secs = std::stoi(secs);
             time = now - secs;
           } catch (std::exception& e) {
             throw parse_exception("Malformed relative time value; format: now[-value]");
