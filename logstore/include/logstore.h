@@ -407,6 +407,10 @@ class log_store {
     uint64_t max_rid = olog_->num_ids();
     for (filter_conjunction& conjunction : query) {
       std::unordered_set<uint64_t> conjunction_results;
+      std::sort(conjunction.begin(), conjunction.end(), [this](const basic_filter& lhs, const basic_filter& rhs) {
+        return filter_count(lhs) < filter_count(rhs);
+      });
+
       for (basic_filter& basic : conjunction) {
         /* Identify which index the filter is on */
         uint32_t idx = basic.index_id() / OFFSETMIN;
@@ -607,6 +611,45 @@ class log_store {
     }
     timestamp_t t1 = get_timestamp();
     fprintf(stderr, "count = %zu, time taken=%llu\n", results.size(), (t1 - t0));
+  }
+
+  uint64_t filter_count(const basic_filter& f) const {
+    /* Identify which index the filter is on */
+    uint32_t idx = f.index_id() / OFFSETMIN;
+    uint32_t off = f.index_id() % OFFSETMIN;
+
+    /* Query relevant index */
+    switch (idx) {
+    case 1:
+      return filter_count(idx1_->at(off), f.token_beg(), f.token_end());
+    case 2:
+      return filter_count(idx2_->at(off), f.token_beg(), f.token_end());
+    case 4:
+      return filter_count(idx3_->at(off), f.token_beg(), f.token_end());
+    case 8:
+      return filter_count(idx4_->at(off), f.token_beg(), f.token_end());
+    case 16:
+      return filter_count(idx5_->at(off), f.token_beg(), f.token_end());
+    case 32:
+      return filter_count(idx6_->at(off), f.token_beg(), f.token_end());
+    case 64:
+      return filter_count(idx7_->at(off), f.token_beg(), f.token_end());
+    case 128:
+      return filter_count(idx8_->at(off), f.token_beg(), f.token_end());
+    default:
+      return 0;
+    }
+  }
+
+  template<typename INDEX>
+  uint64_t filter_count(INDEX* index, uint64_t token_beg, uint64_t token_end) const {
+    uint64_t count = 0;
+    for (uint64_t i = token_beg; i <= token_end; i++) {
+      entry_list* list = index->get(i);
+      if (list != NULL)
+        count += list->size();
+    }
+    return count;
   }
 
   /**
