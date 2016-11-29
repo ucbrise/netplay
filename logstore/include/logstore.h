@@ -50,8 +50,6 @@ class log_store {
  public:
   class handle {
    public:
-    typedef unsigned long long int timestamp_t;
-
     /**
      * Constructor to initialize handle.
      *
@@ -203,6 +201,8 @@ class log_store {
 
     log_store& base_;
   };
+
+  typedef unsigned long long int timestamp_t;
 
   /**
    * Constructor to initialize the log-store.
