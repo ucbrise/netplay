@@ -599,14 +599,14 @@ class log_store {
   void filter(std::unordered_set<uint64_t>& results, INDEX* index,
               uint64_t token_beg, uint64_t token_end, const uint64_t max_rid,
               const std::unordered_set<uint64_t>& superset) const {
-    fprintf(stderr, "Filter: begin=%" PRIu64 ", end=%" PRIu64 " ", token_beg, token_end);
+    fprintf(stderr, "Filter: begin=%" PRIu64 ", end=%" PRIu64 ", ", token_beg, token_end);
     timestamp_t t0 = get_timestamp();
     for (uint64_t i = token_beg; i <= token_end; i++) {
       entry_list* list = index->get(i);
       sweep_list(results, list, max_rid, superset);
     }
     timestamp_t t1 = get_timestamp();
-    fprintf(stderr, "time taken=%llu\n", (t1 - t0));
+    fprintf(stderr, "count = %zu, time taken=%llu\n", results.size(), (t1 - t0));
   }
 
   /**
