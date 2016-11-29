@@ -1,6 +1,13 @@
 #ifndef NETPLAY_PACKETSTORE_H_
 #define NETPLAY_PACKETSTORE_H_
 
+#include <rte_ether.h>
+#include <rte_ip.h>
+#include <rte_tcp.h>
+#include <rte_udp.h>
+#include <rte_lpm.h>
+#include <rte_mbuf.h>
+
 #include "logstore.h"
 
 namespace netplay {
@@ -80,6 +87,12 @@ class packet_store: public slog::log_store {
     srcport_idx_id_ = add_index(2);
     dstport_idx_id_ = add_index(2);
     timestamp_idx_id_ = add_index(4);
+
+    srcip_idx_ = get_index<__index4>(srcip_idx_id_);
+    dstip_idx_ = get_index<__index4>(dstip_idx_id_);
+    srcport_idx_ = get_index<__index2>(srcport_idx_id_);
+    dstport_idx_ = get_index<__index2>(dstport_idx_id_);
+    timestamp_idx_ = get_index<__index4>(timestamp_idx_id_);
   }
 
   /**
@@ -107,6 +120,14 @@ class packet_store: public slog::log_store {
   uint32_t srcport_idx_id_;
   uint32_t dstport_idx_id_;
   uint32_t timestamp_idx_id_;
+
+  __index4* srcip_idx_;
+  __index4* dstip_idx_;
+  __index2* srcport_idx_;
+  __index2* dstport_idx_;
+  __index4* timestamp_idx_;
+
+  __monolog_base <uint32_t, 32> timestamps_;
 };
 
 }
