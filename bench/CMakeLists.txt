@@ -11,10 +11,13 @@ set(LOGSTORE_INCLUDE ../logstore/include)
 set(PKTSTORE_INCLUDE ../netplayd/include)
 set(PKTGEN_INCLUDE ../pktgen/include)
 include_directories(${INCLUDE} ${LOGSTORE_INCLUDE} ${PKTSTORE_INCLUDE}
-  ${PKTGEN_INCLUDE})
+  ${PKTGEN_INCLUDE} ${DPDK_INCLUDE_DIR})
 
 add_executable(pktbench packet_bench.cc)
 add_executable(fbench filter_bench.cc)
 
-target_link_libraries(pktbench ${CMAKE_THREAD_LIBS_INIT})
-target_link_libraries(fbench ${CMAKE_THREAD_LIBS_INIT})
+link_directories(${DPDK_LIB_DIR} ${THRIFT_LIB_DIR})
+
+set(DPDK_OPT -Wl,--whole-archive -ldpdk -Wl,--no-whole-archive)
+target_link_libraries(pktbench ${DPDK_OPT} ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(fbench ${DPDK_OPT} ${CMAKE_THREAD_LIBS_INIT})
