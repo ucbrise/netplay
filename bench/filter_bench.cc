@@ -94,8 +94,8 @@ class filter_benchmark {
     packet_store::handle* handle = store_->get_handle();
     std::string exp;
     while (std::getline(in, exp)) {
-      query_filter f = query_utils::expression_to_filter_query(handle, exp);
-      print_query_filter(f);
+      filter_query f = query_utils::expression_to_filter_query(handle, exp);
+      print_filter_query(f);
       queries_.push_back(f);
     }
     fprintf(stderr, "Loaded %zu queries.\n", queries_.size());
