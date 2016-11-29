@@ -9,8 +9,12 @@ find_package(Threads REQUIRED)
 set(INCLUDE include)
 set(LOGSTORE_INCLUDE ../logstore/include)
 set(PKTSTORE_INCLUDE ../netplayd/include)
-include_directories(${INCLUDE} ${LOGSTORE_INCLUDE} ${PKTSTORE_INCLUDE})
+set(PKTGEN_INCLUDE ../pktgen/include)
+include_directories(${INCLUDE} ${LOGSTORE_INCLUDE} ${PKTSTORE_INCLUDE}
+  ${PKTGEN_INCLUDE})
 
 add_executable(pktbench packet_bench.cc)
+add_executable(fbench filter_bench.cc)
 
 target_link_libraries(pktbench ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(fbench ${CMAKE_THREAD_LIBS_INIT})
