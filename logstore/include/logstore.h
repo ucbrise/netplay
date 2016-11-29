@@ -479,26 +479,6 @@ class log_store {
     dlog_->write(offset, record, record_len);
   }
 
-  template<typename INDEX>
-  INDEX* get_index(uint32_t index_id) {
-    /* Identify which index token belongs to */
-    uint32_t idx = index_id / OFFSETMIN;
-    uint32_t off = index_id % OFFSETMIN;
-
-    /* Fetch the index */
-    switch (idx) {
-    case 1: return idx1_->at(off);
-    case 2: return idx1_->at(off);
-    case 4: return idx1_->at(off);
-    case 8: return idx1_->at(off);
-    case 16: return idx1_->at(off);
-    case 32: return idx1_->at(off);
-    case 64: return idx1_->at(off);
-    case 128: return idx1_->at(off);
-    default: return NULL;
-    }
-  }
-
   /**
    * Add (token, recordId) entries to index logs.
    *
