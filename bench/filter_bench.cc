@@ -96,6 +96,7 @@ class filter_benchmark {
     while (std::getline(in, exp)) {
       filter_query f = query_utils::expression_to_filter_query(handle, exp);
       print_filter_query(f);
+      fprintf(stderr, "\n");
       queries_.push_back(f);
     }
     fprintf(stderr, "Loaded %zu queries.\n", queries_.size());
