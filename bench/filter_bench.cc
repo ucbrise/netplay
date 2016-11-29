@@ -48,9 +48,10 @@ class filter_benchmark {
 
     store_ = new packet_store();
 
+    fprintf(stderr, "Loading queries...\n");
+    load_queries(query_path);
     fprintf(stderr, "Loading data...\n");
     load_data(load_rate, num_pkts);
-    load_queries(query_path);
     fprintf(stderr, "Initialization complete.\n");
   }
 
