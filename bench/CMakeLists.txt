@@ -19,5 +19,5 @@ add_executable(pktbench packet_bench.cc)
 add_executable(fbench filter_bench.cc)
 
 set(DPDK_OPT -Wl,--whole-archive -ldpdk -Wl,--no-whole-archive)
-target_link_libraries(pktbench ${DPDK_OPT} ${CMAKE_THREAD_LIBS_INIT})
-target_link_libraries(fbench ${DPDK_OPT} ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(pktbench ${DPDK_OPT} ${CMAKE_THREAD_LIBS_INIT} dl)
+target_link_libraries(fbench ${DPDK_OPT} ${CMAKE_THREAD_LIBS_INIT} dl)
