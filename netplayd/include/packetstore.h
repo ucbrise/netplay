@@ -1,5 +1,7 @@
-#ifndef NETPLAY_PACKETSTORE_H_
-#define NETPLAY_PACKETSTORE_H_
+#ifndef PACKETSTORE_H_
+#define PACKETSTORE_H_
+
+#include <ctime>
 
 #include <rte_config.h>
 #include <rte_malloc.h>
@@ -40,6 +42,37 @@ class packet_store: public slog::log_store {
           store_(store) {
     }
 
+    void insert_pktburst(struct rte_mbuf** pkts, uint16_t cnt) {
+      std::time_t now = std::time(nullptr);
+      uint64_t id = store_.olog_->request_id_block(cnt);
+      uint64_t nbytes = 0;
+      for (int i = 0; i < cnt; i++)
+        nbytes += rte_pktmbuf_pkt_len(pkts[i]);
+      uint64_t off = base_.request_bytes(data_block_size_);
+
+      for (int i = 0; i < cnt; i++) {
+        unsigned char* pkt = rte_pktmbuf_mtod(pkts[i], unsigned char*);
+        uint16_t pkt_size = rte_pktmbuf_pkt_len(pkts[i]);
+        struct ether_hdr *eth = (struct ether_hdr *) pkt;
+        struct ipv4_hdr *ip = (struct ipv4_hdr *) (eth + 1);
+        store_.srcip_idx_->add_entry(ip->src_addr, id);
+        store_.dstip_idx_->add_entry(ip->src_addr, id);
+        if (ip->next_proto_id == IPPROTO_TCP) {
+          struct tcp_hdr *tcp = (struct tcp_hdr *) (ip + 1);
+          store_.srcport_idx_->add_entry(tcp->src_port, id);
+          store_.dstport_idx_->add_entry(tcp->dst_port, id);
+        } else if (ip->next_proto_id == IPPROTO_UDP) {
+          struct udp_hdr *udp = (struct udp_hdr *) (ip + 1);
+          store_.srcport_idx_->add_entry(udp->src_port, id);
+          store_.dstport_idx_->add_entry(udp->dst_port, id);
+        }
+        store_.timestamp_idx_->add_entry(now, id);
+        store_.append_record(pkt, pkt_size, off);
+        off += pkt_size;
+        id++;
+      }
+    }
+
     void add_src_ip(slog::token_list& list, uint32_t src_ip) {
       list.push_back(slog::token_t(store_.srcip_idx_id_, src_ip));
     }
@@ -60,23 +93,23 @@ class packet_store: public slog::log_store {
       list.push_back(slog::token_t(store_.timestamp_idx_id_, timestamp));
     }
 
-    uint32_t srcip_idx() {
+    uint32_t srcip_idx() const {
       return store_.srcip_idx_id_;
     }
 
-    uint32_t dstip_idx() {
+    uint32_t dstip_idx() const {
       return store_.dstip_idx_id_;
     }
 
-    uint32_t srcport_idx() {
+    uint32_t srcport_idx() const {
       return store_.srcport_idx_id_;
     }
 
-    uint32_t dstport_idx() {
+    uint32_t dstport_idx() const {
       return store_.dstport_idx_id_;
     }
 
-    uint32_t timestamp_idx() {
+    uint32_t timestamp_idx() const {
       return store_.timestamp_idx_id_;
     }
 
@@ -141,4 +174,4 @@ class packet_store: public slog::log_store {
 
 }
 
-#endif /* NETPLAY_PACKETSTORE_H_ */
+#endif /* PACKETSTORE_H_ */

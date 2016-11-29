@@ -53,7 +53,7 @@ class netplay_writer {
     uint64_t epoch = start;
     while (1) {
       uint16_t recv = vport_->recv_pkts(pkts, BATCH_SIZE);
-      process_batch(pkts, recv);
+      handle->insert_pktburst(pkts, recv);
       rec_pkts_ += recv;
       req_pkts_ += BATCH_SIZE;
 
