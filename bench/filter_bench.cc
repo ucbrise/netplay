@@ -54,7 +54,7 @@ class filter_benchmark {
 
   void load_data(uint64_t load_rate, uint64_t num_pkts) {
     packet_store::handle* handle = store_->get_handle();
-    size_t num_pkts = 0;
+    size_t i = 0;
 
     unsigned char data[PKT_LEN];
     token_list tokens;
@@ -65,7 +65,7 @@ class filter_benchmark {
     handle->add_timestamp(tokens, 0);
 
     token_bucket bucket(load_rate, PKT_BURST);
-    while (num_pkts < num_pkts) {
+    while (i < num_pkts) {
       tokens[0].update_data(rand() % 256);
       tokens[1].update_data(rand() % 256);
       tokens[2].update_data(rand() % 10);
@@ -73,10 +73,10 @@ class filter_benchmark {
       tokens[4].update_data(std::time(NULL));
       if (bucket.consume(1)) {
         handle->insert(data, PKT_LEN, tokens);
-        num_pkts++;
+        i++;
       }
     }
-    fprintf(stderr, "Loaded %zu packets.\n", num_pkts);
+    fprintf(stderr, "Loaded %zu packets.\n", i);
 
     delete handle;
   }
@@ -175,7 +175,7 @@ int main(int argc, char** argv) {
   if (bench_type.find("latency") == 0) {
     ls_bench.bench_latency();
   } else if (bench_type == "throughput") {
-    ls_bench.bench_throughput(num_threads);
+    ls_bench.bench_throughput(query_rate, num_threads);
   } else {
     fprintf(stderr, "Unknown benchmark type: %s; must be one of: "
             "{latency, throughput}\n", bench_type.c_str());
