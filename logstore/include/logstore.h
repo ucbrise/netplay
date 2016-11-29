@@ -407,59 +407,15 @@ class log_store {
     uint64_t max_rid = olog_->num_ids();
     for (filter_conjunction& conjunction : query) {
       std::unordered_set<uint64_t> conjunction_results;
-      std::sort(conjunction.begin(), conjunction.end(), [this](const basic_filter& lhs, const basic_filter& rhs) {
+      std::sort(conjunction.begin(), conjunction.end(), [this](const basic_filter & lhs, const basic_filter & rhs) {
         return filter_count(lhs) < filter_count(rhs);
       });
 
       for (basic_filter& basic : conjunction) {
-        /* Identify which index the filter is on */
-        uint32_t idx = basic.index_id() / OFFSETMIN;
-        uint32_t off = basic.index_id() % OFFSETMIN;
-
-        /* Query relevant index */
+        /* Perform basic filter */
         std::unordered_set<uint64_t> filter_res;
-        switch (idx) {
-        case 1: {
-          filter(filter_res, idx1_->at(off), basic.token_beg(),
-                 basic.token_end(), max_rid, conjunction_results);
-          break;
-        }
-        case 2: {
-          filter(filter_res, idx2_->at(off), basic.token_beg(),
-                 basic.token_end(), max_rid, conjunction_results);
-          break;
-        }
-        case 4: {
-          filter(filter_res, idx3_->at(off), basic.token_beg(),
-                 basic.token_end(), max_rid, conjunction_results);
-          break;
-        }
-        case 8: {
-          filter(filter_res, idx4_->at(off), basic.token_beg(),
-                 basic.token_end(), max_rid, conjunction_results);
-          break;
-        }
-        case 16: {
-          filter(filter_res, idx5_->at(off), basic.token_beg(),
-                 basic.token_end(), max_rid, conjunction_results);
-          break;
-        }
-        case 32: {
-          filter(filter_res, idx6_->at(off), basic.token_beg(),
-                 basic.token_end(), max_rid, conjunction_results);
-          break;
-        }
-        case 64: {
-          filter(filter_res, idx7_->at(off), basic.token_beg(),
-                 basic.token_end(), max_rid, conjunction_results);
-          break;
-        }
-        case 128: {
-          filter(filter_res, idx8_->at(off), basic.token_beg(),
-                 basic.token_end(), max_rid, conjunction_results);
-          break;
-        }
-        }
+        filter(filter_res, basic, max_rid, conjunction_results);
+        
         /* Stop this sequence of conjunctions if filter results are empty */
         if (filter_res.empty())
           break;
@@ -494,7 +450,7 @@ class log_store {
     stream_size(storage_stats.stream_sizes);
   }
 
- private:
+ protected:
 
   /**
    * Atomically request bytes from the data-log.
@@ -590,29 +546,14 @@ class log_store {
   }
 
   /**
-   * Atomically filter record ids from a given index for a token prefix.
+   * Count index-entries for a basic filter (i.e., simple predicate).
+   * Note: This does not return a consistent count. This should only be
+   * used for heuristic measures, rather than the actual count. For actual
+   * count, use filter() operation.
    *
-   * @param results The results set to be populated with matching records ids.
-   * @param ilog The index log associated with the token.
-   * @param token_prefix The prefix of the token being searched.
-   * @param token_prefix_len The length of the prefix.
-   * @param max_rid Largest record-id to consider.
-   * @param superset The superset to which the results must belong.
+   * @param f The filter query (predicate).
+   % @return The count of the filter query.
    */
-  template<typename INDEX>
-  void filter(std::unordered_set<uint64_t>& results, INDEX* index,
-              uint64_t token_beg, uint64_t token_end, const uint64_t max_rid,
-              const std::unordered_set<uint64_t>& superset) const {
-    fprintf(stderr, "Filter: begin=%" PRIu64 ", end=%" PRIu64 ", ", token_beg, token_end);
-    timestamp_t t0 = get_timestamp();
-    for (uint64_t i = token_beg; i <= token_end; i++) {
-      entry_list* list = index->get(i);
-      sweep_list(results, list, max_rid, superset);
-    }
-    timestamp_t t1 = get_timestamp();
-    fprintf(stderr, "count = %zu, time taken=%llu\n", results.size(), (t1 - t0));
-  }
-
   uint64_t filter_count(const basic_filter& f) const {
     /* Identify which index the filter is on */
     uint32_t idx = f.index_id() / OFFSETMIN;
@@ -641,6 +582,15 @@ class log_store {
     }
   }
 
+  /**
+   * Count index-entries for a range in an index.
+   * Note: This does not return a consistent count. This should only be
+   * used for heuristic measures, rather than the actual count. For actual
+   * count, use filter() operation.
+   *
+   * @param index .
+   % @return The count of the filter query.
+   */
   template<typename INDEX>
   uint64_t filter_count(INDEX* index, uint64_t token_beg, uint64_t token_end) const {
     uint64_t count = 0;
@@ -653,85 +603,168 @@ class log_store {
   }
 
   /**
-   * Sweeps through the entry-list, adding all valid entries to the results.
+   * Atomically filter record ids for a basic filter.
    *
-   *
-   * @param results The set of results to be populated.
-   * @param list The entry list.
-   * @param max_rid The maximum permissible record id.
+   * @param results The results set to be populated with matching records ids.
+   * @param basic The basic filter.
+   * @param max_rid Largest record-id to consider.
    * @param superset The superset to which the results must belong.
-   * @param superset_check Flag which determines whether to perform superset
-   *  check or not.
    */
-  void sweep_list(std::unordered_set<uint64_t>& results, entry_list* list,
-                  uint64_t max_rid,
-                  const std::unordered_set<uint64_t>& superset) const {
-    if (list == NULL)
-      return;
+  void filter(std::unordered_set<uint64_t>& results,
+              const basic_filter& basic, const uint64_t max_rid,
+              std::unordered_set<uint64_t> superset) const {
 
-    uint32_t size = list->size();
-    for (uint32_t i = 0; i < size; i++) {
-      uint64_t record_id = list->at(i);
-      if (olog_->is_valid(record_id, max_rid)
-          && (superset.empty() || superset.find(record_id) != superset.end()))
-        results.insert(record_id);
+    /* Identify which index the filter is on */
+    uint32_t idx = basic.index_id() / OFFSETMIN;
+    uint32_t off = basic.index_id() % OFFSETMIN;
+
+    switch (idx) {
+    case 1: {
+      filter(results, idx1_->at(off), basic.token_beg(),
+             basic.token_end(), max_rid, superset);
+      break;
     }
-  }
-
-  /**
-   * Compute the sizes of index-logs.
-   *
-   * @param sizes Vector to be populated with index sizes.
-   * @param idx Monolog containing indexes.
-   */
-  template<typename INDEX>
-  void index_size(std::vector<size_t>& sizes,
-                  monolog_linearizable<INDEX*> *idx) const {
-    uint32_t num_indexes = idx->size();
-    for (uint32_t i = 0; i < num_indexes; i++) {
-      sizes.push_back(idx->at(i)->storage_size());
+    case 2: {
+      filter(results, idx2_->at(off), basic.token_beg(),
+             basic.token_end(), max_rid, superset);
+      break;
     }
-  }
-
-  /**
-   * Compute the sizes of all stream logs.
-   *
-   * @param sizes Vector to be populated with stream sizes.
-   */
-  void stream_size(std::vector<size_t>& sizes) const {
-    uint32_t num_streams = streams_->size();
-    for (uint32_t i = 0; i < num_streams; i++) {
-      sizes.push_back(streams_->at(i)->get_stream()->storage_size());
+    case 4: {
+      filter(results, idx3_->at(off), basic.token_beg(),
+             basic.token_end(), max_rid, superset);
+      break;
     }
-  }
+    case 8: {
+      filter(results, idx4_->at(off), basic.token_beg(),
+             basic.token_end(), max_rid, superset);
+      break;
+    }
+    case 16: {
+      filter(results, idx5_->at(off), basic.token_beg(),
+             basic.token_end(), max_rid, superset);
+      break;
+    }
+    case 32: {
+      filter(results, idx6_->at(off), basic.token_beg(),
+             basic.token_end(), max_rid, superset);
+      break;
+    }
+    case 64: {
+      filter(results, idx7_->at(off), basic.token_beg(),
+             basic.token_end(), max_rid, superset);
+      break;
+    }
+    case 128: {
+      filter(results, idx8_->at(off), basic.token_beg(),
+             basic.token_end(), max_rid, superset);
+      break;
+    }
+    }
 
-  static timestamp_t get_timestamp() {
-    struct timeval now;
-    gettimeofday(&now, NULL);
+    /**
+     * Atomically filter record ids from a given index for a token range.
+     *
+     * @param results The results set to be populated with matching records ids.
+     * @param index The index associated with the token.
+     * @param token_beg The beginning of token range.
+     * @param token_end The end of token range.
+     * @param max_rid Largest record-id to consider.
+     * @param superset The superset to which the results must belong.
+     */
+    template<typename INDEX>
+    void filter(std::unordered_set<uint64_t>& results, INDEX * index,
+                uint64_t token_beg, uint64_t token_end, const uint64_t max_rid,
+                const std::unordered_set<uint64_t>& superset) const {
+      fprintf(stderr, "Filter: begin=%" PRIu64 ", end=%" PRIu64 ", ", token_beg, token_end);
+      timestamp_t t0 = get_timestamp();
+      for (uint64_t i = token_beg; i <= token_end; i++) {
+        entry_list* list = index->get(i);
+        sweep_list(results, list, max_rid, superset);
+      }
+      timestamp_t t1 = get_timestamp();
+      fprintf(stderr, "count = %zu, time taken=%llu\n", results.size(), (t1 - t0));
+    }
 
-    return now.tv_usec + (timestamp_t) now.tv_sec * 1000000;
-  }
+    /**
+     * Sweeps through the entry-list, adding all valid entries to the results.
+     *
+     *
+     * @param results The set of results to be populated.
+     * @param list The entry list.
+     * @param max_rid The maximum permissible record id.
+     * @param superset The superset to which the results must belong.
+     * @param superset_check Flag which determines whether to perform superset
+     *  check or not.
+     */
+    void sweep_list(std::unordered_set<uint64_t>& results, entry_list * list,
+                    uint64_t max_rid,
+                    const std::unordered_set<uint64_t>& superset) const {
+      if (list == NULL)
+        return;
 
-  /* Data log and offset log */
-  __monolog_linear_base <uint8_t>* dlog_;
-  offsetlog* olog_;
+      uint32_t size = list->size();
+      for (uint32_t i = 0; i < size; i++) {
+        uint64_t record_id = list->at(i);
+        if (olog_->is_valid(record_id, max_rid)
+            && (superset.empty() || superset.find(record_id) != superset.end()))
+          results.insert(record_id);
+      }
+    }
 
-  /* Tail for preserving atomicity */
-  std::atomic<uint64_t> dtail_;
+    /**
+     * Compute the sizes of index-logs.
+     *
+     * @param sizes Vector to be populated with index sizes.
+     * @param idx Monolog containing indexes.
+     */
+    template<typename INDEX>
+    void index_size(std::vector<size_t>& sizes,
+                    monolog_linearizable<INDEX*> *idx) const {
+      uint32_t num_indexes = idx->size();
+      for (uint32_t i = 0; i < num_indexes; i++) {
+        sizes.push_back(idx->at(i)->storage_size());
+      }
+    }
 
-  /* Index logs */
-  monolog_linearizable<__index1 *> *idx1_;
-  monolog_linearizable<__index2 *> *idx2_;
-  monolog_linearizable<__index3 *> *idx3_;
-  monolog_linearizable<__index4 *> *idx4_;
-  monolog_linearizable<__index5 *> *idx5_;
-  monolog_linearizable<__index6 *> *idx6_;
-  monolog_linearizable<__index7 *> *idx7_;
-  monolog_linearizable<__index8 *> *idx8_;
+    /**
+     * Compute the sizes of all stream logs.
+     *
+     * @param sizes Vector to be populated with stream sizes.
+     */
+    void stream_size(std::vector<size_t>& sizes) const {
+      uint32_t num_streams = streams_->size();
+      for (uint32_t i = 0; i < num_streams; i++) {
+        sizes.push_back(streams_->at(i)->get_stream()->storage_size());
+      }
+    }
 
-  /* Stream logs */
-  monolog_linearizable<streamlog*> *streams_;
-};
+    static timestamp_t get_timestamp() {
+      struct timeval now;
+      gettimeofday(&now, NULL);
+
+      return now.tv_usec + (timestamp_t) now.tv_sec * 1000000;
+    }
+
+    /* Data log and offset log */
+    __monolog_linear_base <uint8_t>* dlog_;
+    offsetlog* olog_;
+
+    /* Tail for preserving atomicity */
+    std::atomic<uint64_t> dtail_;
+
+    /* Index logs */
+    monolog_linearizable<__index1 *> *idx1_;
+    monolog_linearizable<__index2 *> *idx2_;
+    monolog_linearizable<__index3 *> *idx3_;
+    monolog_linearizable<__index4 *> *idx4_;
+    monolog_linearizable<__index5 *> *idx5_;
+    monolog_linearizable<__index6 *> *idx6_;
+    monolog_linearizable<__index7 *> *idx7_;
+    monolog_linearizable<__index8 *> *idx8_;
+
+    /* Stream logs */
+    monolog_linearizable<streamlog*> *streams_;
+  };
 
 }
 
