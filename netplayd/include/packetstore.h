@@ -127,7 +127,7 @@ class packet_store: public slog::log_store {
   slog::__index2* dstport_idx_;
   slog::__index4* timestamp_idx_;
 
-  __monolog_base <uint32_t, 32> timestamps_;
+  slog::__monolog_base <uint32_t, 32> timestamps_;
 };
 
 }
