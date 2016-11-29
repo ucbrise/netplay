@@ -13,10 +13,10 @@ set(PKTGEN_INCLUDE ../pktgen/include)
 include_directories(${INCLUDE} ${LOGSTORE_INCLUDE} ${PKTSTORE_INCLUDE}
   ${PKTGEN_INCLUDE} ${DPDK_INCLUDE_DIR})
 
+link_directories(${DPDK_LIB_DIR} ${THRIFT_LIB_DIR})
+
 add_executable(pktbench packet_bench.cc)
 add_executable(fbench filter_bench.cc)
-
-link_directories(${DPDK_LIB_DIR} ${THRIFT_LIB_DIR})
 
 set(DPDK_OPT -Wl,--whole-archive -ldpdk -Wl,--no-whole-archive)
 target_link_libraries(pktbench ${DPDK_OPT} ${CMAKE_THREAD_LIBS_INIT})
