@@ -85,7 +85,7 @@ class filter_benchmark {
 
   void load_queries(const std::string& query_path) {
     std::ifstream in(query_path);
-    if (!in) {
+    if (!in.is_open()) {
       fprintf(stderr, "Could not open query file %s\n", query_path.c_str());
       exit(-1);
     }
