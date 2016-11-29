@@ -35,15 +35,15 @@ struct basic_filter {
     return *this;
   }
 
-  uint32_t index_id() {
+  uint32_t index_id() const {
     return index_id_;
   }
 
-  uint64_t token_beg() {
+  uint64_t token_beg() const {
     return token_beg_;
   }
 
-  uint64_t token_end() {
+  uint64_t token_end() const {
     return token_end_;
   }
 
