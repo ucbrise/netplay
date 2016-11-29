@@ -16,12 +16,14 @@
 
 #include "token_bucket.h"
 #include "packetstore.h"
+#include "query_utils.h"
 
 #define PKT_LEN 54
 #define PKT_BURST 32
 #define QUERY_BURST 1
 
 using namespace ::netplay;
+using namespace ::netplay::pktgen;
 using namespace ::slog;
 using namespace ::std::chrono;
 
@@ -56,7 +58,7 @@ class filter_benchmark {
 
   void load_data() {
     packet_store::handle* handle = store_->get_handle();
-    uint64_t num_pkts = 0;
+    size_t num_pkts = 0;
 
     unsigned char data[PKT_LEN];
     token_list tokens;
@@ -74,11 +76,11 @@ class filter_benchmark {
       tokens[3].update_data(rand() % 10);
       tokens[4].update_data(std::time(NULL));
       if (bucket.consume(1)) {
-        handle_->insert(data, PKT_LEN, tokens);
+        handle->insert(data, PKT_LEN, tokens);
         num_pkts++;
       }
     }
-    fprintf(stderr, "Loaded %zu packets.\n", datas_.size());
+    fprintf(stderr, "Loaded %zu packets.\n", num_pkts);
 
     delete handle;
   }
@@ -127,6 +129,7 @@ class filter_benchmark {
 
   uint64_t load_rate_;
   uint64_t query_rate_;
+  uint64_t pkt_limit_;
   std::vector<filter_query> queries_;
   packet_store *store_;
 };
