@@ -85,6 +85,10 @@ class filter_benchmark {
 
   void load_queries(const std::string& query_path) {
     std::ifstream in(query_path);
+    if (!in) {
+      fprintf(stderr, "Could not open query file %s\n", query_path.c_str());
+      exit(-1);
+    }
     packet_store::handle* handle = store_->get_handle();
     std::string exp;
     while (std::getline(in, exp))
