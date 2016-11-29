@@ -48,7 +48,7 @@ class packet_store: public slog::log_store {
       uint64_t nbytes = 0;
       for (int i = 0; i < cnt; i++)
         nbytes += rte_pktmbuf_pkt_len(pkts[i]);
-      uint64_t off = base_.request_bytes(data_block_size_);
+      uint64_t off = store_.request_bytes(nbytes);
 
       for (int i = 0; i < cnt; i++) {
         unsigned char* pkt = rte_pktmbuf_mtod(pkts[i], unsigned char*);
