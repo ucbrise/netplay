@@ -111,7 +111,7 @@ class filter_benchmark {
 
   // Throughput benchmarks
   void bench_throughput(uint64_t query_rate, int num_threads) {
-    assert(query_rate >= 0);
+    assert(query_rate < 1e6);
     assert(num_threads >= 1);
     // TODO: Implement
   }
