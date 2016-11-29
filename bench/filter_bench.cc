@@ -27,6 +27,8 @@ using namespace ::netplay::pktgen;
 using namespace ::slog;
 using namespace ::std::chrono;
 
+uint32_t query_utils::now = std::time(NULL);
+
 class filter_benchmark {
  public:
   typedef unsigned long long int timestamp_t;
