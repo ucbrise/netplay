@@ -88,11 +88,11 @@ class packet_store: public slog::log_store {
     dstport_idx_id_ = add_index(2);
     timestamp_idx_id_ = add_index(4);
 
-    srcip_idx_ = get_index<slog::__index4>(srcip_idx_id_);
-    dstip_idx_ = get_index<slog::__index4>(dstip_idx_id_);
-    srcport_idx_ = get_index<slog::__index2>(srcport_idx_id_);
-    dstport_idx_ = get_index<slog::__index2>(dstport_idx_id_);
-    timestamp_idx_ = get_index<slog::__index4>(timestamp_idx_id_);
+    srcip_idx_ = idx4_->at(0);
+    dstip_idx_ = idx4_->at(1);
+    srcport_idx_ = idx2_->at(0);
+    dstport_idx_ = idx2_->at(1);
+    timestamp_idx_ = idx4_->at(2);
   }
 
   /**
