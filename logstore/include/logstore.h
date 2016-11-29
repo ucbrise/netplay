@@ -50,6 +50,8 @@ class log_store {
  public:
   class handle {
    public:
+    typedef unsigned long long int timestamp_t;
+
     /**
      * Constructor to initialize handle.
      *
@@ -597,11 +599,14 @@ class log_store {
   void filter(std::unordered_set<uint64_t>& results, INDEX* index,
               uint64_t token_beg, uint64_t token_end, const uint64_t max_rid,
               const std::unordered_set<uint64_t>& superset) const {
-
+    fprintf(stderr, "Filter: begin=%" PRIu64 ", end=%" PRIu64 " ", token_beg, token_end);
+    timestamp_t t0 = get_timestamp();
     for (uint64_t i = token_beg; i <= token_end; i++) {
       entry_list* list = index->get(i);
       sweep_list(results, list, max_rid, superset);
     }
+    timestamp_t t1 = get_timestamp();
+    fprintf(stderr, "time taken=%llu\n", (t1 - t0));
   }
 
   /**
@@ -655,6 +660,13 @@ class log_store {
     for (uint32_t i = 0; i < num_streams; i++) {
       sizes.push_back(streams_->at(i)->get_stream()->storage_size());
     }
+  }
+
+  static timestamp_t get_timestamp() {
+    struct timeval now;
+    gettimeofday(&now, NULL);
+
+    return now.tv_usec + (timestamp_t) now.tv_sec * 1000000;
   }
 
   /* Data log and offset log */
