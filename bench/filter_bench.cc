@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <unistd.h>
 
+#include "filterops.h"
 #include "token_bucket.h"
 #include "packetstore.h"
 #include "query_utils.h"
@@ -92,8 +93,11 @@ class filter_benchmark {
     }
     packet_store::handle* handle = store_->get_handle();
     std::string exp;
-    while (std::getline(in, exp))
-      queries_.push_back(query_utils::expression_to_filter_query(handle, exp));
+    while (std::getline(in, exp)) {
+      query_filter f = query_utils::expression_to_filter_query(handle, exp);
+      print_query_filter(f);
+      queries_.push_back(f);
+    }
     fprintf(stderr, "Loaded %zu queries.\n", queries_.size());
 
     delete handle;
