@@ -203,7 +203,7 @@ class packet_store: public slog::log_store {
                      const slog::basic_filter& f) const {
     uint32_t ts = timestamps_.get(id);
 
-    print_pkt(pkt, id);
+    print_pkt(pkt, ts);
 
     for (slog::basic_filter& basic : conjunction) {
       if (basic == f) continue;
