@@ -58,7 +58,7 @@ class packet_store: public slog::log_store {
         struct ether_hdr *eth = (struct ether_hdr *) pkt;
         struct ipv4_hdr *ip = (struct ipv4_hdr *) (eth + 1);
         store_.srcip_idx_->add_entry(ip->src_addr, id);
-        store_.dstip_idx_->add_entry(ip->src_addr, id);
+        store_.dstip_idx_->add_entry(ip->dst_addr, id);
         if (ip->next_proto_id == IPPROTO_TCP) {
           struct tcp_hdr *tcp = (struct tcp_hdr *) (ip + 1);
           store_.srcport_idx_->add_entry(tcp->src_port, id);
