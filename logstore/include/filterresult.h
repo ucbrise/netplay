@@ -50,11 +50,11 @@ class filter_result {
       return it;
     }
 
-    bool operator==(monolog_iterator other) const {
+    bool operator==(filter_iterator other) const {
       return (cur_tok_ == other.cur_tok_) && (cur_idx_ == other.cur_idx_);
     }
 
-    bool operator!=(monolog_iterator other) const {
+    bool operator!=(filter_iterator other) const {
       return !(*this == other);
     }
 
