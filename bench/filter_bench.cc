@@ -1,6 +1,8 @@
+#include <unistd.h>
+#include <sys/time.h>
+
 #include <chrono>
 #include <ctime>
-#include <sys/time.h>
 #include <random>
 #include <cstdint>
 #include <cstdlib>
@@ -8,11 +10,24 @@
 #include <fstream>
 #include <thread>
 #include <vector>
-#include <condition_variable>
-#include <unistd.h>
 #include <sstream>
 #include <algorithm>
-#include <unistd.h>
+
+#include <rte_config.h>
+#include <rte_malloc.h>
+#include <rte_ring.h>
+#include <rte_cycles.h>
+#include <rte_timer.h>
+#include <rte_errno.h>
+#include <rte_eth_ring.h>
+#include <rte_ethdev.h>
+#include <rte_eal.h>
+#include <rte_ether.h>
+#include <rte_ip.h>
+#include <rte_tcp.h>
+#include <rte_udp.h>
+#include <rte_lpm.h>
+#include <rte_mbuf.h>
 
 #include "filterops.h"
 #include "token_bucket.h"
@@ -60,23 +75,23 @@ class filter_benchmark {
     packet_store::handle* handle = store_->get_handle();
     size_t i = 0;
 
-    unsigned char data[PKT_LEN];
-    token_list tokens;
-    handle->add_src_ip(tokens, 0);
-    handle->add_dst_ip(tokens, 0);
-    handle->add_src_port(tokens, 0);
-    handle->add_dst_port(tokens, 0);
-    handle->add_timestamp(tokens, 0);
+    struct rte_mbuf buf;
+    struct rte_mbuf* pkt = &buf;
 
     token_bucket bucket(load_rate, PKT_BURST);
     while (i < num_pkts) {
-      tokens[0].update_data(rand() % 256);
-      tokens[1].update_data(rand() % 256);
-      tokens[2].update_data(rand() % 10);
-      tokens[3].update_data(rand() % 10);
-      tokens[4].update_data(std::time(NULL));
+      struct ether_hdr* eth = rte_pktmbuf_mtod(pkt, struct ether_hdr*);
+
+      struct ipv4_hdr *ip = (struct ipv4_hdr *) (eth + 1);
+      ip->src_addr = rand() % 256;
+      ip->dst_addr = rand() % 256;
+
+      struct tcp_hdr *tcp = (struct tcp_hdr *) (ip + 1);
+      tcp->src_port = rand() % 10;
+      tcp->dst_port = rand() % 10;
+      
       if (bucket.consume(1)) {
-        handle->insert(data, PKT_LEN, tokens);
+        handle->insert_pktburst(&pkt, 1);
         i++;
       }
     }
