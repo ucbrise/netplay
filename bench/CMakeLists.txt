@@ -7,11 +7,12 @@ file(MAKE_DIRECTORY ${EXECUTABLE_OUTPUT_PATH})
 find_package(Threads REQUIRED)
 
 set(INCLUDE include)
+set(DPDK_INCLUDE ../dpdk/include)
 set(LOGSTORE_INCLUDE ../logstore/include)
 set(PKTSTORE_INCLUDE ../netplayd/include)
 set(PKTGEN_INCLUDE ../pktgen/include)
-include_directories(${INCLUDE} ${LOGSTORE_INCLUDE} ${PKTSTORE_INCLUDE}
-  ${PKTGEN_INCLUDE} ${DPDK_INCLUDE_DIR})
+include_directories(${INCLUDE} ${DPDK_INCLUDE} ${LOGSTORE_INCLUDE} 
+  ${PKTSTORE_INCLUDE} ${PKTGEN_INCLUDE} ${DPDK_INCLUDE_DIR})
 
 link_directories(${DPDK_LIB_DIR} ${THRIFT_LIB_DIR})
 
