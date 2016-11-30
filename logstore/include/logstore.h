@@ -412,7 +412,7 @@ class log_store {
               uint64_t min, uint64_t max) const {
     uint64_t max_rid = olog_->num_ids();
     std::unordered_set<uint64_t> empty;
-    filter(results, basic, max_rid, empty);
+    filter(results, index_id, min, max, max_rid, empty);
   }
 
   /** Get storage statistics
