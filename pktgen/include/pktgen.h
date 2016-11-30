@@ -63,7 +63,7 @@ class rand_generator {
 
   struct rte_mbuf** generate_batch(size_t size) {
     // Generate random packets
-    for (int i = 0; i < size; i++) {
+    for (size_t i = 0; i < size; i++) {
       struct ether_hdr* eth = rte_pktmbuf_mtod(pkts_[i], struct ether_hdr*);
 
       struct ipv4_hdr *ip = (struct ipv4_hdr *) (eth + 1);
