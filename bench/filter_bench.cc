@@ -117,7 +117,7 @@ class filter_benchmark {
       handle->filter_pkts(results, queries_[i]);
       timestamp_t end = get_timestamp();
       out << i << "\t" << results.size() << "\t" << (end - start) << "\n";
-      fprintf(stderr, "Query %zu: Count = %zu, Latency = %llu\n", i,
+      fprintf(stderr, "Query %zu: Count = %zu, Latency = %llu\n", (i + 1),
               results.size(), (end - start));
     }
     out.close();
