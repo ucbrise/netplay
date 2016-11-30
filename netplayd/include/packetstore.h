@@ -45,6 +45,7 @@ class packet_store: public slog::log_store {
     void insert_pktburst(struct rte_mbuf** pkts, uint16_t cnt) {
       std::time_t now = std::time(nullptr);
       uint64_t id = store_.olog_->request_id_block(cnt);
+      timestamps_.ensure_alloc(id, id + cnt);
       uint64_t nbytes = 0;
       for (int i = 0; i < cnt; i++)
         nbytes += rte_pktmbuf_pkt_len(pkts[i]);
@@ -68,11 +69,14 @@ class packet_store: public slog::log_store {
         }
         store_.timestamp_idx_->add_entry(now, id);
         store_.append_record(pkt, pkt_size, off);
+        timestamps_.set(id, now);
         store_.olog_->end(id);
         off += pkt_size;
         id++;
       }
     }
+
+
 
     void add_src_ip(slog::token_list& list, uint32_t src_ip) {
       list.push_back(slog::token_t(store_.srcip_idx_id_, src_ip));
