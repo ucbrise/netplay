@@ -171,9 +171,9 @@ class packet_store: public slog::log_store {
       typedef std::unordered_set<uint64_t>::iterator iterator_t;
       for (iterator_t it = filter_res.begin(); it != filter_res.end();) {
         uint64_t off;
-        uint16_t len;
-        fprintf(stderr, "len=%" PRIu16 "\n", len);
+        uint16_t len;        
         olog_->lookup(*it, off, len);
+        fprintf(stderr, "len=%" PRIu16 "\n", len);
         if (check_filters(*it, dlog_->ptr(off), conjunction, f))
           it++;
         else
