@@ -32,6 +32,7 @@
 #include <rte_mbuf.h>
 
 #include "packetstore.h"
+#include "pktgen.h"
 #include "bench_vport.h"
 #include "dpdk_utils.h"
 #include "cpu_utilization.h"
@@ -125,7 +126,7 @@ class packet_loader {
     std::vector<double> thputs(num_threads, 0.0);
     
     for (uint32_t i = 0; i < num_threads; i++) {
-      workers.push_back(std::thread([i, worker_rate, this] {
+      workers.push_back(std::thread([i, worker_rate, thputs, this] {
         uint64_t idx = i * kMaxPktsPerThread;
         struct rte_mbuf** pkts = data_.pkts_;
         packet_store::handle* handle = store_->get_handle();
@@ -140,7 +141,7 @@ class packet_loader {
         timestamp_t end = get_timestamp();
         double totsecs = (double) (end - start) / (1000.0 * 1000.0);
         thputs[i] = ((double) pktgen.total_sent() / totsecs);
-        fprintf(stderr, "Thread #%u(%lfs): Throughput: %lf.\n", i, totsecs, throughput);
+        fprintf(stderr, "Thread #%u(%lfs): Throughput: %lf.\n", i, totsecs, thputs[i]);
 
         delete vport;
         delete gen;
@@ -160,7 +161,6 @@ class packet_loader {
 
     if (measure_cpu) {
       std::thread cpu_measure_thread([&] {
-        timestamp_t start = get_timestamp();
         std::ofstream util_stream("cpu_utilization");
         cpu_utilization util;
         while (true) {
@@ -178,7 +178,7 @@ class packet_loader {
                                       sizeof(cpu_set_t), &cpuset);
       if (rc != 0)
         fprintf(stderr, "Error calling pthread_setaffinity_np: %d\n", rc);
-      cpu_measure_thread.detatch();
+      cpu_measure_thread.detach();
     }
 
     for (auto& th : workers)
