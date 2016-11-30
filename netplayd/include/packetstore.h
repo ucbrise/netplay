@@ -216,8 +216,6 @@ class packet_store: public slog::log_store {
                      const slog::basic_filter& f) const {
     uint32_t ts = timestamps_.get(id);
 
-    print_pkt(pkt, ts);
-
     for (slog::basic_filter& basic : conjunction) {
       if (basic == f) continue;
       if (basic.index_id() == srcip_idx_id_ &&
@@ -237,6 +235,9 @@ class packet_store: public slog::log_store {
         return false;
       }
     }
+
+    print_pkt(pkt, ts);
+    
     return true;
   }
 
