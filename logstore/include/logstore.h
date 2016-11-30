@@ -408,11 +408,10 @@ class log_store {
    * @param min The smallest token to consider.
    * @param max The largest token to consider.
    */
-  void filter(std::unordered_set<uint64_t>& results, uint32_t index_id,
-              uint64_t min, uint64_t max) const {
+  void filter(result_type& results, const uint32_t index_id,
+              const uint64_t min, const uint64_t max) const {
     uint64_t max_rid = olog_->num_ids();
-    std::unordered_set<uint64_t> empty;
-    filter(results, index_id, min, max, max_rid, empty);
+    filter(results, index_id, min, max, max_rid);
   }
 
   /** Get storage statistics
@@ -605,8 +604,8 @@ class log_store {
               const uint64_t max, const uint64_t max_rid) const {
 
     /* Identify which index the filter is on */
-    uint32_t idx = basic.index_id() / OFFSETMIN;
-    uint32_t off = basic.index_id() % OFFSETMIN;
+    uint32_t idx = index_id / OFFSETMIN;
+    uint32_t off = index_id % OFFSETMIN;
 
     switch (idx) {
     case 1: {

@@ -36,7 +36,7 @@ class query_handler : virtual public thrift::NetPlayQueryServiceIf {
 
     // Compute results
     std::unordered_set<uint64_t> res;
-    handle_->filter(res, q);
+    handle_->filter_pkts(res, q);
 
     // Copy into vector
     _return.reserve(res.size());
