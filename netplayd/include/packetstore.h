@@ -199,9 +199,6 @@ class packet_store: public slog::log_store {
                      const slog::basic_filter& f) {
     uint64_t ts = timestamps_.get(id);
 
-    struct ether_hdr *eth = (struct ether_hdr *) pkt;
-    struct ipv4_hdr *ip = (struct ipv4_hdr *) (eth + 1);
-
     for (slog::basic_filter& basic : conjunction) {
       if (basic == f) continue;
       if (basic.index_id() == srcip_idx_id_ &&
