@@ -29,17 +29,20 @@
 #include <rte_lpm.h>
 #include <rte_mbuf.h>
 
+#include "dpdk_utils.h"
 #include "filterops.h"
 #include "token_bucket.h"
 #include "packetstore.h"
 #include "query_utils.h"
 #include "bench_vport.h"
+#include "pktgen.h"
 
 #define PKT_LEN 54
 #define PKT_BURST 32
 #define QUERY_BURST 1
 
 using namespace ::netplay;
+using namespace ::netplay::dpdk;
 using namespace ::netplay::pktgen;
 using namespace ::slog;
 using namespace ::std::chrono;
@@ -73,7 +76,7 @@ class filter_benchmark {
   }
 
   void load_data(uint64_t load_rate, uint64_t num_pkts) {
-    struct rte_mempool* mempool = netplay::dpdk::init_dpdk("filter", 0, 0);
+    struct rte_mempool* mempool = init_dpdk("filter", 0, 0);
     packet_store::handle* handle = store_->get_handle();
     pktstore_vport* vport = new pktstore_vport(handle);
 

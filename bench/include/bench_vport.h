@@ -28,7 +28,7 @@ class pktstore_vport {
   }
 
   uint16_t send_pkts(struct rte_mbuf** pkts, uint16_t n_pkts) {
-    handle->insert_pktburst(pkts, n_pkts);
+    handle_->insert_pktburst(pkts, n_pkts);
     return n_pkts;
   }
 
