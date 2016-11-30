@@ -25,7 +25,7 @@
 namespace netplay {
 
 /**
- * A data store for packet header data.
+ * A data store for packet headers.
  *
  * Stores entire packet headers, along with 'casts' and 'characters' to enable
  * efficient rich semantics. See https://cs.berkeley.edu/~anuragk/netplay.pdf
