@@ -210,9 +210,9 @@ class packet_store: public slog::log_store {
 
  private:
   bool check_filters(uint64_t id, void *pkt, const slog::filter_conjunction& conjunction,
-                     slog::basic_filter& f) {
+                     const slog::basic_filter& f) {
     uint64_t ts = timestamps_.get(id);
-    for (const slog::basic_filter& basic : conjunction) {
+    for (slog::basic_filter& basic : conjunction) {
       if (basic == f) continue;
       if (basic.index_id() == srcip_idx_id_ &&
           !src_ip_filter::apply(pkt, basic.token_beg(), basic.token_end())) {
