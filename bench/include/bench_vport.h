@@ -2,6 +2,7 @@
 #define BENCH_VPORT_H_
 
 #include <functional>
+#include <cassert>
 
 #include <rte_config.h>
 #include <rte_malloc.h>
@@ -33,6 +34,8 @@ class pktstore_vport {
   }
 
   uint16_t recv_pkts(struct rte_mbuf** pkts, uint16_t n_pkts) {
+    assert(pkts != NULL);
+    assert(n_pkts > 0);
     throw std::bad_function_call();
   }
 
