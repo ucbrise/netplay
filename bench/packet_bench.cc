@@ -58,58 +58,6 @@ static timestamp_t get_timestamp() {
   return now.tv_usec + (timestamp_t) now.tv_sec * 1000000;
 }
 
-struct bench_data {
-  bench_data() {
-    fprintf(stderr, "Generating packets...\n");
-    mempool_ = init_dpdk("filter", 0, 0);
-    int ret = mempool::mbuf_alloc_bulk(pkts_, PKT_LEN, MAX_PKTS, mempool_);
-    if (ret != 0) {
-      fprintf(stderr, "Error allocating packets %d\n", ret);
-      exit(-1);
-    }
-
-    for (int i = 0; i < MAX_PKTS; i++) {
-      struct ether_hdr* eth = rte_pktmbuf_mtod(pkts_[i], struct ether_hdr*);
-      eth->d_addr.addr_bytes[5] = 0;
-      eth->s_addr.addr_bytes[5] = 1;
-      eth->ether_type = rte_cpu_to_be_16(0x0800);
-
-      struct ipv4_hdr *ip = (struct ipv4_hdr *) (eth + 1);
-      ip->src_addr = rand() % 256;
-      ip->dst_addr = rand() % 256;
-      ip->next_proto_id = IPPROTO_TCP;
-
-      struct tcp_hdr *tcp = (struct tcp_hdr *) (ip + 1);
-      tcp->src_port = rand() % 10;
-      tcp->dst_port = rand() % 10;
-    }
-    fprintf(stderr, "Finished generating packets\n");
-  }
-
-  struct rte_mempool* mempool_;
-  struct rte_mbuf* pkts_[MAX_PKTS];
-};
-
-class static_rand_generator {
- public:
-  static_rand_generator(struct rte_mbuf** pkts, uint64_t start_idx) {
-    pkts_ = pkts;
-    idx_ = start_idx;
-  }
-
-  struct rte_mbuf** generate_batch(size_t size) {
-    struct rte_mbuf** buf = pkts_ + idx_;
-    idx_ += size;
-    if (idx_ >= MAX_PKTS)
-      idx_ = 0;
-    return buf;
-  }
-
- private:
-  uint64_t idx_;
-  struct rte_mbuf** pkts_;
-};
-
 class packet_loader {
  public:
   static const uint64_t kMaxPktsPerThread = 60 * 1e6;
@@ -125,14 +73,14 @@ class packet_loader {
     std::vector<std::thread> workers;
     uint64_t worker_rate = rate_limit / num_threads;
     std::vector<double> thputs(num_threads, 0.0);
-
+    struct rte_mempool* mempool = init_dpdk("pktbench", 0, 0);
     for (uint32_t i = 0; i < num_threads; i++) {
       workers.push_back(std::thread([i, worker_rate, &thputs, this] {
         uint64_t idx = i * kMaxPktsPerThread;
         struct rte_mbuf** pkts = data_.pkts_;
         packet_store::handle* handle = store_->get_handle();
         pktstore_vport* vport = new pktstore_vport(handle);
-        static_rand_generator* gen = new static_rand_generator(pkts, idx);
+        rand_generator* gen = new rand_generator(mempool);
         pktgen_t pktgen(vport, gen, worker_rate, 0, kMaxPktsPerThread);
 
         fprintf(stderr, "Starting benchmark.\n");
@@ -195,7 +143,6 @@ class packet_loader {
   }
 
  private:
-  bench_data data_;
   packet_store *store_;
 };
 
