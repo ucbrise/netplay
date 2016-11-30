@@ -76,7 +76,6 @@ class packet_loader {
     struct rte_mempool* mempool = init_dpdk("pktbench", 0, 0);
     for (uint32_t i = 0; i < num_threads; i++) {
       workers.push_back(std::thread([i, worker_rate, &thputs, &mempool, this] {
-        uint64_t idx = i * kMaxPktsPerThread;
         packet_store::handle* handle = store_->get_handle();
         pktstore_vport* vport = new pktstore_vport(handle);
         rand_generator* gen = new rand_generator(mempool);
