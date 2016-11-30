@@ -85,62 +85,10 @@ class netplay_writer {
   }
 
  private:
-  void init_tokens() {
-    handle_->add_timestamp(tokens_, 0);
-    handle_->add_src_ip(tokens_, 0);
-    handle_->add_dst_ip(tokens_, 0);
-    handle_->add_src_port(tokens_, 0);
-    handle_->add_dst_port(tokens_, 0);
-  }
-
-  void set_tokens(uint32_t time, uint32_t srcip, uint32_t dstip,
-                  uint16_t sport, uint16_t dport) {
-    tokens_[0].update_data(time);
-    tokens_[1].update_data(srcip);
-    tokens_[2].update_data(dstip);
-    tokens_[3].update_data(sport);
-    tokens_[4].update_data(dport);
-  }
-
   inline uint64_t curusec() {
     using namespace ::std::chrono;
     auto ts = steady_clock::now().time_since_epoch();
     return duration_cast<std::chrono::microseconds>(ts).count();
-  }
-
-  void process_batch(struct rte_mbuf** pkts, uint16_t cnt) {
-    std::time_t now = std::time(nullptr);
-    for (int i = 0; i < cnt; i++) {
-      uint32_t num_bytes = 0;
-
-      void* pkt = rte_pktmbuf_mtod(pkts[i], void*);
-      struct ether_hdr *eth = (struct ether_hdr *) pkt;
-      num_bytes += sizeof(struct ether_hdr);
-
-      struct ipv4_hdr *ip = (struct ipv4_hdr *) (eth + 1);
-      num_bytes += sizeof(struct ipv4_hdr);
-
-      if (ip->next_proto_id == IPPROTO_TCP) {
-        struct tcp_hdr *tcp = (struct tcp_hdr *) (ip + 1);
-        num_bytes += sizeof(struct tcp_hdr);
-
-        set_tokens((uint32_t) now, ip->src_addr, ip->dst_addr, tcp->src_port,
-                   tcp->dst_port);
-      } else if (ip->next_proto_id == IPPROTO_UDP) {
-        struct udp_hdr *udp = (struct udp_hdr *) (ip + 1);
-        num_bytes += sizeof(struct udp_hdr);
-
-        set_tokens((uint32_t) now, ip->src_addr, ip->dst_addr, udp->src_port,
-                   udp->dst_port);
-      } else {
-        fprintf(stderr, "Unhandled packet type.\n");
-        continue;
-      }
-#ifdef DEBUG
-      print_pkt((unsigned char*) pkt, num_bytes, tokens);
-#endif
-      handle_->insert((unsigned char*) pkt, num_bytes, tokens_);
-    }
   }
 
   int core_;
