@@ -6,11 +6,12 @@
 
 namespace slog {
 
+typedef public std::iterator<std::input_iterator_tag, uint64_t, uint64_t, const uint64_t*, uint64_t> __input_iterator;
+
 template<typename index_type>
 class filter_result {
  public:
-  template<typename index_type>
-  class filter_iterator : public input_iterator {
+  class filter_iterator : public __input_iterator {
     typedef uint64_t value_type;
     typedef uint64_t difference_type;
     typedef const uint64_t* pointer;
@@ -100,8 +101,6 @@ class filter_result {
   uint64_t tok_max_;
   uint64_t max_rid_;
 };
-
-typedef public std::iterator<std::input_iterator_tag, uint64_t, uint64_t, const uint64_t*, uint64_t> input_iterator;
 
 }
 
