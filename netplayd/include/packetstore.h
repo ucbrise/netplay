@@ -174,7 +174,6 @@ class packet_store: public slog::log_store {
         uint64_t off;
         uint16_t len;        
         olog_->lookup(*it, off, len);
-        fprintf(stderr, "len=%" PRIu16 "\n", len);
         if (check_filters(*it, dlog_->ptr(off), conjunction, f))
           it++;
         else
