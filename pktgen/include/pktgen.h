@@ -113,7 +113,7 @@ class packet_generator {
         uint64_t now = curusec();
         tot_sent_pkts_ += sent_pkts_;
         double pkt_rate = (double) (tot_sent_pkts_ * 1e6) / (double) (now - start);
-        fprintf(stderr, "[Core %d] Packet rate = %lf\n", core_, pkt_rate);
+        fprintf(stderr, "[PKTGEN] Packet rate = %lf\n", pkt_rate);
         fflush(stderr);
         sent_pkts_ = 0;
       }
