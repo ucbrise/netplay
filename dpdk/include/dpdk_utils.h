@@ -28,7 +28,7 @@
 
 #include "dpdk_exception.h"
 
-#define NUM_PFRAMES         1000000 // Number of pframes in the mempool
+#define NUM_PFRAMES         256     // Number of pframes in the mempool
 #define CACHE_SIZE          32      // Size of per-core mempool cache
 #define METADATA_SLOT_SIZE  8       // size in bytes of a metadata slot
 
