@@ -37,14 +37,15 @@ namespace pktgen {
 template<typename vport_type>
 class packet_generator {
  public:
-  packet_generator(vport_type* vport,
-                   uint64_t rate, uint64_t time_limit, int core)
+  packet_generator(vport_type* vport, uint64_t rate, uint64_t time_limit,
+                   uint64_t pkt_limit, int core)
     : bucket_(token_bucket(rate, TOKEN_BUCKET_CAPACITY)) {
     srand (time(NULL));
 
     vport_ = vport;
     rate_ = rate;
     time_limit_ = time_limit;
+    pkt_limit_ = pkt_limit_;
     sent_pkts_ = 0;
     tot_sent_pkts_ = 0;
     core_ = core;
@@ -58,7 +59,7 @@ class packet_generator {
     }
     init_pktbuf();
     uint64_t start = curusec();
-    while (time_limit_ == 0 || curusec() - start < time_limit_) {
+    while ((time_limit_ == 0 || curusec() - start < time_limit_) && tot_sent_pkts_ < pkt_limit_) {
       update_pktbuf();
       if (rate_ == 0 || bucket_.consume(RTE_BURST_SIZE))
         sent_pkts_ += vport_->send_pkts(pkts_, RTE_BURST_SIZE);
@@ -123,6 +124,7 @@ class packet_generator {
   vport_type* vport_;
   uint64_t rate_;
   uint64_t time_limit_;
+  uint64_t pkt_limit_;
   token_bucket bucket_;
   uint64_t sent_pkts_;
   uint64_t tot_sent_pkts_;

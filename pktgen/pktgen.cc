@@ -24,7 +24,9 @@ const char* pktgen_opts =
   "  -r, --rate-limit=RATE          RATE (pkts/s) at which %s sends packets \n"
   "                                 (0 implies no RATE limit, default: 0)\n"
   "  -t, --time-limit=DURATION      DURATION for which %s should run\n"
-  "                                 (0 implies no DURATION limit, default: 0)\n";
+  "                                 (0 implies no DURATION limit, default: 0)\n"
+  "  -l, --max-packets=MAXPACKETS   MAXPACKETS for that %s should send\n"
+  "                                 (default: UINT64_MAX)\n";
 const char* other_opts =
   "\nOther options:\n"
   "  -h, --help                     display this help message\n";
@@ -64,6 +66,7 @@ int main(int argc, char** argv) {
     {"core", required_argument, NULL, 'c'},
     {"rate-limit", required_argument, NULL, 'r'},
     {"time-limit", required_argument, NULL, 't'},
+    {"max-packets", required_argument, NULL, 'l'},
     {"help", no_argument, NULL, 'h'},
     {NULL, 0, NULL, 0}
   };
@@ -75,7 +78,8 @@ int main(int argc, char** argv) {
   char* primary = (char*) exec;
   uint64_t rate_limit = 0;
   uint64_t time_limit = 0;
-  while ((c = getopt_long(argc, argv, "p:c:r:t:h", long_options, &option_index)) != -1) {
+  uint64_t max_pkts = UINT64_MAX;
+  while ((c = getopt_long(argc, argv, "p:c:r:l:t:h", long_options, &option_index)) != -1) {
     switch (c) {
     case 0:
       break;
@@ -91,6 +95,9 @@ int main(int argc, char** argv) {
       break;
     case 't':
       time_limit = (uint64_t) atoll(optarg);
+      break;
+    case 'l':
+      max_pkts = (uint64_t) atoll(optarg);
       break;
     case 'h':
       print_help();
@@ -124,17 +131,17 @@ int main(int argc, char** argv) {
   if (!strcmp(exec, primary)) {
     netplay::dpdk::virtual_port<netplay::dpdk::pmd_init>* vport =
       new netplay::dpdk::virtual_port<netplay::dpdk::pmd_init>(iface, mempool);
-    netplay::pktgen::packet_generator<netplay::dpdk::virtual_port<netplay::dpdk::pmd_init>> pktgen(vport, rate_limit, time_limit, master_core);
+    netplay::pktgen::packet_generator<netplay::dpdk::virtual_port<netplay::dpdk::pmd_init>> pktgen(vport, rate_limit, time_limit, max_pkts, master_core);
     pktgen.generate(mempool);
   } else if (!strcmp("ovs", primary)) {
     netplay::dpdk::virtual_port<netplay::dpdk::ovs_ring_init>* vport =
       new netplay::dpdk::virtual_port<netplay::dpdk::ovs_ring_init>(iface, mempool);
-    netplay::pktgen::packet_generator<netplay::dpdk::virtual_port<netplay::dpdk::ovs_ring_init>> pktgen(vport, rate_limit, time_limit, master_core);
+    netplay::pktgen::packet_generator<netplay::dpdk::virtual_port<netplay::dpdk::ovs_ring_init>> pktgen(vport, rate_limit, time_limit, max_pkts, master_core);
     pktgen.generate(mempool);
   } else if (!strcmp("bess", primary)) {
     netplay::dpdk::virtual_port<netplay::dpdk::bess_ring_init>* vport =
       new netplay::dpdk::virtual_port<netplay::dpdk::bess_ring_init>(iface, mempool);
-    netplay::pktgen::packet_generator<netplay::dpdk::virtual_port<netplay::dpdk::bess_ring_init>> pktgen(vport, rate_limit, time_limit, master_core);
+    netplay::pktgen::packet_generator<netplay::dpdk::virtual_port<netplay::dpdk::bess_ring_init>> pktgen(vport, rate_limit, time_limit, max_pkts, master_core);
     pktgen.generate(mempool);
   } else {
     fprintf(stderr, "Primary interface %s is not yet supported.\n", primary);
