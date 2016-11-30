@@ -134,20 +134,23 @@ int main(int argc, char** argv) {
     typedef virtual_port<pmd_init> vport_type;
     typedef packet_generator<vport_type> pktgen_type;
     vport_type* vport = new vport_type(iface, mempool);
-    pktgen_type pktgen(vport, rate_limit, time_limit, max_pkts);
-    pktgen.generate(mempool);
+    rand_generator* gen = new rand_generator(mempool);
+    pktgen_type pktgen(vport, gen, rate_limit, time_limit, max_pkts);
+    pktgen.generate();
   } else if (!strcmp("ovs", primary)) {
     typedef virtual_port<ovs_ring_init> vport_type;
     typedef packet_generator<vport_type> pktgen_type;
     vport_type* vport = new vport_type(iface, mempool);
-    pktgen_type pktgen(vport, rate_limit, time_limit, max_pkts);
-    pktgen.generate(mempool);
+    rand_generator* gen = new rand_generator(mempool);
+    pktgen_type pktgen(vport, gen, rate_limit, time_limit, max_pkts);
+    pktgen.generate();
   } else if (!strcmp("bess", primary)) {
     typedef virtual_port<bess_ring_init> vport_type;
     typedef packet_generator<vport_type> pktgen_type;
     vport_type* vport = new vport_type(iface, mempool);
-    pktgen_type pktgen(vport, rate_limit, time_limit, max_pkts);
-    pktgen.generate(mempool);
+    rand_generator* gen = new rand_generator(mempool);
+    pktgen_type pktgen(vport, gen, rate_limit, time_limit, max_pkts);
+    pktgen.generate();
   } else {
     fprintf(stderr, "Primary interface %s is not yet supported.\n", primary);
     return -1;

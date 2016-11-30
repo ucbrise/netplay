@@ -79,11 +79,10 @@ class filter_benchmark {
     struct rte_mempool* mempool = init_dpdk("filter", 0, 0);
     packet_store::handle* handle = store_->get_handle();
     pktstore_vport* vport = new pktstore_vport(handle);
-
-    packet_generator<pktstore_vport> pktgen(vport, load_rate, 0, num_pkts);
-    pktgen.generate(mempool);
+    rand_generator* gen = new rand_generator(mempool);
+    packet_generator<pktstore_vport> pktgen(vport, gen, load_rate, 0, num_pkts);
+    pktgen.generate();
     fprintf(stderr, "Loaded %zu packets.\n", handle->num_records());
-
     delete handle;
   }
 

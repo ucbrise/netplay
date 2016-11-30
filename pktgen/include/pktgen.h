@@ -85,8 +85,8 @@ class rand_generator {
 template<typename vport_type, typename generator_type = rand_generator>
 class packet_generator {
  public:
-  packet_generator(vport_type* vport, uint64_t rate, uint64_t time_limit,
-                   uint64_t pkt_limit)
+  packet_generator(vport_type* vport, generator_type* generator,
+                   uint64_t rate, uint64_t time_limit, uint64_t pkt_limit)
     : bucket_(token_bucket(rate, TOKEN_BUCKET_CAPACITY)) {
     srand (time(NULL));
 
@@ -97,11 +97,10 @@ class packet_generator {
     tot_sent_pkts_ = 0;
 
     vport_ = vport;
-    generator_ = NULL;
+    generator_ = generator;
   }
 
-  void generate(struct rte_mempool* mempool) {
-    generator_ = new generator_type(mempool);
+  void generate() {
     uint64_t start = curusec();
     while ((time_limit_ == 0 || curusec() - start < time_limit_) && tot_sent_pkts_ < pkt_limit_) {
       if (rate_ == 0 || bucket_.consume(RTE_BURST_SIZE)) {
