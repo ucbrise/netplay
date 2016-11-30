@@ -209,7 +209,7 @@ class packet_store: public slog::log_store {
   }
 
  private:
-  bool check_filters(uint64_t id, void *pkt, const slog::filter_conjunction& conjunction,
+  bool check_filters(uint64_t id, void *pkt, slog::filter_conjunction& conjunction,
                      const slog::basic_filter& f) {
     uint64_t ts = timestamps_.get(id);
     for (slog::basic_filter& basic : conjunction) {
