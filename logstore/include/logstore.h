@@ -659,7 +659,7 @@ class log_store {
   template<typename INDEX>
   void filter(result_type& results, INDEX* index, const uint64_t min,
               const uint64_t max, const uint64_t max_rid) const {
-    for (uint64_t i = token_beg; i <= token_end; i++) {
+    for (uint64_t i = min; i <= max; i++) {
       entry_list* list = index->get(i);
       if (list != NULL)
         sweep_list(results, list, max_rid);
