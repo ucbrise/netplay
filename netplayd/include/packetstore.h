@@ -186,7 +186,7 @@ class packet_store: public slog::log_store {
         if (ip->src_addr == 0)
           count++;
 
-        print_pkt(pkt);
+        print_pkt(pkt, 0);
 
         if (check_filters(*it, pkt, conjunction, f))
           it++;
