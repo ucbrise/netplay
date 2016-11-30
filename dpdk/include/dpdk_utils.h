@@ -28,7 +28,7 @@
 
 #include "dpdk_exception.h"
 
-#define NUM_PFRAMES         512     // Number of pframes in the mempool
+#define NUM_PFRAMES         64      // Number of pframes in the mempool
 #define CACHE_SIZE          32      // Size of per-core mempool cache
 #define METADATA_SLOT_SIZE  8       // size in bytes of a metadata slot
 
@@ -267,7 +267,7 @@ static int init_eal(const char* name, int core, int secondary) {
   char opt_lcore_bitmap[1024];
   char opt_socket_mem[1024];
 
-  const char* socket_mem = "1024";
+  const char* socket_mem = "128";
 
   int numa_count = get_numa_count();
 
