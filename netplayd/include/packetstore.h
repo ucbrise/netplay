@@ -57,7 +57,7 @@ class packet_store: public slog::log_store {
 
       for (int i = 0; i < cnt; i++) {
         unsigned char* pkt = rte_pktmbuf_mtod(pkts[i], unsigned char*);
-        uint16_t pkt_size = rte_pktmbuf_pkt_len(pkts[i]);
+        // uint16_t pkt_size = rte_pktmbuf_pkt_len(pkts[i]);
         struct ether_hdr *eth = (struct ether_hdr *) pkt;
         struct ipv4_hdr *ip = (struct ipv4_hdr *) (eth + 1);
         store_.srcip_idx_->add_entry(ip->src_addr, id);
