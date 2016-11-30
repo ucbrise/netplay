@@ -198,6 +198,17 @@ class packet_store: public slog::log_store {
     return num_records();
   }
 
+  // DEBUG; TODO: REMOVE!!
+  void print_pkt(void *pkt, uint32_t ts) const {
+    struct ether_hdr *eth = (struct ether_hdr *) pkt;
+    struct ipv4_hdr *ip = (struct ipv4_hdr *) (eth + 1);
+    struct tcp_hdr *tcp = (struct tcp_hdr *) (ip + 1);
+    fprintf(stderr, "sip=%" PRIu32 ",dip=%" PRIu32 ",sprt=%" PRIu16 ",dprt=%"
+            PRIu16 ",ts=%" PRIu32 "\n", ip->src_addr, ip->dst_addr,
+            tcp->src_port, tcp->dst_port, ts);
+
+  }
+
  private:
   bool check_filters(uint64_t id, void *pkt, slog::filter_conjunction& conjunction,
                      const slog::basic_filter& f) const {
@@ -225,16 +236,6 @@ class packet_store: public slog::log_store {
       }
     }
     return true;
-  }
-
-  void print_pkt(void *pkt, uint32_t ts) const {
-    struct ether_hdr *eth = (struct ether_hdr *) pkt;
-    struct ipv4_hdr *ip = (struct ipv4_hdr *) (eth + 1);
-    struct tcp_hdr *tcp = (struct tcp_hdr *) (ip + 1);
-    fprintf(stderr, "sip=%" PRIu32 ",dip=%" PRIu32 ",sprt=%" PRIu16 ",dprt=%"
-            PRIu16 ",ts=%" PRIu32 "\n", ip->src_addr, ip->dst_addr,
-            tcp->src_port, tcp->dst_port, ts);
-
   }
 
   static timestamp_t get_timestamp() {
