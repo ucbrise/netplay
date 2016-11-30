@@ -82,26 +82,6 @@ class packet_store: public slog::log_store {
       store_.filter_pkts(results, query);
     }
 
-    void add_src_ip(slog::token_list& list, uint32_t src_ip) {
-      list.push_back(slog::token_t(store_.srcip_idx_id_, src_ip));
-    }
-
-    void add_dst_ip(slog::token_list& list, uint32_t dst_ip) {
-      list.push_back(slog::token_t(store_.dstip_idx_id_, dst_ip));
-    }
-
-    void add_src_port(slog::token_list& list, uint16_t src_port) {
-      list.push_back(slog::token_t(store_.srcport_idx_id_, src_port));
-    }
-
-    void add_dst_port(slog::token_list& list, uint16_t dst_port) {
-      list.push_back(slog::token_t(store_.dstport_idx_id_, dst_port));
-    }
-
-    void add_timestamp(slog::token_list& list, uint32_t timestamp) {
-      list.push_back(slog::token_t(store_.timestamp_idx_id_, timestamp));
-    }
-
     uint32_t srcip_idx() const {
       return store_.srcip_idx_id_;
     }
