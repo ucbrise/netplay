@@ -121,18 +121,19 @@ class packet_loader {
 
   // Throughput benchmarks
   void load_packets(const uint32_t num_threads, const uint64_t rate_limit, const bool measure_cpu) {
+    typedef packet_generator<pktstore_vport, static_rand_generator> pktgen_t;
     std::vector<std::thread> workers;
     uint64_t worker_rate = rate_limit / num_threads;
     std::vector<double> thputs(num_threads, 0.0);
-    
+
     for (uint32_t i = 0; i < num_threads; i++) {
-      workers.push_back(std::thread([i, worker_rate, thputs, this] {
+      workers.push_back(std::thread([i, worker_rate, &thputs, this] {
         uint64_t idx = i * kMaxPktsPerThread;
         struct rte_mbuf** pkts = data_.pkts_;
         packet_store::handle* handle = store_->get_handle();
         pktstore_vport* vport = new pktstore_vport(handle);
         static_rand_generator* gen = new static_rand_generator(pkts, idx);
-        packet_generator<pktstore_vport> pktgen(vport, gen, worker_rate, 0, kMaxPktsPerThread);
+        pktgen_t pktgen(vport, gen, worker_rate, 0, kMaxPktsPerThread);
 
         fprintf(stderr, "Starting benchmark.\n");
 
