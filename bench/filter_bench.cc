@@ -83,13 +83,6 @@ class filter_benchmark {
     packet_generator<pktstore_vport> pktgen(vport, gen, load_rate, 0, num_pkts);
     pktgen.generate();
     fprintf(stderr, "Loaded %zu packets.\n", handle->num_pkts());
-
-    unsigned char pkt[54];
-    for (uint64_t i = 0; i < handle->num_pkts(); i++) {
-      store_->get(pkt, i);
-      store_->print_pkt(pkt, i);
-    }
-
     delete handle;
   }
 
