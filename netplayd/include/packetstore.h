@@ -174,15 +174,25 @@ class packet_store: public slog::log_store {
 
       /* Iterate through its entries, eliminating those that don't match */
       typedef std::unordered_set<uint64_t>::iterator iterator_t;
+      uint64_t count = 0;
       for (iterator_t it = filter_res.begin(); it != filter_res.end();) {
         uint64_t off;
         uint16_t len;
         olog_->lookup(*it, off, len);
-        if (check_filters(*it, dlog_->ptr(off), conjunction, f))
+
+        void* pkt = dlog_->ptr(off);
+        struct ether_hdr *eth = (struct ether_hdr *) pkt;
+        struct ipv4_hdr *ip = (struct ipv4_hdr *) (eth + 1);
+        if (ip->src_addr == 0)
+          count++;
+
+        if (check_filters(*it, pkt, conjunction, f))
           it++;
         else
           it = filter_res.erase(it);
       }
+
+      fprintf(stderr, "Count in filtered: %" PRIu64 "\n", count);
 
       /* Add filtered results to final results */
       results.insert(filter_res.begin(), filter_res.end());
@@ -212,14 +222,6 @@ class packet_store: public slog::log_store {
   bool check_filters(uint64_t id, void *pkt, slog::filter_conjunction& conjunction,
                      const slog::basic_filter& f) const {
     uint32_t ts = timestamps_.get(id);
-
-    struct ether_hdr *eth = (struct ether_hdr *) pkt;
-    struct ipv4_hdr *ip = (struct ipv4_hdr *) (eth + 1);
-    if (ip->src_addr == 0 && ip->dst_addr == 1) {
-      fprintf(stderr, "Found one: ");
-      print_pkt(pkt, ts);
-    }
-
 
     for (slog::basic_filter& basic : conjunction) {
       if (basic == f) continue;
