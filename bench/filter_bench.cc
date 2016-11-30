@@ -80,7 +80,7 @@ class filter_benchmark {
     packet_store::handle* handle = store_->get_handle();
     pktstore_vport* vport = new pktstore_vport(handle);
 
-    packet_generator<pktstore_vport> pktgen(vport, load_rate, 0, num_pkts, 0);
+    packet_generator<pktstore_vport> pktgen(vport, load_rate, 0, num_pkts);
     pktgen.generate(mempool);
     fprintf(stderr, "Loaded %zu packets.\n", handle->num_records());
 
