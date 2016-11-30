@@ -69,7 +69,7 @@ struct dst_port_filter {
 
 struct timestamp_filter {
   static inline bool apply(void* ts, uint64_t min, uint64_t max) {
-    uint64_t _ts = *((uint64_t*) ts);
+    uint32_t _ts = *((uint32_t*) ts);
     return _ts >= min && _ts <= max;
   }
 };

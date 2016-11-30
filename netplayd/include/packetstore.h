@@ -176,7 +176,7 @@ class packet_store: public slog::log_store {
       typedef std::unordered_set<uint64_t>::iterator iterator_t;
       for (iterator_t it = filter_res.begin(); it != filter_res.end();) {
         uint64_t off;
-        uint16_t len;        
+        uint16_t len;
         olog_->lookup(*it, off, len);
         if (check_filters(*it, dlog_->ptr(off), conjunction, f))
           it++;
@@ -201,7 +201,9 @@ class packet_store: public slog::log_store {
  private:
   bool check_filters(uint64_t id, void *pkt, slog::filter_conjunction& conjunction,
                      const slog::basic_filter& f) const {
-    uint64_t ts = timestamps_.get(id);
+    uint32_t ts = timestamps_.get(id);
+
+    print_pkt(pkt, id);
 
     for (slog::basic_filter& basic : conjunction) {
       if (basic == f) continue;
@@ -223,6 +225,16 @@ class packet_store: public slog::log_store {
       }
     }
     return true;
+  }
+
+  void print_pkt(void *pkt, uint32_t ts) {
+    struct ether_hdr *eth = (struct ether_hdr *) pkt;
+    struct ipv4_hdr *ip = (struct ipv4_hdr *) (eth + 1);
+    struct tcp_hdr *tcp = (struct tcp_hdr *) (ip + 1);
+    fprintf(stderr, "sip=%" PRIu32 ",dip=%" PRIu32 ",sprt=%" PRIu16 ",dprt=%"
+            PRIu16 ",ts=%" PRIu32 "\n", ip->src_addr, ip->dst_addr,
+            tcp->src_port, tcp->dst_port, ts);
+
   }
 
   static timestamp_t get_timestamp() {
