@@ -34,60 +34,16 @@ namespace pktgen {
 
 #define REPORT_INTERVAL         100000000ULL
 
-template<typename vport_type>
-class packet_generator {
+class rand_generator {
  public:
-  packet_generator(vport_type* vport, uint64_t rate, uint64_t time_limit,
-                   uint64_t pkt_limit, int core)
-    : bucket_(token_bucket(rate, TOKEN_BUCKET_CAPACITY)) {
-    srand (time(NULL));
-
-    vport_ = vport;
-    rate_ = rate;
-    time_limit_ = time_limit;
-    pkt_limit_ = pkt_limit;
-    sent_pkts_ = 0;
-    tot_sent_pkts_ = 0;
-    core_ = core;
-  }
-
-  void generate(struct rte_mempool* mempool) {
-    int ret = netplay::dpdk::mempool::mbuf_alloc_bulk(pkts_, HEADER_SIZE, RTE_BURST_SIZE, mempool);
+  rand_generator(struct rte_mempool* mempool) {
+    int ret = netplay::dpdk::mempool::mbuf_alloc_bulk(pkts_, HEADER_SIZE,
+              RTE_BURST_SIZE, mempool);
     if (ret != 0) {
       fprintf(stderr, "Error allocating packets %d\n", ret);
       exit(-1);
     }
-    init_pktbuf();
-    uint64_t start = curusec();
-    while ((time_limit_ == 0 || curusec() - start < time_limit_) && tot_sent_pkts_ < pkt_limit_) {
-      update_pktbuf();
-      if (rate_ == 0 || bucket_.consume(RTE_BURST_SIZE))
-        sent_pkts_ += vport_->send_pkts(pkts_, RTE_BURST_SIZE);
 
-      if (sent_pkts_ >= REPORT_INTERVAL) {
-        uint64_t now = curusec();
-        tot_sent_pkts_ += sent_pkts_;
-        double pkt_rate = (double) (tot_sent_pkts_ * 1e6) / (double) (now - start);
-        fprintf(stderr, "[Core %d] Packet rate = %lf\n", core_, pkt_rate);
-        fflush(stderr);
-        sent_pkts_ = 0;
-      }
-    }
-  }
-
-  int core() {
-    return core_;
-  }
-
- private:
-  inline uint64_t curusec() {
-    using namespace ::std::chrono;
-    auto ts = steady_clock::now().time_since_epoch();
-    return duration_cast<std::chrono::microseconds>(ts).count();
-  }
-
-  void init_pktbuf() {
-    // Generate random packets
     for (int i = 0; i < RTE_BURST_SIZE; i++) {
       struct ether_hdr* eth = rte_pktmbuf_mtod(pkts_[i], struct ether_hdr*);
       eth->d_addr.addr_bytes[5] = 0;
@@ -105,9 +61,9 @@ class packet_generator {
     }
   }
 
-  void update_pktbuf() {
+  struct rte_mbuf** generate_batch(size_t size) {
     // Generate random packets
-    for (int i = 0; i < RTE_BURST_SIZE; i++) {
+    for (int i = 0; i < size; i++) {
       struct ether_hdr* eth = rte_pktmbuf_mtod(pkts_[i], struct ether_hdr*);
 
       struct ipv4_hdr *ip = (struct ipv4_hdr *) (eth + 1);
@@ -118,17 +74,68 @@ class packet_generator {
       tcp->src_port = rand() % 10;
       tcp->dst_port = rand() % 10;
     }
+
+    return pkts_;
   }
 
+ private:
   struct rte_mbuf* pkts_[RTE_BURST_SIZE];
-  vport_type* vport_;
+};
+
+template<typename vport_type, typename generator_type = rand_generator>
+class packet_generator {
+ public:
+  packet_generator(vport_type* vport, uint64_t rate, uint64_t time_limit,
+                   uint64_t pkt_limit)
+    : bucket_(token_bucket(rate, TOKEN_BUCKET_CAPACITY)) {
+    srand (time(NULL));
+
+    rate_ = rate;
+    time_limit_ = time_limit;
+    pkt_limit_ = pkt_limit;
+    sent_pkts_ = 0;
+    tot_sent_pkts_ = 0;
+
+    vport_ = vport;
+    generator_ = NULL;
+  }
+
+  void generate(struct rte_mempool* mempool) {
+    generator_ = new generator_type(mempool);
+    uint64_t start = curusec();
+    while ((time_limit_ == 0 || curusec() - start < time_limit_) && tot_sent_pkts_ < pkt_limit_) {
+      if (rate_ == 0 || bucket_.consume(RTE_BURST_SIZE)) {
+        struct rte_mbuf** pkts = generator_->generate_batch(RTE_BURST_SIZE);
+        sent_pkts_ += vport_->send_pkts(pkts, RTE_BURST_SIZE);
+      }
+
+      if (sent_pkts_ >= REPORT_INTERVAL) {
+        uint64_t now = curusec();
+        tot_sent_pkts_ += sent_pkts_;
+        double pkt_rate = (double) (tot_sent_pkts_ * 1e6) / (double) (now - start);
+        fprintf(stderr, "[Core %d] Packet rate = %lf\n", core_, pkt_rate);
+        fflush(stderr);
+        sent_pkts_ = 0;
+      }
+    }
+  }
+
+ private:
+  inline uint64_t curusec() {
+    using namespace ::std::chrono;
+    auto ts = steady_clock::now().time_since_epoch();
+    return duration_cast<std::chrono::microseconds>(ts).count();
+  }
+
   uint64_t rate_;
   uint64_t time_limit_;
   uint64_t pkt_limit_;
-  token_bucket bucket_;
   uint64_t sent_pkts_;
   uint64_t tot_sent_pkts_;
-  int core_;
+
+  token_bucket bucket_;
+  vport_type* vport_;
+  generator_type* generator_;
 };
 
 }

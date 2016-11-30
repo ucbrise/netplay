@@ -128,20 +128,25 @@ int main(int argc, char** argv) {
 
   struct rte_mempool* mempool = netplay::dpdk::init_dpdk(primary, master_core, secondary);
 
+  using namespace ::netplay::pktgen;
+  using namespace ::netplay::dpdk;
   if (!strcmp(exec, primary)) {
-    netplay::dpdk::virtual_port<netplay::dpdk::pmd_init>* vport =
-      new netplay::dpdk::virtual_port<netplay::dpdk::pmd_init>(iface, mempool);
-    netplay::pktgen::packet_generator<netplay::dpdk::virtual_port<netplay::dpdk::pmd_init>> pktgen(vport, rate_limit, time_limit, max_pkts, master_core);
+    typedef virtual_port<pmd_init> vport_type;
+    typedef packet_generator<vport_type> pktgen_type;
+    vport_type* vport = new vport_type(iface, mempool);
+    pktgen_type pktgen(vport, rate_limit, time_limit, max_pkts);
     pktgen.generate(mempool);
   } else if (!strcmp("ovs", primary)) {
-    netplay::dpdk::virtual_port<netplay::dpdk::ovs_ring_init>* vport =
-      new netplay::dpdk::virtual_port<netplay::dpdk::ovs_ring_init>(iface, mempool);
-    netplay::pktgen::packet_generator<netplay::dpdk::virtual_port<netplay::dpdk::ovs_ring_init>> pktgen(vport, rate_limit, time_limit, max_pkts, master_core);
+    typedef virtual_port<ovs_ring_init> vport_type;
+    typedef packet_generator<vport_type> pktgen_type;
+    vport_type* vport = new vport_type(iface, mempool);
+    pktgen_type pktgen(vport, rate_limit, time_limit, max_pkts);
     pktgen.generate(mempool);
   } else if (!strcmp("bess", primary)) {
-    netplay::dpdk::virtual_port<netplay::dpdk::bess_ring_init>* vport =
-      new netplay::dpdk::virtual_port<netplay::dpdk::bess_ring_init>(iface, mempool);
-    netplay::pktgen::packet_generator<netplay::dpdk::virtual_port<netplay::dpdk::bess_ring_init>> pktgen(vport, rate_limit, time_limit, max_pkts, master_core);
+    typedef virtual_port<bess_ring_init> vport_type;
+    typedef packet_generator<vport_type> pktgen_type;
+    vport_type* vport = new vport_type(iface, mempool);
+    pktgen_type pktgen(vport, rate_limit, time_limit, max_pkts);
     pktgen.generate(mempool);
   } else {
     fprintf(stderr, "Primary interface %s is not yet supported.\n", primary);
