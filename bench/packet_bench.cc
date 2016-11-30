@@ -40,7 +40,6 @@
 #define PKT_LEN   54
 #define MAX_PKTS  1000000
 
-using namespace ::netplay::dpdk::mempool;
 using namespace ::netplay::dpdk;
 using namespace ::netplay::pktgen;
 using namespace ::netplay;
@@ -63,7 +62,7 @@ struct bench_data {
   bench_data() {
     fprintf(stderr, "Generating packets...\n");
     mempool_ = init_dpdk("filter", 0, 0);
-    int ret = mbuf_alloc_bulk(pkts_, PKT_LEN, MAX_PKTS, mempool);
+    int ret = mempool::mbuf_alloc_bulk(pkts_, PKT_LEN, MAX_PKTS, mempool);
     if (ret != 0) {
       fprintf(stderr, "Error allocating packets %d\n", ret);
       exit(-1);
@@ -120,7 +119,8 @@ class packet_loader {
   }
 
   // Throughput benchmarks
-  void load_packets(const uint32_t num_threads, const uint64_t rate_limit, const bool measure_cpu) {
+  void load_packets(const uint32_t num_threads, const uint64_t rate_limit,
+                    const bool measure_cpu) {
     typedef packet_generator<pktstore_vport, static_rand_generator> pktgen_t;
     std::vector<std::thread> workers;
     uint64_t worker_rate = rate_limit / num_threads;
