@@ -78,7 +78,7 @@ class packet_store: public slog::log_store {
     }
 
     void filter_pkts(std::unordered_set<uint64_t>& results,
-                   const slog::filter_query& query) {
+                     const slog::filter_query& query) {
       store_.filter_pkts(results, query);
     }
 
@@ -168,7 +168,7 @@ class packet_store: public slog::log_store {
     for (slog::filter_conjunction& conjunction : query) {
       /* Get the min cardinality filter */
       uint64_t min_count = UINT64_MAX;
-      slog::basic_filter& filter;
+      slog::basic_filter filter;
       for (const slog::basic_filter& basic : conjunction) {
         uint64_t cnt;
         if ((cnt = filter_count(basic)) < min_count) {
@@ -180,16 +180,16 @@ class packet_store: public slog::log_store {
       /* Evaluate the min cardinality filter */
       std::unordered_set<uint64_t> filter_res;
       std::unordered_set<uint64_t> empty;
-      filter(filter_res, basic, max_rid, empty);
+      filter(filter_res, filter, max_rid, empty);
 
       /* Iterate through its entries, eliminating those that don't match */
       typedef std::unordered_set<uint64_t>::iterator iterator_t;
       for (iterator_t it = filter_res.begin(); it != filter_res.end();) {
         uint64_t off;
         uint16_t len;
-        olog_->lookup(record_id, offset, length);
-        if (check_filters(id, dlog_.ptr(off), conjunction, filter))
-          it++
+        olog_->lookup(*it, off, len);
+        if (check_filters(*it, dlog_->ptr(off), conjunction, filter))
+          it++;
         else
           it = filter_res.erase(it);
       }
@@ -211,7 +211,7 @@ class packet_store: public slog::log_store {
  private:
   bool check_filters(uint64_t id, void *pkt, const slog::filter_conjunction& conjunction,
                      const slog::basic_filter& filter) {
-    for (const basic_filter& basic : conjunction) {
+    for (const slog::basic_filter& basic : conjunction) {
       if (basic == filter) continue;
       if (basic.index_id() == srcip_idx_id_ &&
           !src_ip_filter::apply(pkt, basic.token_beg(), basic.token_end())) {
