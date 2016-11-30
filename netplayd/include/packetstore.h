@@ -163,24 +163,24 @@ class packet_store: public slog::log_store {
    * @param query The filter query.
    */
   void filter_pkts(std::unordered_set<uint64_t>& results,
-                   const slog::filter_query& query) {
+                   slog::filter_query& query) {
     uint64_t max_rid = olog_->num_ids();
     for (slog::filter_conjunction& conjunction : query) {
       /* Get the min cardinality filter */
       uint64_t min_count = UINT64_MAX;
-      slog::basic_filter filter;
+      slog::basic_filter f;
       for (const slog::basic_filter& basic : conjunction) {
         uint64_t cnt;
         if ((cnt = filter_count(basic)) < min_count) {
           min_count = cnt;
-          filter = basic;
+          f = basic;
         }
       }
 
       /* Evaluate the min cardinality filter */
       std::unordered_set<uint64_t> filter_res;
       std::unordered_set<uint64_t> empty;
-      filter(filter_res, filter, max_rid, empty);
+      filter(filter_res, f, max_rid, empty);
 
       /* Iterate through its entries, eliminating those that don't match */
       typedef std::unordered_set<uint64_t>::iterator iterator_t;
@@ -188,7 +188,7 @@ class packet_store: public slog::log_store {
         uint64_t off;
         uint16_t len;
         olog_->lookup(*it, off, len);
-        if (check_filters(*it, dlog_->ptr(off), conjunction, filter))
+        if (check_filters(*it, dlog_->ptr(off), conjunction, f))
           it++;
         else
           it = filter_res.erase(it);
@@ -210,9 +210,10 @@ class packet_store: public slog::log_store {
 
  private:
   bool check_filters(uint64_t id, void *pkt, const slog::filter_conjunction& conjunction,
-                     const slog::basic_filter& filter) {
+                     const slog::basic_filter& f) {
+    uint64_t ts = timestamps_.get(id);
     for (const slog::basic_filter& basic : conjunction) {
-      if (basic == filter) continue;
+      if (basic == f) continue;
       if (basic.index_id() == srcip_idx_id_ &&
           !src_ip_filter::apply(pkt, basic.token_beg(), basic.token_end())) {
         return false;
@@ -226,7 +227,7 @@ class packet_store: public slog::log_store {
                  !dst_port_filter::apply(pkt, basic.token_beg(), basic.token_end())) {
         return false;
       } else if (basic.index_id() == timestamp_idx_id_ &&
-                 !timestamp_filter::apply(&timestamps_.get(id), basic.token_beg(), basic.token_end())) {
+                 !timestamp_filter::apply(&ts, basic.token_beg(), basic.token_end())) {
         return false;
       }
     }

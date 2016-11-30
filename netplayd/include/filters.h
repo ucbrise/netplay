@@ -70,7 +70,7 @@ struct timestamp_filter {
     uint64_t _ts = *((uint64_t*) ts);
     return _ts >= min && _ts <= max;
   }
-}
+};
 
 }
 
