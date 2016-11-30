@@ -62,7 +62,7 @@ struct bench_data {
   bench_data() {
     fprintf(stderr, "Generating packets...\n");
     mempool_ = init_dpdk("filter", 0, 0);
-    int ret = mempool::mbuf_alloc_bulk(pkts_, PKT_LEN, MAX_PKTS, mempool);
+    int ret = mempool::mbuf_alloc_bulk(pkts_, PKT_LEN, MAX_PKTS, mempool_);
     if (ret != 0) {
       fprintf(stderr, "Error allocating packets %d\n", ret);
       exit(-1);
