@@ -45,7 +45,7 @@ class packet_generator {
     vport_ = vport;
     rate_ = rate;
     time_limit_ = time_limit;
-    pkt_limit_ = pkt_limit_;
+    pkt_limit_ = pkt_limit;
     sent_pkts_ = 0;
     tot_sent_pkts_ = 0;
     core_ = core;
