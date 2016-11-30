@@ -37,9 +37,6 @@
 #include "dpdk_utils.h"
 #include "cpu_utilization.h"
 
-#define PKT_LEN   54
-#define MAX_PKTS  1000000
-
 using namespace ::netplay::dpdk;
 using namespace ::netplay::pktgen;
 using namespace ::netplay;
@@ -116,6 +113,7 @@ class packet_loader {
         }
         util_stream.close();
       });
+      
       // Create a cpu_set_t object representing a set of CPUs. Clear it and mark
       // only CPU i as set.
       cpu_set_t cpuset;
