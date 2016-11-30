@@ -22,9 +22,6 @@
 #include "logstore.h"
 #include "filters.h"
 
-// TODO: REMOVE!!!
-#define PKT_LEN  54
-
 namespace netplay {
 
 /**
@@ -58,7 +55,6 @@ class packet_store: public slog::log_store {
       for (int i = 0; i < cnt; i++) {
         unsigned char* pkt = rte_pktmbuf_mtod(pkts[i], unsigned char*);
         uint16_t pkt_size = rte_pktmbuf_pkt_len(pkts[i]);
-        fprintf(stderr, "Pkt_size = %" PRIu16 "\n", pkt_size);
         struct ether_hdr *eth = (struct ether_hdr *) pkt;
         struct ipv4_hdr *ip = (struct ipv4_hdr *) (eth + 1);
         store_.srcip_idx_->add_entry(ip->src_addr, id);
@@ -73,10 +69,11 @@ class packet_store: public slog::log_store {
           store_.dstport_idx_->add_entry(udp->dst_port, id);
         }
         store_.timestamp_idx_->add_entry(now, id);
-        store_.append_record(pkt, PKT_LEN, off);
+        store_.olog_->set(id, off, pkt_size);
+        store_.append_record(pkt, pkt_size, off);
         store_.timestamps_.set(id, now);
         store_.olog_->end(id);
-        off += PKT_LEN;
+        off += pkt_size;
         id++;
       }
     }
