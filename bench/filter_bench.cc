@@ -112,7 +112,7 @@ class filter_benchmark {
     for (size_t i = 0; i < queries_.size(); i++) {
       std::unordered_set<uint64_t> results;
       timestamp_t start = get_timestamp();
-      handle->filter(results, queries_[i]);
+      handle->filter_pkts(results, queries_[i]);
       timestamp_t end = get_timestamp();
       out << i << "\t" << results.size() << "\t" << (end - start) << "\n";
       fprintf(stderr, "Query %zu: Count = %zu, Latency = %llu\n", i,
