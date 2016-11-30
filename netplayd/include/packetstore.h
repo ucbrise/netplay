@@ -179,16 +179,7 @@ class packet_store: public slog::log_store {
         uint64_t off;
         uint16_t len;
         olog_->lookup(*it, off, len);
-
-        void* pkt = dlog_->ptr(off);
-        struct ether_hdr *eth = (struct ether_hdr *) pkt;
-        struct ipv4_hdr *ip = (struct ipv4_hdr *) (eth + 1);
-        if (ip->src_addr == 0)
-          count++;
-
-        print_pkt(pkt, 0);
-
-        if (check_filters(*it, pkt, conjunction, f))
+        if (check_filters(*it, dlog_->ptr(off), conjunction, f))
           it++;
         else
           it = filter_res.erase(it);
