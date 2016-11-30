@@ -174,7 +174,6 @@ class packet_store: public slog::log_store {
 
       /* Iterate through its entries, eliminating those that don't match */
       typedef std::unordered_set<uint64_t>::iterator iterator_t;
-      uint64_t count = 0;
       for (iterator_t it = filter_res.begin(); it != filter_res.end();) {
         uint64_t off;
         uint16_t len;
@@ -184,8 +183,6 @@ class packet_store: public slog::log_store {
         else
           it = filter_res.erase(it);
       }
-
-      fprintf(stderr, "Count in filtered: %" PRIu64 "\n", count);
 
       /* Add filtered results to final results */
       results.insert(filter_res.begin(), filter_res.end());
