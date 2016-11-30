@@ -42,8 +42,6 @@ class netplay_writer {
     core_ = core;
     vport_ = vport;
     handle_ = handle;
-
-    init_tokens();
   }
 
   void start() {
