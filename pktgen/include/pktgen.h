@@ -119,6 +119,10 @@ class packet_generator {
     }
   }
 
+  uint64_t total_sent() {
+    return tot_sent_pkts_;
+  }
+
  private:
   inline uint64_t curusec() {
     using namespace ::std::chrono;
