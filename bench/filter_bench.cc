@@ -33,6 +33,7 @@
 #include "token_bucket.h"
 #include "packetstore.h"
 #include "query_utils.h"
+#include "bench_vport.h"
 
 #define PKT_LEN 54
 #define PKT_BURST 32
@@ -72,30 +73,13 @@ class filter_benchmark {
   }
 
   void load_data(uint64_t load_rate, uint64_t num_pkts) {
+    struct rte_mempool* mempool = netplay::dpdk::init_dpdk("filter", 0, 0);
     packet_store::handle* handle = store_->get_handle();
-    size_t i = 0;
+    pktstore_vport* vport = new pktstore_vport(handle);
 
-    struct rte_mbuf buf;
-    struct rte_mbuf* pkt = &buf;
-
-    token_bucket bucket(load_rate, PKT_BURST);
-    while (i < num_pkts) {
-      struct ether_hdr* eth = rte_pktmbuf_mtod(pkt, struct ether_hdr*);
-
-      struct ipv4_hdr *ip = (struct ipv4_hdr *) (eth + 1);
-      ip->src_addr = rand() % 256;
-      ip->dst_addr = rand() % 256;
-
-      struct tcp_hdr *tcp = (struct tcp_hdr *) (ip + 1);
-      tcp->src_port = rand() % 10;
-      tcp->dst_port = rand() % 10;
-      
-      if (bucket.consume(1)) {
-        handle->insert_pktburst(&pkt, 1);
-        i++;
-      }
-    }
-    fprintf(stderr, "Loaded %zu packets.\n", i);
+    packet_generator<pktstore_vport> pktgen(vport, load_rate, 0, num_pkts, 0);
+    pktgen.generate(mempool);
+    fprintf(stderr, "Loaded %zu packets.\n", handle->num_records());
 
     delete handle;
   }
