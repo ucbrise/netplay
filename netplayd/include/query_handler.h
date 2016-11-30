@@ -19,7 +19,7 @@ class query_handler : virtual public thrift::NetPlayQueryServiceIf {
   void filter(std::vector<int64_t>& _return, const std::string& query) {
 
     // Parse query
-    slog::filter_query q;
+    filter_query q;
     try {
       q = query_utils::expression_to_filter_query(handle_, query);
     } catch (parse_exception& e) {
