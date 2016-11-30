@@ -172,6 +172,7 @@ class packet_store: public slog::log_store {
       for (iterator_t it = filter_res.begin(); it != filter_res.end();) {
         uint64_t off;
         uint16_t len;
+        fprintf(stderr, "len=%" PRIu16 "\n", len);
         olog_->lookup(*it, off, len);
         if (check_filters(*it, dlog_->ptr(off), conjunction, f))
           it++;
@@ -201,7 +202,7 @@ class packet_store: public slog::log_store {
     struct ether_hdr *eth = (struct ether_hdr *) pkt;
     struct ipv4_hdr *ip = (struct ipv4_hdr *) (eth + 1);
 
-    if (ip->src_addr == 0 || ip->dst_addr == 1) {
+    if (ip->src_addr == 0 && ip->dst_addr == 1) {
       fprintf(stderr, "id=%" PRIu64 " filter should pass\n", id);
     }
 
