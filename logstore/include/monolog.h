@@ -219,13 +219,14 @@ template<class T, uint32_t NBUCKETS = 1024, uint32_t BLOCK_SIZE = 268435456U>
 class __monolog_linear_base {
  public:
   typedef std::atomic<T*> __atomic_bucket_ref;
+  static const uint32_t BUFFER_SIZE = 1024; // 1KB buffer size
 
   __monolog_linear_base() {
     T* null_ptr = NULL;
     for (auto& x : buckets_) {
       x = null_ptr;
     }
-    buckets_[0] = new T[BLOCK_SIZE];
+    buckets_[0] = new T[BLOCK_SIZE + BUFFER_SIZE];
   }
 
   ~__monolog_linear_base() {
@@ -277,7 +278,7 @@ class __monolog_linear_base {
   // succeeded in allocating the bucket, the current thread deallocates and
   // returns.
   void try_allocate_bucket(uint32_t bucket_idx) {
-    T* bucket = new T[BLOCK_SIZE];
+    T* bucket = new T[BLOCK_SIZE + BUFFER_SIZE];
     T* null_ptr = NULL;
 
     // Only one thread will be successful in replacing the NULL reference with newly
