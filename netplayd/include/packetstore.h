@@ -203,12 +203,9 @@ class packet_store: public slog::log_store {
     struct ether_hdr *eth = (struct ether_hdr *) pkt;
     struct ipv4_hdr *ip = (struct ipv4_hdr *) (eth + 1);
     struct tcp_hdr *tcp = (struct tcp_hdr *) (ip + 1);
-    if (ip->src_addr == 0) {
-      fprintf(stderr, "sip=%" PRIu32 ",dip=%" PRIu32 ",sprt=%" PRIu16 ",dprt=%"
-              PRIu16 ",ts=%" PRIu32 "\n", ip->src_addr, ip->dst_addr,
-              tcp->src_port, tcp->dst_port, ts);
-    }
-
+    fprintf(stderr, "sip=%" PRIu32 ",dip=%" PRIu32 ",sprt=%" PRIu16 ",dprt=%"
+            PRIu16 ",ts=%" PRIu32 "\n", ip->src_addr, ip->dst_addr,
+            tcp->src_port, tcp->dst_port, ts);
   }
 
  private:
@@ -237,7 +234,7 @@ class packet_store: public slog::log_store {
     }
 
     print_pkt(pkt, ts);
-    
+
     return true;
   }
 
