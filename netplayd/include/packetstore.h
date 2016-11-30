@@ -20,6 +20,7 @@
 #include <rte_mbuf.h>
 
 #include "logstore.h"
+#include "filters.h"
 
 namespace netplay {
 
@@ -38,8 +39,8 @@ class packet_store: public slog::log_store {
   class handle : public slog::log_store::handle {
    public:
     handle(packet_store& store)
-        : slog::log_store::handle(store),
-          store_(store) {
+      : slog::log_store::handle(store),
+        store_(store) {
     }
 
     void insert_pktburst(struct rte_mbuf** pkts, uint16_t cnt) {
@@ -76,7 +77,10 @@ class packet_store: public slog::log_store {
       }
     }
 
-
+    void filter_pkts(std::unordered_set<uint64_t>& results,
+                   const slog::filter_query& query) {
+      store_.filter_pkts(results, query);
+    }
 
     void add_src_ip(slog::token_list& list, uint32_t src_ip) {
       list.push_back(slog::token_t(store_.srcip_idx_id_, src_ip));
@@ -153,6 +157,49 @@ class packet_store: public slog::log_store {
   }
 
   /**
+   * Filter index entries based on query.
+   *
+   * @param results The results of the filter query.
+   * @param query The filter query.
+   */
+  void filter_pkts(std::unordered_set<uint64_t>& results,
+                   const slog::filter_query& query) {
+    uint64_t max_rid = olog_->num_ids();
+    for (slog::filter_conjunction& conjunction : query) {
+      /* Get the min cardinality filter */
+      uint64_t min_count = UINT64_MAX;
+      slog::basic_filter& filter;
+      for (const slog::basic_filter& basic : conjunction) {
+        uint64_t cnt;
+        if ((cnt = filter_count(basic)) < min_count) {
+          min_count = cnt;
+          filter = basic;
+        }
+      }
+
+      /* Evaluate the min cardinality filter */
+      std::unordered_set<uint64_t> filter_res;
+      std::unordered_set<uint64_t> empty;
+      filter(filter_res, basic, max_rid, empty);
+
+      /* Iterate through its entries, eliminating those that don't match */
+      typedef std::unordered_set<uint64_t>::iterator iterator_t;
+      for (iterator_t it = filter_res.begin(); it != filter_res.end();) {
+        uint64_t off;
+        uint16_t len;
+        olog_->lookup(record_id, offset, length);
+        if (check_filters(id, dlog_.ptr(off), conjunction, filter))
+          it++
+        else
+          it = filter_res.erase(it);
+      }
+
+      /* Add filtered results to final results */
+      results.insert(filter_res.begin(), filter_res.end());
+    }
+  }
+
+  /**
    * Get the number of packets in the packet store.
    *
    * @return Number of packets in the packet store.
@@ -162,6 +209,30 @@ class packet_store: public slog::log_store {
   }
 
  private:
+  bool check_filters(uint64_t id, void *pkt, const slog::filter_conjunction& conjunction,
+                     const slog::basic_filter& filter) {
+    for (const basic_filter& basic : conjunction) {
+      if (basic == filter) continue;
+      if (basic.index_id() == srcip_idx_id_ &&
+          !src_ip_filter::apply(pkt, basic.token_beg(), basic.token_end())) {
+        return false;
+      } else if (basic.index_id() == dstip_idx_id_ &&
+                 !dst_ip_filter::apply(pkt, basic.token_beg(), basic.token_end())) {
+        return false;
+      } else if (basic.index_id() == srcport_idx_id_ &&
+                 !src_port_filter::apply(pkt, basic.token_beg(), basic.token_end())) {
+        return false;
+      } else if (basic.index_id() == dstport_idx_id_ &&
+                 !dst_port_filter::apply(pkt, basic.token_beg(), basic.token_end())) {
+        return false;
+      } else if (basic.index_id() == timestamp_idx_id_ &&
+                 !timestamp_filter::apply(&timestamps_.get(id), basic.token_beg(), basic.token_end())) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   uint32_t srcip_idx_id_;
   uint32_t dstip_idx_id_;
   uint32_t srcport_idx_id_;
