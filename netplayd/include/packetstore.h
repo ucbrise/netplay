@@ -233,8 +233,6 @@ class packet_store: public slog::log_store {
       }
     }
 
-    print_pkt(pkt, ts);
-
     return true;
   }
 
