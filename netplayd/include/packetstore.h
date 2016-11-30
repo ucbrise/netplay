@@ -68,6 +68,7 @@ class packet_store: public slog::log_store {
         }
         store_.timestamp_idx_->add_entry(now, id);
         store_.append_record(pkt, pkt_size, off);
+        store_.olog_.end(id);
         off += pkt_size;
         id++;
       }
