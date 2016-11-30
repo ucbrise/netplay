@@ -78,7 +78,7 @@ class packet_store: public slog::log_store {
     }
 
     void filter_pkts(std::unordered_set<uint64_t>& results,
-                     const slog::filter_query& query) {
+                     slog::filter_query& query) {
       store_.filter_pkts(results, query);
     }
 

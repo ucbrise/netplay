@@ -7,6 +7,12 @@ namespace slog {
 
 struct basic_filter {
  public:
+  basic_filter() {
+    index_id_ = UINT32_MAX;
+    token_beg_ = UINT64_MAX;
+    token_end_ = UINT64_MAX;
+  }
+
   basic_filter(uint32_t index_id, unsigned char* token_beg,
                unsigned char* token_end) {
     index_id_ = index_id;
