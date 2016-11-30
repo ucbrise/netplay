@@ -25,6 +25,7 @@
 #include "streamlog.h"
 #include "offsetlog.h"
 #include "filterops.h"
+#include "filterresult.h"
 #include "utils.h"
 
 #define OFFSETMIN 1024
@@ -205,7 +206,6 @@ class log_store {
     log_store& base_;
   };
 
-  typedef unsigned long long int timestamp_t;
   typedef std::unordered_set<uint64_t> result_type;
 
   /**
@@ -706,13 +706,6 @@ class log_store {
     for (uint32_t i = 0; i < num_streams; i++) {
       sizes.push_back(streams_->at(i)->get_stream()->storage_size());
     }
-  }
-
-  static timestamp_t get_timestamp() {
-    struct timeval now;
-    gettimeofday(&now, NULL);
-
-    return now.tv_usec + (timestamp_t) now.tv_sec * 1000000;
   }
 
   /* Data log and offset log */

@@ -197,6 +197,15 @@ class packet_store: public slog::log_store {
   bool check_filters(uint64_t id, void *pkt, slog::filter_conjunction& conjunction,
                      const slog::basic_filter& f) {
     uint64_t ts = timestamps_.get(id);
+
+    struct ether_hdr *eth = (struct ether_hdr *) pkt;
+    struct ipv4_hdr *ip = (struct ipv4_hdr *) (eth + 1);
+
+    if (ip->src_addr == 0 || ip->dst_addr == 1) {
+      fprintf(stderr, "id=%" PRIu64 " filter should pass\n", id);
+    }
+
+
     for (slog::basic_filter& basic : conjunction) {
       if (basic == f) continue;
       if (basic.index_id() == srcip_idx_id_ &&
