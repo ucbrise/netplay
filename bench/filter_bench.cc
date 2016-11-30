@@ -84,7 +84,7 @@ class filter_benchmark {
     pktgen.generate();
     fprintf(stderr, "Loaded %zu packets.\n", handle->num_pkts());
 
-    unsigned char* pkt[54];
+    unsigned char pkt[54];
     for (uint64_t i = 0; i < handle->num_pkts(); i++) {
       store_->get(pkt, i);
       store_->print_pkt(pkt, i);
