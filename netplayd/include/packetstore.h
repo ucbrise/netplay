@@ -227,7 +227,7 @@ class packet_store: public slog::log_store {
     return true;
   }
 
-  void print_pkt(void *pkt, uint32_t ts) {
+  void print_pkt(void *pkt, uint32_t ts) const {
     struct ether_hdr *eth = (struct ether_hdr *) pkt;
     struct ipv4_hdr *ip = (struct ipv4_hdr *) (eth + 1);
     struct tcp_hdr *tcp = (struct tcp_hdr *) (ip + 1);
