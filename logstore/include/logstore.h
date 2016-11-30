@@ -151,14 +151,16 @@ class log_store {
     }
 
     /**
-     * Filter index-entries based on query.
-     *
-     * @param results The results of the filter query.
-     * @param query The filter query.
-     */
-    void filter(std::unordered_set<uint64_t>& results,
-                filter_query& query) const {
-      base_.filter(results, query);
+    * Filter index-entries based on query.
+    *
+    * @param results The results of the filter query.
+    * @param index_id The id for the index to query.
+    * @param min The smallest token to consider.
+    * @param max The largest token to consider.
+    */
+    void filter(std::unordered_set<uint64_t>& results, uint32_t index_id,
+                uint64_t min, uint64_t max) const {
+      base_.filter(results, index_id, min, max);
     }
 
     /**
@@ -204,6 +206,7 @@ class log_store {
   };
 
   typedef unsigned long long int timestamp_t;
+  typedef std::unordered_set<uint64_t> result_type;
 
   /**
    * Constructor to initialize the log-store.
@@ -401,30 +404,15 @@ class log_store {
    * Filter index-entries based on query.
    *
    * @param results The results of the filter query.
-   * @param query The filter query.
+   * @param index_id The id for the index to query.
+   * @param min The smallest token to consider.
+   * @param max The largest token to consider.
    */
-  void filter(std::unordered_set<uint64_t>& results,
-              filter_query& query) const {
+  void filter(std::unordered_set<uint64_t>& results, uint32_t index_id,
+              uint64_t min, uint64_t max) const {
     uint64_t max_rid = olog_->num_ids();
-    for (filter_conjunction& conjunction : query) {
-      std::unordered_set<uint64_t> conjunction_results;
-      std::sort(conjunction.begin(), conjunction.end(), [this](const basic_filter & lhs, const basic_filter & rhs) {
-        return filter_count(lhs) < filter_count(rhs);
-      });
-
-      for (basic_filter& basic : conjunction) {
-        /* Perform basic filter */
-        std::unordered_set<uint64_t> filter_res;
-        filter(filter_res, basic, max_rid, conjunction_results);
-
-        /* Stop this sequence of conjunctions if filter results are empty */
-        if (filter_res.empty())
-          break;
-
-        conjunction_results = filter_res;
-      }
-      results.insert(conjunction_results.begin(), conjunction_results.end());
-    }
+    std::unordered_set<uint64_t> empty;
+    filter(results, basic, max_rid, empty);
   }
 
   /** Get storage statistics
@@ -555,29 +543,29 @@ class log_store {
    * @param f The filter query (predicate).
    % @return The count of the filter query.
    */
-  uint64_t filter_count(const basic_filter& f) const {
+  uint64_t filter_count(uint32_t index_id, uint32_t min, uint32_t max) const {
     /* Identify which index the filter is on */
-    uint32_t idx = f.index_id() / OFFSETMIN;
-    uint32_t off = f.index_id() % OFFSETMIN;
+    uint32_t idx = index_id / OFFSETMIN;
+    uint32_t off = index_id % OFFSETMIN;
 
     /* Query relevant index */
     switch (idx) {
     case 1:
-      return filter_count(idx1_->at(off), f.token_beg(), f.token_end());
+      return filter_count(idx1_->at(off), min, max);
     case 2:
-      return filter_count(idx2_->at(off), f.token_beg(), f.token_end());
+      return filter_count(idx2_->at(off), min, max);
     case 4:
-      return filter_count(idx3_->at(off), f.token_beg(), f.token_end());
+      return filter_count(idx3_->at(off), min, max);
     case 8:
-      return filter_count(idx4_->at(off), f.token_beg(), f.token_end());
+      return filter_count(idx4_->at(off), min, max);
     case 16:
-      return filter_count(idx5_->at(off), f.token_beg(), f.token_end());
+      return filter_count(idx5_->at(off), min, max);
     case 32:
-      return filter_count(idx6_->at(off), f.token_beg(), f.token_end());
+      return filter_count(idx6_->at(off), min, max);
     case 64:
-      return filter_count(idx7_->at(off), f.token_beg(), f.token_end());
+      return filter_count(idx7_->at(off), min, max);
     case 128:
-      return filter_count(idx8_->at(off), f.token_beg(), f.token_end());
+      return filter_count(idx8_->at(off), min, max);
     default:
       return 0;
     }
@@ -593,9 +581,9 @@ class log_store {
    % @return The count of the filter query.
    */
   template<typename INDEX>
-  uint64_t filter_count(INDEX* index, uint64_t token_beg, uint64_t token_end) const {
+  uint64_t filter_count(INDEX* index, uint64_t min, uint64_t max) const {
     uint64_t count = 0;
-    for (uint64_t i = token_beg; i <= token_end; i++) {
+    for (uint64_t i = min; i <= max; i++) {
       entry_list* list = index->get(i);
       if (list != NULL)
         count += list->size();
@@ -604,16 +592,17 @@ class log_store {
   }
 
   /**
-   * Atomically filter record ids for a basic filter.
+   * Atomically filter record ids for a given range of token values.
    *
    * @param results The results set to be populated with matching records ids.
-   * @param basic The basic filter.
+   * @param index_id The id of the index corresponding to the token.
+   * @param min The smallest token to consider.
+   * @param man The largest token to consider.
    * @param max_rid Largest record-id to consider.
    * @param superset The superset to which the results must belong.
    */
-  void filter(std::unordered_set<uint64_t>& results,
-              const basic_filter& basic, const uint64_t max_rid,
-              std::unordered_set<uint64_t> superset) const {
+  void filter(result_type& results, const uint32_t index_id, const uint64_t min,
+              const uint64_t max, const uint64_t max_rid) const {
 
     /* Identify which index the filter is on */
     uint32_t idx = basic.index_id() / OFFSETMIN;
@@ -621,44 +610,39 @@ class log_store {
 
     switch (idx) {
     case 1: {
-      filter(results, idx1_->at(off), basic.token_beg(),
-             basic.token_end(), max_rid, superset);
+      filter(results, idx1_->at(off), min, max, max_rid);
       break;
     }
     case 2: {
-      filter(results, idx2_->at(off), basic.token_beg(),
-             basic.token_end(), max_rid, superset);
+      filter(results, idx2_->at(off), min, max, max_rid);
       break;
     }
     case 4: {
-      filter(results, idx3_->at(off), basic.token_beg(),
-             basic.token_end(), max_rid, superset);
+      filter(results, idx3_->at(off), min, max, max_rid);
       break;
     }
     case 8: {
-      filter(results, idx4_->at(off), basic.token_beg(),
-             basic.token_end(), max_rid, superset);
+      filter(results, idx4_->at(off), min, max, max_rid);
       break;
     }
     case 16: {
-      filter(results, idx5_->at(off), basic.token_beg(),
-             basic.token_end(), max_rid, superset);
+      filter(results, idx5_->at(off), min, max, max_rid);
       break;
     }
     case 32: {
-      filter(results, idx6_->at(off), basic.token_beg(),
-             basic.token_end(), max_rid, superset);
+      filter(results, idx6_->at(off), min, max, max_rid);
       break;
     }
     case 64: {
-      filter(results, idx7_->at(off), basic.token_beg(),
-             basic.token_end(), max_rid, superset);
+      filter(results, idx7_->at(off), min, max, max_rid);
       break;
     }
     case 128: {
-      filter(results, idx8_->at(off), basic.token_beg(),
-             basic.token_end(), max_rid, superset);
+      filter(results, idx8_->at(off), min, max, max_rid);
       break;
+    }
+    default: {
+      // Do nothing
     }
     }
   }
@@ -668,47 +652,32 @@ class log_store {
    *
    * @param results The results set to be populated with matching records ids.
    * @param index The index associated with the token.
-   * @param token_beg The beginning of token range.
-   * @param token_end The end of token range.
+   * @param min The smallest token to consider.
+   * @param max The largest token to consider.
    * @param max_rid Largest record-id to consider.
-   * @param superset The superset to which the results must belong.
    */
   template<typename INDEX>
-  void filter(std::unordered_set<uint64_t>& results, INDEX * index,
-              uint64_t token_beg, uint64_t token_end, const uint64_t max_rid,
-              const std::unordered_set<uint64_t>& superset) const {
-    fprintf(stderr, "Filter: begin=%" PRIu64 ", end=%" PRIu64 ", ", token_beg, token_end);
-    timestamp_t t0 = get_timestamp();
+  void filter(result_type& results, INDEX* index, const uint64_t min,
+              const uint64_t max, const uint64_t max_rid) const {
     for (uint64_t i = token_beg; i <= token_end; i++) {
       entry_list* list = index->get(i);
-      sweep_list(results, list, max_rid, superset);
+      if (list != NULL)
+        sweep_list(results, list, max_rid);
     }
-    timestamp_t t1 = get_timestamp();
-    fprintf(stderr, "count = %zu, time taken=%llu\n", results.size(), (t1 - t0));
   }
 
   /**
    * Sweeps through the entry-list, adding all valid entries to the results.
    *
-   *
    * @param results The set of results to be populated.
    * @param list The entry list.
    * @param max_rid The maximum permissible record id.
-   * @param superset The superset to which the results must belong.
-   * @param superset_check Flag which determines whether to perform superset
-   *  check or not.
    */
-  void sweep_list(std::unordered_set<uint64_t>& results, entry_list * list,
-                  uint64_t max_rid,
-                  const std::unordered_set<uint64_t>& superset) const {
-    if (list == NULL)
-      return;
-
+  void sweep_list(result_type& results, entry_list *list, uint64_t max_rid) const {
     uint32_t size = list->size();
     for (uint32_t i = 0; i < size; i++) {
       uint64_t record_id = list->at(i);
-      if (olog_->is_valid(record_id, max_rid)
-          && (superset.empty() || superset.find(record_id) != superset.end()))
+      if (olog_->is_valid(record_id, max_rid))
         results.insert(record_id);
     }
   }
