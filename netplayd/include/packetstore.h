@@ -71,9 +71,6 @@ class packet_store: public slog::log_store {
         store_.timestamp_idx_->add_entry(now, id);
         store_.olog_->set(id, off, pkt_size);
         store_.append_record(pkt, pkt_size, off);
-        if (ip->src_addr == 0) {
-          store_.print_pkt(pkt, now);
-        }
         store_.timestamps_.set(id, now);
         store_.olog_->end(id);
         off += pkt_size;
