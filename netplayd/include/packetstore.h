@@ -79,7 +79,7 @@ class packet_store: public slog::log_store {
     }
 
     void filter_pkts(std::unordered_set<uint64_t>& results,
-                     slog::filter_query& query) {
+                     slog::filter_query& query) const {
       store_.filter_pkts(results, query);
     }
 
@@ -101,6 +101,10 @@ class packet_store: public slog::log_store {
 
     uint32_t timestamp_idx() const {
       return store_.timestamp_idx_id_;
+    }
+
+    uint64_t num_pkts() const {
+      return store_.num_pkts();
     }
 
    private:
@@ -146,7 +150,7 @@ class packet_store: public slog::log_store {
    * @param query The filter query.
    */
   void filter_pkts(std::unordered_set<uint64_t>& results,
-                   slog::filter_query& query) {
+                   slog::filter_query& query) const {
     uint64_t max_rid = olog_->num_ids();
     for (slog::filter_conjunction& conjunction : query) {
       /* Get the min cardinality filter */
@@ -190,13 +194,13 @@ class packet_store: public slog::log_store {
    *
    * @return Number of packets in the packet store.
    */
-  uint64_t num_pkts() {
+  uint64_t num_pkts() const {
     return num_records();
   }
 
  private:
   bool check_filters(uint64_t id, void *pkt, slog::filter_conjunction& conjunction,
-                     const slog::basic_filter& f) {
+                     const slog::basic_filter& f) const {
     uint64_t ts = timestamps_.get(id);
 
     for (slog::basic_filter& basic : conjunction) {
