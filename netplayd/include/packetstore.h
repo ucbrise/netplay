@@ -159,8 +159,7 @@ class packet_store: public slog::log_store {
 
       /* Evaluate the min cardinality filter */
       std::unordered_set<uint64_t> filter_res;
-      std::unordered_set<uint64_t> empty;
-      filter(filter_res, f.index_id(), f.token_beg(), f.token_end(), max_rid, empty);
+      filter(filter_res, f.index_id(), f.token_beg(), f.token_end(), max_rid);
 
       /* Iterate through its entries, eliminating those that don't match */
       typedef std::unordered_set<uint64_t>::iterator iterator_t;
