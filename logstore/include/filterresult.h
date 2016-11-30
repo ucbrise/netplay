@@ -27,7 +27,7 @@ class filter_result {
       advance_to_next_valid_state();
     }
 
-    filter_result(uint64_t tok, int64_t idx) {
+    filter_iterator(uint64_t tok, int64_t idx) {
       res_ = NULL;
       cur_entry_list_ = NULL;
 

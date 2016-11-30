@@ -38,8 +38,6 @@ class packet_store: public slog::log_store {
   // typedef slog::log_store::handle handle;
   class handle : public slog::log_store::handle {
    public:
-    typedef unsigned long long int timestamp_t;
-
     handle(packet_store& store)
       : slog::log_store::handle(store),
         store_(store) {
@@ -107,6 +105,8 @@ class packet_store: public slog::log_store {
    private:
     packet_store& store_;
   };
+
+  typedef unsigned long long int timestamp_t;
 
   /**
    * Constructor to initialize the packet store.
