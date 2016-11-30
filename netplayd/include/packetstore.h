@@ -210,7 +210,7 @@ class packet_store: public slog::log_store {
 
  private:
   bool check_filters(uint64_t id, void *pkt, const slog::filter_conjunction& conjunction,
-                     const slog::basic_filter& f) {
+                     slog::basic_filter& f) {
     uint64_t ts = timestamps_.get(id);
     for (const slog::basic_filter& basic : conjunction) {
       if (basic == f) continue;
