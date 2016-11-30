@@ -35,6 +35,11 @@ struct basic_filter {
     return *this;
   }
 
+  bool operator==(const basic_filter& other) {
+    return index_id_ == other.index_id_ && token_beg_ == other.token_beg_ &&
+           token_end_ == other.token_end_;
+  }
+
   uint32_t index_id() const {
     return index_id_;
   }
@@ -55,7 +60,7 @@ struct basic_filter {
     token_end_ = val;
   }
 
- private:
+ protected:
   uint32_t index_id_;
   uint64_t token_beg_;
   uint64_t token_end_;

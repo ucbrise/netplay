@@ -255,6 +255,12 @@ class __monolog_linear_base {
            len);
   }
 
+  void* ptr(const uint64_t offset) {
+    uint32_t bucket_idx = offset / BLOCK_SIZE;
+    uint32_t bucket_off = offset % BLOCK_SIZE;
+    return (void*)(buckets_[bucket_idx].load(std::memory_order_acquire) + bucket_off);
+  }
+
   size_t storage_size() const {
     size_t bucket_size = buckets_.size() * sizeof(__atomic_bucket_ref );
     size_t data_size = 0;
