@@ -48,6 +48,7 @@ struct src_port_filter {
       struct udp_hdr *udp = (struct udp_hdr *) (ip + 1);
       return udp->src_port >= min && udp->src_port <= max;
     }
+    return false;
   }
 };
 
@@ -62,6 +63,7 @@ struct dst_port_filter {
       struct udp_hdr *udp = (struct udp_hdr *) (ip + 1);
       return udp->dst_port >= min && udp->dst_port <= max;
     }
+    return false;
   }
 };
 
