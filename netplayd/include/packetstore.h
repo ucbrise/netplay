@@ -38,6 +38,8 @@ class packet_store: public slog::log_store {
   // typedef slog::log_store::handle handle;
   class handle : public slog::log_store::handle {
    public:
+    typedef unsigned long long int timestamp_t;
+
     handle(packet_store& store)
       : slog::log_store::handle(store),
         store_(store) {
@@ -159,7 +161,11 @@ class packet_store: public slog::log_store {
 
       /* Evaluate the min cardinality filter */
       std::unordered_set<uint64_t> filter_res;
+      timestamp_t t0 = get_timestamp();
       filter(filter_res, f.index_id(), f.token_beg(), f.token_end(), max_rid);
+      timestamp_t t1 = get_timestamp();
+      fprintf(stderr, "(%" PRIu32 ":%" PRIu64 ",%" PRIu64 "): Count = %zu, Time = %llu\n",
+              f.index_id(), f.token_beg(), f.token_end(), filter_res.size(), (t1 - t0));
 
       /* Iterate through its entries, eliminating those that don't match */
       typedef std::unordered_set<uint64_t>::iterator iterator_t;
@@ -211,6 +217,13 @@ class packet_store: public slog::log_store {
       }
     }
     return true;
+  }
+
+  static timestamp_t get_timestamp() {
+    struct timeval now;
+    gettimeofday(&now, NULL);
+
+    return now.tv_usec + (timestamp_t) now.tv_sec * 1000000;
   }
 
   uint32_t srcip_idx_id_;
