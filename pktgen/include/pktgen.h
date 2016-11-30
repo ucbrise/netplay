@@ -34,10 +34,10 @@ namespace pktgen {
 
 #define REPORT_INTERVAL         100000000ULL
 
-template<typename iface_init>
+template<typename vport_type>
 class packet_generator {
  public:
-  packet_generator(netplay::dpdk::virtual_port<iface_init>* vport,
+  packet_generator(vport_type* vport,
                    uint64_t rate, uint64_t time_limit, int core)
     : bucket_(token_bucket(rate, TOKEN_BUCKET_CAPACITY)) {
     srand (time(NULL));
@@ -120,7 +120,7 @@ class packet_generator {
   }
 
   struct rte_mbuf* pkts_[RTE_BURST_SIZE];
-  netplay::dpdk::virtual_port<iface_init>* vport_;
+  vport_type* vport_;
   uint64_t rate_;
   uint64_t time_limit_;
   token_bucket bucket_;

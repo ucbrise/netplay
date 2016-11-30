@@ -124,17 +124,17 @@ int main(int argc, char** argv) {
   if (!strcmp(exec, primary)) {
     netplay::dpdk::virtual_port<netplay::dpdk::pmd_init>* vport =
       new netplay::dpdk::virtual_port<netplay::dpdk::pmd_init>(iface, mempool);
-    netplay::pktgen::packet_generator<netplay::dpdk::pmd_init> pktgen(vport, rate_limit, time_limit, master_core);
+    netplay::pktgen::packet_generator<netplay::dpdk::virtual_port<netplay::dpdk::pmd_init>> pktgen(vport, rate_limit, time_limit, master_core);
     pktgen.generate(mempool);
   } else if (!strcmp("ovs", primary)) {
     netplay::dpdk::virtual_port<netplay::dpdk::ovs_ring_init>* vport =
       new netplay::dpdk::virtual_port<netplay::dpdk::ovs_ring_init>(iface, mempool);
-    netplay::pktgen::packet_generator<netplay::dpdk::ovs_ring_init> pktgen(vport, rate_limit, time_limit, master_core);
+    netplay::pktgen::packet_generator<netplay::dpdk::virtual_port<netplay::dpdk::ovs_ring_init>> pktgen(vport, rate_limit, time_limit, master_core);
     pktgen.generate(mempool);
   } else if (!strcmp("bess", primary)) {
     netplay::dpdk::virtual_port<netplay::dpdk::bess_ring_init>* vport =
       new netplay::dpdk::virtual_port<netplay::dpdk::bess_ring_init>(iface, mempool);
-    netplay::pktgen::packet_generator<netplay::dpdk::bess_ring_init> pktgen(vport, rate_limit, time_limit, master_core);
+    netplay::pktgen::packet_generator<netplay::dpdk::virtual_port<netplay::dpdk::bess_ring_init>> pktgen(vport, rate_limit, time_limit, master_core);
     pktgen.generate(mempool);
   } else {
     fprintf(stderr, "Primary interface %s is not yet supported.\n", primary);
