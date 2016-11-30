@@ -20,7 +20,7 @@
 #include <rte_mbuf.h>
 
 #include "logstore.h"
-#include "filters.h"
+#include "filterops.h"
 
 namespace netplay {
 
