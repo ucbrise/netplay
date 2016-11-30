@@ -3,7 +3,7 @@
 
 #include <inttypes.h>
 
-namespace slog {
+namespace netplay {
 
 struct basic_filter {
  public:

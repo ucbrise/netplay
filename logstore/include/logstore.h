@@ -24,7 +24,6 @@
 #include "tieredindex.h"
 #include "streamlog.h"
 #include "offsetlog.h"
-#include "filterops.h"
 #include "filterresult.h"
 #include "utils.h"
 
