@@ -22,6 +22,9 @@
 #include "logstore.h"
 #include "filters.h"
 
+// TODO: REMOVE!!!
+#define PKT_LEN  54
+
 namespace netplay {
 
 /**
@@ -69,10 +72,10 @@ class packet_store: public slog::log_store {
           store_.dstport_idx_->add_entry(udp->dst_port, id);
         }
         store_.timestamp_idx_->add_entry(now, id);
-        store_.append_record(pkt, pkt_size, off);
+        store_.append_record(pkt, PKT_LEN, off);
         store_.timestamps_.set(id, now);
         store_.olog_->end(id);
-        off += pkt_size;
+        off += PKT_LEN;
         id++;
       }
     }
@@ -173,7 +176,7 @@ class packet_store: public slog::log_store {
         uint64_t off;
         uint16_t len;        
         olog_->lookup(*it, off, len);
-        fprintf(stderr, "len=%" PRIu16 "\n", len);
+        // fprintf(stderr, "len=%" PRIu16 "\n", len);
         if (check_filters(*it, dlog_->ptr(off), conjunction, f))
           it++;
         else
