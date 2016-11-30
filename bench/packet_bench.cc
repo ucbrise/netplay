@@ -15,11 +15,33 @@
 #include <thread>
 #include <mutex>
 
+#include <rte_config.h>
+#include <rte_malloc.h>
+#include <rte_ring.h>
+#include <rte_cycles.h>
+#include <rte_timer.h>
+#include <rte_errno.h>
+#include <rte_eth_ring.h>
+#include <rte_ethdev.h>
+#include <rte_eal.h>
+#include <rte_ether.h>
+#include <rte_ip.h>
+#include <rte_tcp.h>
+#include <rte_udp.h>
+#include <rte_lpm.h>
+#include <rte_mbuf.h>
+
 #include "packetstore.h"
+#include "bench_vport.h"
+#include "dpdk_utils.h"
 #include "cpu_utilization.h"
 
-#define PKT_LEN 54
+#define PKT_LEN   54
+#define MAX_PKTS  1000000
 
+using namespace ::netplay::dpdk::mempool;
+using namespace ::netplay::dpdk;
+using namespace ::netplay::pktgen;
 using namespace ::netplay;
 using namespace ::slog;
 using namespace ::std::chrono;
@@ -36,141 +58,92 @@ static timestamp_t get_timestamp() {
   return now.tv_usec + (timestamp_t) now.tv_sec * 1000000;
 }
 
-class rate_limiter {
- public:
-  rate_limiter(uint64_t ops_per_sec, packet_store::handle* handle) {
-    handle_ = handle;
-    min_ns_per_10000_ops = 1e13 / ops_per_sec;
-    local_ops_ = 0;
-    last_ts_ = high_resolution_clock::now();
-    tspec_.tv_sec = 0;
-    fprintf(stderr, "10000 ops per %lld ns.\n", min_ns_per_10000_ops);
-  }
-
-  uint64_t insert_packet(unsigned char* data, uint16_t len, token_list& tkns) {
-    uint64_t num_pkts = handle_->insert(data, len, tkns) + 1;
-    local_ops_++;
-    if (local_ops_ % 10000 == 0) {
-      high_resolution_clock::time_point now = high_resolution_clock::now();
-      auto ns_last_10000_ops =
-        duration_cast<nanoseconds>(now - last_ts_).count();
-      if (ns_last_10000_ops < min_ns_per_10000_ops) {
-        tspec_.tv_nsec = (min_ns_per_10000_ops - ns_last_10000_ops);
-        nanosleep(&tspec_, NULL);
-      }
-      last_ts_ = high_resolution_clock::now();
+struct bench_data {
+  bench_data() {
+    fprintf(stderr, "Generating packets...\n");
+    mempool_ = init_dpdk("filter", 0, 0);
+    int ret = mbuf_alloc_bulk(pkts_, PKT_LEN, MAX_PKTS, mempool);
+    if (ret != 0) {
+      fprintf(stderr, "Error allocating packets %d\n", ret);
+      exit(-1);
     }
-    return num_pkts;
+
+    for (int i = 0; i < MAX_PKTS; i++) {
+      struct ether_hdr* eth = rte_pktmbuf_mtod(pkts_[i], struct ether_hdr*);
+      eth->d_addr.addr_bytes[5] = 0;
+      eth->s_addr.addr_bytes[5] = 1;
+      eth->ether_type = rte_cpu_to_be_16(0x0800);
+
+      struct ipv4_hdr *ip = (struct ipv4_hdr *) (eth + 1);
+      ip->src_addr = rand() % 256;
+      ip->dst_addr = rand() % 256;
+      ip->next_proto_id = IPPROTO_TCP;
+
+      struct tcp_hdr *tcp = (struct tcp_hdr *) (ip + 1);
+      tcp->src_port = rand() % 10;
+      tcp->dst_port = rand() % 10;
+    }
+    fprintf(stderr, "Finished generating packets\n");
   }
 
-  uint64_t local_ops() {
-    return local_ops_;
-  }
-
- private:
-  struct timespec tspec_;
-  high_resolution_clock::time_point last_ts_;
-  uint64_t local_ops_;
-  long long min_ns_per_10000_ops;
-  packet_store::handle* handle_;
+  struct rte_mempool* mempool_;
+  struct rte_mbuf* pkts_[MAX_PKTS];
 };
 
-class rate_limiter_inf {
+class static_rand_generator {
  public:
-  rate_limiter_inf(uint64_t ops_per_sec, packet_store::handle* handle) {
-    handle_ = handle;
-    local_ops_ = 0;
-    local_ops_++;
-    assert(ops_per_sec == 0);
+  static_rand_generator(struct rte_mbuf** pkts, uint64_t start_idx) {
+    pkts_ = pkts;
+    idx_ = start_idx;
   }
 
-  uint64_t insert_packet(unsigned char* data, uint16_t len, token_list& tkns) {
-    local_ops_++;
-    return handle_->insert(data, len, tkns) + 1;
-  }
-
-  uint64_t local_ops() {
-    return local_ops_;
+  struct rte_mbuf** generate_batch(size_t size) {
+    struct rte_mbuf** buf = pkts_ + idx_;
+    idx_ += size;
+    if (idx_ >= MAX_PKTS)
+      idx_ = 0;
+    return buf;
   }
 
  private:
-  uint64_t local_ops_;
-  packet_store::handle* handle_;
+  uint64_t idx_;
+  struct rte_mbuf** pkts_;
 };
 
-template<class rlimiter = rate_limiter_inf>
 class packet_loader {
  public:
-  static const uint64_t kReportRecordInterval = 11111;
-  static const uint64_t kMaxNumPkts = 300 * 1e6;
+  static const uint64_t kMaxPktsPerThread = 60 * 1e6;
 
   packet_loader() {
     store_ = new packet_store();
-
-    fprintf(stderr, "Generating packets...\n");
-    generate_pkts();
-    fprintf(stderr, "Initialization complete.\n");
-  }
-
-  void init_tokens(token_list& tokens, packet_store::handle* handle) {
-    handle->add_src_ip(tokens, 0);
-    handle->add_dst_ip(tokens, 0);
-    handle->add_src_port(tokens, 0);
-    handle->add_dst_port(tokens, 0);
-    handle->add_timestamp(tokens, 0);
-  }
-
-  void set_tokens(token_list& tokens, uint64_t idx) {
-    tokens[0].update_data(srcips_[idx]);
-    tokens[1].update_data(dstips_[idx]);
-    tokens[2].update_data(sports_[idx]);
-    tokens[3].update_data(dports_[idx]);
-    tokens[4].update_data(std::time(NULL));
-  }
-
-  void generate_pkts() {
-    while (srcips_.size() < kMaxNumPkts) {
-      srcips_.push_back(rand() % 256);
-      dstips_.push_back(rand() % 256);
-      sports_.push_back(rand() % 10);
-      dports_.push_back(rand() % 10);
-    }
-    fprintf(stderr, "Generated %zu packets.\n", srcips_.size());
   }
 
   // Throughput benchmarks
-  void load_packets(const uint32_t num_threads, const uint64_t rate_limit) {
+  void load_packets(const uint32_t num_threads, const uint64_t rate_limit, const bool measure_cpu) {
     std::vector<std::thread> workers;
-    uint64_t thread_ops = srcips_.size() / num_threads;
     uint64_t worker_rate = rate_limit / num_threads;
+    std::vector<double> thputs(num_threads, 0.0);
+    
     for (uint32_t i = 0; i < num_threads; i++) {
-      workers.push_back(std::thread([i, worker_rate, thread_ops, this] {
-        uint64_t idx = thread_ops * i;
-        unsigned char data[PKT_LEN] = {};
+      workers.push_back(std::thread([i, worker_rate, this] {
+        uint64_t idx = i * kMaxPktsPerThread;
+        struct rte_mbuf** pkts = data_.pkts_;
         packet_store::handle* handle = store_->get_handle();
-        token_list tokens;
-        init_tokens(tokens, handle);
-        rlimiter* limiter = new rlimiter(worker_rate, handle);
-        double throughput = 0;
+        pktstore_vport* vport = new pktstore_vport(handle);
+        static_rand_generator* gen = new static_rand_generator(pkts, idx);
+        packet_generator<pktstore_vport> pktgen(vport, gen, worker_rate, 0, kMaxPktsPerThread);
+
         fprintf(stderr, "Starting benchmark.\n");
-        try {
-          timestamp_t start = get_timestamp();
-          while (limiter->local_ops() < thread_ops) {
-            set_tokens(tokens, idx);
-            limiter->insert_packet(data, PKT_LEN, tokens);
-            idx++;
-          }
-          timestamp_t end = get_timestamp();
-          double totsecs = (double) (end - start) / (1000.0 * 1000.0);
-          throughput = ((double) limiter->local_ops() / totsecs);
-          fprintf(stderr, "Thread #%u(%lfs): Throughput: %lf.\n", i, totsecs, throughput);
-        } catch (std::exception &e) {
-          fprintf(stderr, "Throughput thread ended prematurely: %s\n", e.what());
-        }
-        std::ofstream ofs("write_throughput_" + std::to_string(i));
-        ofs << throughput << "\n";
-        ofs.close();
-        delete limiter;
+
+        timestamp_t start = get_timestamp();
+        pktgen.generate();
+        timestamp_t end = get_timestamp();
+        double totsecs = (double) (end - start) / (1000.0 * 1000.0);
+        thputs[i] = ((double) pktgen.total_sent() / totsecs);
+        fprintf(stderr, "Thread #%u(%lfs): Throughput: %lf.\n", i, totsecs, throughput);
+
+        delete vport;
+        delete gen;
         delete handle;
       }));
 
@@ -185,34 +158,43 @@ class packet_loader {
         fprintf(stderr, "Error calling pthread_setaffinity_np: %d\n", rc);
     }
 
-#ifdef MEASURE_CPU
-    std::thread cpu_measure_thread([&] {
-      timestamp_t start = get_timestamp();
-      std::ofstream util_stream("cpu_utilization");
-      cpu_utilization util;
-      while (get_timestamp() - start < timebound) {
-        sleep(1);
-        util_stream << util.current() << "\n";
-      }
-      util_stream.close();
-    });
-#endif
-
-    for (auto& th : workers) {
-      th.join();
+    if (measure_cpu) {
+      std::thread cpu_measure_thread([&] {
+        timestamp_t start = get_timestamp();
+        std::ofstream util_stream("cpu_utilization");
+        cpu_utilization util;
+        while (true) {
+          sleep(1);
+          util_stream << util.current() << "\n";
+        }
+        util_stream.close();
+      });
+      // Create a cpu_set_t object representing a set of CPUs. Clear it and mark
+      // only CPU i as set.
+      cpu_set_t cpuset;
+      CPU_ZERO(&cpuset);
+      CPU_SET(num_threads, &cpuset);
+      int rc = pthread_setaffinity_np(cpu_measure_thread.native_handle(),
+                                      sizeof(cpu_set_t), &cpuset);
+      if (rc != 0)
+        fprintf(stderr, "Error calling pthread_setaffinity_np: %d\n", rc);
+      cpu_measure_thread.detatch();
     }
 
-#ifdef MEASURE_CPU
-    cpu_measure_thread.join();
-#endif
+    for (auto& th : workers)
+      th.join();
+
+    double tot = 0.0;
+    for (double thput : thputs)
+      tot += thput;
+
+    std::ofstream ofs("write_throughput", std::ios_base::app);
+    ofs << num_threads << "\t" << tot << "\n";
+    ofs.close();
   }
 
  private:
-  std::vector<uint32_t> srcips_;
-  std::vector<uint32_t> dstips_;
-  std::vector<uint16_t> sports_;
-  std::vector<uint16_t> dports_;
-
+  bench_data data_;
   packet_store *store_;
 };
 
@@ -221,15 +203,11 @@ void print_usage(char *exec) {
 }
 
 int main(int argc, char** argv) {
-  if (argc < 3 || argc > 9) {
-    print_usage(argv[0]);
-    return -1;
-  }
-
   int c;
   int num_threads = 1;
   uint64_t rate_limit = 0;
-  while ((c = getopt(argc, argv, "n:r:")) != -1) {
+  bool measure_cpu = false;
+  while ((c = getopt(argc, argv, "n:r:c")) != -1) {
     switch (c) {
     case 'n':
       num_threads = atoi(optarg);
@@ -237,19 +215,17 @@ int main(int argc, char** argv) {
     case 'r':
       rate_limit = atoll(optarg);
       break;
+    case 'c':
+      measure_cpu = true;
+      break;
     default:
       fprintf(stderr, "Could not parse command line arguments.\n");
+      print_usage(argv[0]);
     }
   }
 
-  if (rate_limit == 0) {
-    packet_loader<> loader;
-    loader.load_packets(num_threads, 0);
-  } else {
-    packet_loader<rate_limiter> loader;
-    loader.load_packets(num_threads, rate_limit);
-  }
+  packet_loader loader;
+  loader.load_packets(num_threads, rate_limit, measure_cpu);
 
   return 0;
-
 }
