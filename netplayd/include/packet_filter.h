@@ -98,7 +98,7 @@ class packet_filter_result {
       uint64_t ts;
       do {
         it_++;
-        if (!it_->finished()) {
+        if (!it_.finished()) {
           uint64_t offset;
           uint16_t length;
           olog_->lookup(*it_, offset, length);
@@ -106,7 +106,7 @@ class packet_filter_result {
           ts = timestamps_->get(*it_);
           fprintf(stderr, "pkt_id=%" PRIu64 "\n", *it_);
         }
-      } while (!it_->finished() && !filter_.apply(pkt, ts));
+      } while (!it_.finished() && !filter_.apply(pkt, ts));
       return *this;
     }
 
