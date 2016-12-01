@@ -90,16 +90,16 @@ class packet_filter_result {
     }
 
     packet_filter_iterator operator++(int) {
-      filter_iterator it = *this;
+      packet_filter_iterator it = *this;
       ++(*this);
       return it;
     }
 
-    bool operator==(filter_iterator other) const {
+    bool operator==(packet_filter_iterator other) const {
       return it_ == other.it_;
     }
 
-    bool operator!=(filter_iterator other) const {
+    bool operator!=(packet_filter_iterator other) const {
       return !(*this == other);
     }
 
