@@ -5,6 +5,7 @@
 
 #include <ctime>
 
+#include "query_parser.h"
 #include "expression.h"
 #include "query_plan.h"
 
