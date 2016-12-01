@@ -76,7 +76,7 @@ class packet_filter_result {
 
     packet_filter_iterator(const packet_filter& filter,
                            filter_iterator<index_type>& it)
-      : fiter_(filter), it_(it) {}
+      : filter_(filter), it_(it) {}
 
     reference operator*() const {
       return *it_;
