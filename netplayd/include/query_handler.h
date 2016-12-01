@@ -3,7 +3,7 @@
 
 #include "NetPlayQueryService.h"
 #include "packetstore.h"
-#include "query_utils.h"
+#include "query_parser.h"
 #include "query_planner.h"
 #include "netplay_types.h"
 
@@ -20,9 +20,26 @@ class query_handler : virtual public thrift::NetPlayQueryServiceIf {
   void filter(std::vector<int64_t>& _return, const std::string& query) {
 
     // Parse query
-    filter_query q;
+    expression* e = NULL;
     try {
-      q = query_utils::expression_to_filter_query(handle_, query);
+      parser p(query);
+      e = p.parse();
+    } catch (parse_exception& e) {
+      fprintf(stderr, "Parse exception: %s\n", e.what());
+      thrift::QueryException qe;
+      qe.message = std::string(e.what());
+      throw qe;
+    } catch (std::exception& e) {
+      fprintf(stderr, "Other exception: %s\n", e.what());
+      thrift::QueryException qe;
+      qe.message = std::string(e.what());
+      throw qe;
+    }
+
+    // Build query plan
+    query_plan p;
+    try {
+      p = query_planner::plan(hande_, e);
     } catch (parse_exception& e) {
       fprintf(stderr, "Parse exception: %s\n", e.what());
       thrift::QueryException qe;
@@ -37,7 +54,7 @@ class query_handler : virtual public thrift::NetPlayQueryServiceIf {
 
     // Compute results
     std::unordered_set<uint64_t> res;
-    handle_->filter_pkts(res, q);
+    handle_->filter_pkts(res, p);
 
     // Copy into vector
     _return.reserve(res.size());

@@ -21,6 +21,7 @@
 
 #include "logstore.h"
 #include "packet_filter.h"
+#include "query_plan.h"
 
 namespace netplay {
 
@@ -76,13 +77,13 @@ class packet_store: public slog::log_store {
     }
 
     uint64_t approx_pkt_count(const uint32_t index_id, const uint64_t tok_beg,
-                                const uint64_t tok_end) const {
+                              const uint64_t tok_end) const {
       return store_.approx_pkt_count(index_id, tok_beg, tok_end);
     }
 
     void filter_pkts(std::unordered_set<uint64_t>& results,
-                     filter_query& query) const {
-      store_.filter_pkts(results, query);
+                     query_plan& plan) const {
+      store_.filter_pkts(results, plan);
     }
 
     uint32_t srcip_idx() const {
@@ -146,7 +147,7 @@ class packet_store: public slog::log_store {
   }
 
   uint64_t approx_pkt_count(const uint32_t index_id, const uint64_t tok_beg,
-                              const uint64_t tok_end) const {
+                            const uint64_t tok_end) const {
     return filter_count(index_id, tok_beg, tok_end);
   }
 
@@ -157,38 +158,34 @@ class packet_store: public slog::log_store {
    * @param query The filter query.
    */
   void filter_pkts(std::unordered_set<uint64_t>& results,
-                   filter_query& query) const {
+                   query_plan& plan) const {
     uint64_t max_rid = olog_->num_ids();
-    for (filter_conjunction& conjunction : query) {
-      /* Get the min cardinality filter */
-      uint64_t min_count = UINT64_MAX;
-      basic_filter f;
-      for (const basic_filter& basic : conjunction) {
-        uint64_t cnt;
-        if ((cnt = filter_count(basic.index_id(), basic.token_beg(), basic.token_end())) < min_count) {
-          min_count = cnt;
-          f = basic;
-        }
-      }
-
+    for (clause_plan& cplan : plan) {
       /* Evaluate the min cardinality filter */
+      uint32_t idx_id = cplan.idx_filter.index_id;
+      uint64_t tok_beg = cplan.idx_filter.tok_range.first;
+      uint64_t tok_end = cplan.idx_filter.tok_range.second;
+
       std::unordered_set<uint64_t> filter_res;
       timestamp_t t0 = get_timestamp();
-      filter(filter_res, f.index_id(), f.token_beg(), f.token_end(), max_rid);
+      filter(filter_res, idx_id, tok_beg, tok_end, max_rid);
       timestamp_t t1 = get_timestamp();
       fprintf(stderr, "(%" PRIu32 ":%" PRIu64 ",%" PRIu64 "): Count = %zu, Time = %llu\n",
-              f.index_id(), f.token_beg(), f.token_end(), filter_res.size(), (t1 - t0));
+              index_id, tok_beg, tok_end, filter_res.size(), (t1 - t0));
 
       /* Iterate through its entries, eliminating those that don't match */
-      typedef std::unordered_set<uint64_t>::iterator iterator_t;
-      for (iterator_t it = filter_res.begin(); it != filter_res.end();) {
-        uint64_t off;
-        uint16_t len;
-        olog_->lookup(*it, off, len);
-        if (check_filters(*it, dlog_->ptr(off), conjunction, f))
-          it++;
-        else
-          it = filter_res.erase(it);
+      if (cplan.perform_pkt_filter) {
+        typedef std::unordered_set<uint64_t>::iterator iterator_t;
+        for (iterator_t it = filter_res.begin(); it != filter_res.end();) {
+          uint64_t off;
+          uint16_t len;
+          olog_->lookup(*it, off, len);
+          uint32_t ts = timestamps_.get(*it);
+          if (cplan.pkt_filter.apply(dlog_->ptr(off), ts))
+            it++;
+          else
+            it = filter_res.erase(it);
+        }
       }
 
       /* Add filtered results to final results */
