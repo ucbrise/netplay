@@ -74,7 +74,7 @@ class filter_benchmark {
   }
 
   // Latency benchmarks
-  void bench_latency() {
+  void bench_cast_latency() {
     std::ofstream out("query_latency.txt");
     packet_store::handle* handle = store_->get_handle();
 
@@ -91,7 +91,7 @@ class filter_benchmark {
   }
 
   // Throughput benchmarks
-  void bench_throughput(uint64_t query_rate, int num_threads) {
+  void bench_cast_throughput(uint64_t query_rate, int num_threads) {
     assert(query_rate < 1e6);
     assert(num_threads >= 1);
     // TODO: Implement
@@ -184,9 +184,9 @@ int main(int argc, char** argv) {
 
   filter_benchmark ls_bench(load_rate, num_pkts, query_path);
   if (bench_type.find("latency-cast") == 0) {
-    ls_bench.bench_latency();
+    ls_bench.bench_cast_latency();
   } else if (bench_type == "throughput-cast") {
-    ls_bench.bench_throughput(query_rate, num_threads);
+    ls_bench.bench_cast_throughput(query_rate, num_threads);
   } else {
     fprintf(stderr, "Unknown benchmark type: %s; must be one of: "
             "{latency, throughput}\n", bench_type.c_str());
