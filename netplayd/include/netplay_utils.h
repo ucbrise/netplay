@@ -25,11 +25,12 @@ static const uint32_t ip_prefix_mask[33] = {
   0xFFFFFFFCU, 0xFFFFFFFEU, 0xFFFFFFFFU
 };
 
+typedef std::vector<packet_filter> filter_list;
+
 class netplay_utils {
  public:
   typedef std::vector<index_filter> clause;
   typedef clause::iterator clause_iterator;
-  typedef std::vector<packet_filter> filter_list;
 
   static filter_list build_filter_list(const packet_store::handle* h, expression* e) {
     uint32_t now = std::time(NULL);    

@@ -36,6 +36,7 @@
 #include "packetstore.h"
 #include "bench_vport.h"
 #include "pktgen.h"
+#include "netplay_utils.h"
 
 #define PKT_LEN 54
 #define PKT_BURST 32
@@ -65,33 +66,72 @@ class filter_benchmark {
                    const std::string& query_path) {
 
     store_ = new packet_store();
-
+    fprintf(stderr, "Loading char queries...\n");
+    add_complex_chars(query_path);
     fprintf(stderr, "Loading data...\n");
     load_data(load_rate, num_pkts);
-    fprintf(stderr, "Loading queries...\n");
-    load_queries(query_path);
+    fprintf(stderr, "Loading cast queries...\n");
+    load_cast_queries(query_path);
     fprintf(stderr, "Initialization complete.\n");
   }
 
   // Latency benchmarks
   void bench_cast_latency() {
-    std::ofstream out("query_latency.txt");
+    std::ofstream out("query_latency_cast.txt");
     packet_store::handle* handle = store_->get_handle();
 
-    for (size_t i = 0; i < queries_.size(); i++) {
-      std::unordered_set<uint64_t> results;
-      timestamp_t start = get_timestamp();
-      handle->filter_pkts(results, queries_[i]);
-      timestamp_t end = get_timestamp();
-      out << i << "\t" << results.size() << "\t" << (end - start) << "\n";
-      fprintf(stderr, "Query %zu: Count = %zu, Latency = %llu\n", (i + 1),
-              results.size(), (end - start));
+    for (size_t i = 0; i < cast_queries_.size(); i++) {
+      double avg = 0.0;
+      size_t size = 0;
+      for (size_t repeat = 0; repeat < 100; repeat++) {
+        std::unordered_set<uint64_t> results;
+        timestamp_t start = get_timestamp();
+        handle->filter_pkts(results, cast_queries_[i]);
+        timestamp_t end = get_timestamp();
+        avg += (end - start);
+        size += results.size();
+      }
+      avg /= 100;
+      size /= 100;
+      out << (i + 1) << "\t" << size << "\t" << avg << "\n";
+      fprintf(stderr, "Query %zu: Count = %zu, Latency = %lf\n", (i + 1),
+              size, avg);
+    }
+    out.close();
+  }
+
+  void bench_char_latency() {
+    std::ofstream out("query_latency_char.txt");
+    packet_store::handle* handle = store_->get_handle();
+
+    for (size_t i = 0; i < cast_queries_.size(); i++) {
+      double avg = 0.0;
+      size_t size = 0;
+      for (size_t repeat = 0; repeat < 100; repeat++) {
+        std::unordered_set<uint64_t> results;
+        timestamp_t start = get_timestamp();
+        handle->complex_character_lookup(results, char_ids_[i], end_time_ - 4, end_time_);
+        timestamp_t end = get_timestamp();
+        avg += (end - start);
+        size += results.size();
+      }
+      avg /= 100;
+      size /= 100;
+      out << (i + 1) << "\t" << size << "\t" << avg << "\n";
+      fprintf(stderr, "Query %zu: Count = %zu, Latency = %lf\n", (i + 1),
+              size, avg);
     }
     out.close();
   }
 
   // Throughput benchmarks
   void bench_cast_throughput(uint64_t query_rate, int num_threads) {
+    assert(query_rate < 1e6);
+    assert(num_threads >= 1);
+    // TODO: Implement
+  }
+
+  void bench_char_throughput(uint64_t query_rate, int num_threads) {
     assert(query_rate < 1e6);
     assert(num_threads >= 1);
     // TODO: Implement
@@ -105,11 +145,12 @@ class filter_benchmark {
     rand_generator* gen = new rand_generator(mempool);
     packet_generator<pktstore_vport> pktgen(vport, gen, load_rate, 0, num_pkts);
     pktgen.generate();
+    end_time_ = std::time(NULL);
     fprintf(stderr, "Loaded %zu packets.\n", handle->num_pkts());
     delete handle;
   }
 
-  void load_queries(const std::string& query_path) {
+  void load_cast_queries(const std::string& query_path) {
     std::ifstream in(query_path);
     if (!in.is_open()) {
       fprintf(stderr, "Could not open query file %s\n", query_path.c_str());
@@ -121,9 +162,30 @@ class filter_benchmark {
       parser p(exp);
       expression *e = p.parse();
       query_plan qp = query_planner::plan(handle, e);
-      queries_.push_back(qp);
+      cast_queries_.push_back(qp);
+      free_expression(e);
     }
-    fprintf(stderr, "Loaded %zu queries.\n", queries_.size());
+    fprintf(stderr, "Loaded %zu cast queries.\n", cast_queries_.size());
+
+    delete handle;
+  }
+
+  void add_complex_chars(const std::string& query_path) {
+    std::ifstream in(query_path);
+    if (!in.is_open()) {
+      fprintf(stderr, "Could not open query file %s\n", query_path.c_str());
+      exit(-1);
+    }
+    packet_store::handle* handle = store_->get_handle();
+    std::string exp;
+    while (std::getline(in, exp)) {
+      parser p(exp);
+      expression *e = p.parse();
+      filter_list list = netplay_utils::build_filter_list(handle, e);
+      char_ids_.push_back(store_->add_complex_character(list));
+      free_expression(e);
+    }
+    fprintf(stderr, "Added %zu chars.\n", char_ids_.size());
 
     delete handle;
   }
@@ -135,7 +197,9 @@ class filter_benchmark {
     return now.tv_usec + (timestamp_t) now.tv_sec * 1000000;
   }
 
-  std::vector<query_plan> queries_;
+  uint32_t end_time_;
+  std::vector<query_plan> cast_queries_;
+  std::vector<uint32_t> char_ids_;
   packet_store *store_;
 };
 
