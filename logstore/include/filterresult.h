@@ -101,7 +101,7 @@ class filter_result {
   }
 
   filter_iterator end() {
-    return filter_iterator(tok_max_, 0);
+    return filter_iterator(tok_max_ + 1, 0);
   }
 
  private:
