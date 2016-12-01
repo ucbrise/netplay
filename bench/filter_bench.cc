@@ -104,7 +104,7 @@ class filter_benchmark {
 
   template<typename container_type>
   uint64_t count_container(container_type& container) {
-    typedef container_type::iterator iterator_t;
+    typedef typename container_type::iterator iterator_t;
     uint64_t count = 0;
     for (iterator_t it = container.begin(); it != container.end(); it++) {
       count++;
