@@ -162,7 +162,10 @@ class packet_store: public slog::log_store {
    * @return The id of the newly created complex character.
    */
   uint32_t add_complex_character(const std::vector<packet_filter>& filters) {
-    return complex_characters_->push_back(new complex_character(filters));
+    fprintf(stderr, "Adding new complex character...\n");
+    complex_character* character = new complex_character(filters);
+    fprintf(stderr, "Created complex character.\n");
+    return complex_characters_->push_back(character);
   }
 
   uint64_t approx_pkt_count(const uint32_t index_id, const uint64_t tok_beg,
