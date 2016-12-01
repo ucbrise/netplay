@@ -53,12 +53,9 @@ class complex_character {
           if (cur_idx_ != monolog_size_) {
             id = monolog_->get(cur_idx_);
             ts = timestamps_->get(id);
-
-            fprintf(stderr, "Time range: (%" PRIu64 ",%" PRIu64"), ts=%" PRIu64 "\n",
-                range_.first, range_.second, ts);
           }
         } while (cur_idx_ != monolog_size_ && !olog_->is_valid(id, max_rid_) &&
-                 ts >= range_.first && ts <= range_.second);
+                 !(ts >= range_.first && ts <= range_.second));
 
         return *this;
       }
