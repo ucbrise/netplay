@@ -73,13 +73,6 @@ class filter_result {
         while ((cur_entry_list_ = res_->index_->get(++cur_tok_)) == NULL
                && cur_tok_ <= res_->tok_max_);
       }
-
-      fprintf(stderr, "IDX: %" PRId64 ", ENTRY_LIST_NULL=%d", cur_idx_, (cur_entry_list_ == NULL));
-      if (cur_entry_list_ != NULL) {
-        fprintf(stderr, ", ENTRY_LIST_SIZE=%" PRIu32 "\n", cur_entry_list_->size());
-      } else {
-        fprintf(stderr, "\n");
-      }
     }
 
     entry_list* cur_entry_list_;
