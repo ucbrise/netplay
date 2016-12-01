@@ -41,7 +41,7 @@ class query_planner {
       _cplan.valid = true;
       _cplan.perform_pkt_filter = false;
       _cplan.idx_filter = build_index_filter(h, (predicate*) e);
-      _plan.push_back(_cplan);
+      _plan.push_back(h, _cplan);
     } else if (e->type == expression_type::AND) {
       conjunction* c = (conjunction*) e;
       clause _clause;
@@ -50,7 +50,7 @@ class query_planner {
           throw parse_exception("Filter expression not in DNF");
         _clause.push_back(build_index_filter(h, (predicate*) child));
       }
-      clause_plan _cplan = build_clause_plan(_clause);
+      clause_plan _cplan = build_clause_plan(h, _clause);
       if (_cplan.valid)
         _plan.push_back(_cplan);
     } else if (e->type == expression_type::OR) {
@@ -65,7 +65,7 @@ class query_planner {
             throw parse_exception("Filter expression not in DNF");
           _clause.push_back(build_index_filter(h, (predicate*) cchild));
         }
-        clause_plan _cplan = build_clause_plan(_clause);
+        clause_plan _cplan = build_clause_plan(h, _clause);
         if (_cplan.valid)
           _plan.push_back(_cplan);
       }
@@ -90,9 +90,8 @@ class query_planner {
         }
       }
 
-      if (beg <= end) {
-        i->token_beg(beg);
-        i->token_end(end);
+      if (tok_range.first <= tok_range.end) {
+        i->tok_range = tok_range;
         i++;
       } else {
         return false;
