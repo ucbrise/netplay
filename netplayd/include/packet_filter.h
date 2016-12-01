@@ -60,6 +60,7 @@ struct packet_filter {
   range dst_port;
   range timestamp;
 };
+
 typedef slog::__input_iterator __input_iterator;
 typedef std::vector<__input_iterator> iterator_list;
 
@@ -120,12 +121,19 @@ class packet_filter_result {
 
   packet_filter_iterator end() {
     return packet_filter_iterator(filter_, res_.end());
-  }  
+  }
 
  private:
   const packet_filter& filter_;
   slog::filter_result<index_type>& res_;
 };
+
+template<typename index_type>
+inline packet_filter_result<index_type> build_result(
+  slog::filter_result<index_type>& res,
+  const packet_filter& filter) {
+  return packet_filter_result<index_type>(res, filter);
+}
 
 }
 

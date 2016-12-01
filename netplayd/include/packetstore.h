@@ -160,36 +160,60 @@ class packet_store: public slog::log_store {
   void filter_pkts(std::unordered_set<uint64_t>& results,
                    query_plan& plan) const {
     uint64_t max_rid = olog_->num_ids();
+
+
     for (clause_plan& cplan : plan) {
       /* Evaluate the min cardinality filter */
       uint32_t idx_id = cplan.idx_filter.index_id;
       uint64_t tok_beg = cplan.idx_filter.tok_range.first;
       uint64_t tok_end = cplan.idx_filter.tok_range.second;
 
-      std::unordered_set<uint64_t> filter_res;
       timestamp_t t0 = get_timestamp();
-      filter(filter_res, idx_id, tok_beg, tok_end, max_rid);
-      timestamp_t t1 = get_timestamp();
-      fprintf(stderr, "(%" PRIu32 ":%" PRIu64 ",%" PRIu64 "): Count = %zu, Time = %llu\n",
-              idx_id, tok_beg, tok_end, filter_res.size(), (t1 - t0));
-
-      /* Iterate through its entries, eliminating those that don't match */
-      if (cplan.perform_pkt_filter) {
-        typedef std::unordered_set<uint64_t>::iterator iterator_t;
-        for (iterator_t it = filter_res.begin(); it != filter_res.end();) {
-          uint64_t off;
-          uint16_t len;
-          olog_->lookup(*it, off, len);
-          uint32_t ts = timestamps_.get(*it);
-          if (cplan.pkt_filter.apply(dlog_->ptr(off), ts))
-            it++;
-          else
-            it = filter_res.erase(it);
+      std::unordered_set<uint64_t> filter_res;
+      if (idx_id == srcip_idx_id_) {
+        auto res = filter(srcip_idx_, tok_beg, tok_end, max_rid);
+        if (cplan.perform_pkt_filter) {
+          auto pf_res = build_result(res, cplan.pkt_filter);
+          results.insert(pf_res.begin(), pf_res.end());
+        } else {
+          results.insert(res.begin(), res.end());
+        }
+      } else if (idx_id == dstip_idx_id_) {
+        auto res = filter(dstip_idx_, tok_beg, tok_end, max_rid);
+        if (cplan.perform_pkt_filter) {
+          auto pf_res = build_result(res, cplan.pkt_filter);
+          results.insert(pf_res.begin(), pf_res.end());
+        } else {
+          results.insert(res.begin(), res.end());
+        }
+      } else if (idx_id == srcport_idx_id_) {
+        auto res = filter(srcport_idx_, tok_beg, tok_end, max_rid);
+        if (cplan.perform_pkt_filter) {
+          auto pf_res = build_result(res, cplan.pkt_filter);
+          results.insert(pf_res.begin(), pf_res.end());
+        } else {
+          results.insert(res.begin(), res.end());
+        }
+      } else if (idx_id == dstport_idx_id_) {
+        auto res = filter(dstport_idx_, tok_beg, tok_end, max_rid);
+        if (cplan.perform_pkt_filter) {
+          auto pf_res = build_result(res, cplan.pkt_filter);
+          results.insert(pf_res.begin(), pf_res.end());
+        } else {
+          results.insert(res.begin(), res.end());
+        }
+      } else if (idx_id == timestamp_idx_id_) {
+        auto res = filter(timestamp_idx_, tok_beg, tok_end, max_rid);
+        if (cplan.perform_pkt_filter) {
+          auto pf_res = build_result(res, cplan.pkt_filter);
+          results.insert(pf_res.begin(), pf_res.end());
+        } else {
+          results.insert(res.begin(), res.end());
         }
       }
-
-      /* Add filtered results to final results */
-      results.insert(filter_res.begin(), filter_res.end());
+      timestamp_t t1 = get_timestamp();
+      fprintf(stderr, "(%" PRIu32 ":%" PRIu64 ",%" PRIu64 "): Count = %zu, Time = %llu\n",
+              idx_id, tok_beg, tok_end, results.size(), (t1 - t0));
     }
   }
 
