@@ -30,7 +30,8 @@
 #include <rte_mbuf.h>
 
 #include "dpdk_utils.h"
-#include "packet_filter.h"
+#include "query_planner.h"
+#include "query_parser.h"
 #include "token_bucket.h"
 #include "packetstore.h"
 #include "query_utils.h"
@@ -75,36 +76,6 @@ class filter_benchmark {
     fprintf(stderr, "Initialization complete.\n");
   }
 
-  void load_data(uint64_t load_rate, uint64_t num_pkts) {
-    struct rte_mempool* mempool = init_dpdk("filter", 0, 0);
-    packet_store::handle* handle = store_->get_handle();
-    pktstore_vport* vport = new pktstore_vport(handle);
-    rand_generator* gen = new rand_generator(mempool);
-    packet_generator<pktstore_vport> pktgen(vport, gen, load_rate, 0, num_pkts);
-    pktgen.generate();
-    fprintf(stderr, "Loaded %zu packets.\n", handle->num_pkts());
-    delete handle;
-  }
-
-  void load_queries(const std::string& query_path) {
-    std::ifstream in(query_path);
-    if (!in.is_open()) {
-      fprintf(stderr, "Could not open query file %s\n", query_path.c_str());
-      exit(-1);
-    }
-    packet_store::handle* handle = store_->get_handle();
-    std::string exp;
-    while (std::getline(in, exp)) {
-      filter_query f = query_utils::expression_to_filter_query(handle, exp);
-      print_filter_query(f);
-      fprintf(stderr, "\n");
-      queries_.push_back(f);
-    }
-    fprintf(stderr, "Loaded %zu queries.\n", queries_.size());
-
-    delete handle;
-  }
-
   // Latency benchmarks
   void bench_latency() {
     std::ofstream out("query_latency.txt");
@@ -130,6 +101,36 @@ class filter_benchmark {
   }
 
  private:
+  void load_data(uint64_t load_rate, uint64_t num_pkts) {
+    struct rte_mempool* mempool = init_dpdk("filter", 0, 0);
+    packet_store::handle* handle = store_->get_handle();
+    pktstore_vport* vport = new pktstore_vport(handle);
+    rand_generator* gen = new rand_generator(mempool);
+    packet_generator<pktstore_vport> pktgen(vport, gen, load_rate, 0, num_pkts);
+    pktgen.generate();
+    fprintf(stderr, "Loaded %zu packets.\n", handle->num_pkts());
+    delete handle;
+  }
+
+  void load_queries(const std::string& query_path) {
+    std::ifstream in(query_path);
+    if (!in.is_open()) {
+      fprintf(stderr, "Could not open query file %s\n", query_path.c_str());
+      exit(-1);
+    }
+    packet_store::handle* handle = store_->get_handle();
+    std::string exp;
+    while (std::getline(in, exp)) {
+      parser p(exp);
+      expression *e = p.parse();
+      query_plan qp = query_planner::plan(handle, e);
+      queries_.push_back(qp);
+    }
+    fprintf(stderr, "Loaded %zu queries.\n", queries_.size());
+
+    delete handle;
+  }
+
   static timestamp_t get_timestamp() {
     struct timeval now;
     gettimeofday(&now, NULL);
@@ -137,7 +138,7 @@ class filter_benchmark {
     return now.tv_usec + (timestamp_t) now.tv_sec * 1000000;
   }
 
-  std::vector<filter_query> queries_;
+  std::vector<query_plan> queries_;
   packet_store *store_;
 };
 
