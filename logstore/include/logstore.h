@@ -660,7 +660,7 @@ class log_store {
    * @param max_rid Largest record-id to consider.
    */
   template<typename INDEX>
-  filter_result<INDEX> filter(result_type& results, INDEX* index, const uint64_t min,
+  filter_result<INDEX> filter(INDEX* index, const uint64_t min,
                               const uint64_t max, const uint64_t max_rid) const {
     return filter_result<INDEX>(olog_, index, tok_min, tok_max, max_rid);
   }
