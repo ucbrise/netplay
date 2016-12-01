@@ -48,16 +48,12 @@ class complex_character {
 
         fprintf(stderr, "++\n");
         uint64_t id;
-        uint64_t ts;
         do {
           cur_idx_++;
-          if (cur_idx_ != monolog_size_) {
+          if (cur_idx_ != monolog_size_)
             id = monolog_->get(cur_idx_);
-            ts = timestamps_->get(id);
-          }
-          fprintf(stderr, "cur_idx=%" PRIu64 "\n", cur_idx_);
-        } while (cur_idx_ != monolog_size_ && !olog_->is_valid(id, max_rid_) &&
-                 !in_range(ts));
+          fprintf(stderr, "cur_idx=%" PRIu64 ", ts=%" PRIu64 ", range(%" PRIu64 "," PRIu64 ")\n", cur_idx_, ts, range_.first, range_.second);
+        } while (cur_idx_ != monolog_size_ && !is_valid(id));
 
         return *this;
       }
@@ -77,8 +73,9 @@ class complex_character {
       }
 
      private:
-      bool in_range(uint64_t ts) {
-        return ts >= range_.first && ts <= range_.second;
+      inline bool is_valid(uint64_t id) {
+        uint64_t ts = timestamps_->get(id);
+        return ts >= range_.first && ts <= range_.second && olog_->is_valid(id, max_rid_);
       }
 
       uint64_t max_rid_;
