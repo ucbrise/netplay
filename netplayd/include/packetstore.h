@@ -234,11 +234,11 @@ class packet_store: public slog::log_store {
                                 const uint32_t ts_beg, const uint32_t ts_end) {
     complex_character* character = complex_characters_->get(char_id);
     typedef complex_character::iterator iterator_t;
-    for (iterator_t i = character.begin(); i != character.end(); i++) {
+    for (iterator_t i = character->begin(); i != character->end(); i++) {
       uint64_t id = *i;
       uint64_t ts = timestamps_->get(id);
       if (ts >= ts_beg && ts <= ts_end)
-        results.add(id);
+        results.insert(id);
     }
   }
 

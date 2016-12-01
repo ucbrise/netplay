@@ -17,7 +17,7 @@ class complex_character {
     typedef const uint64_t* pointer;
     typedef uint64_t reference;
 
-    complex_character(const uint64_t cur_idx) {
+    iterator(const uint64_t cur_idx) {
       cur_idx_ = cur_idx;
     }
 
@@ -25,22 +25,22 @@ class complex_character {
       return monolog_->get(cur_idx_);
     }
 
-    complex_character& operator++() {
+    iterator& operator++() {
       cur_idx_++;
       return *this;
     }
 
-    complex_character operator++(int) {
-      complex_character it = *this;
+    iterator operator++(int) {
+      iterator it = *this;
       ++(*this);
       return it;
     }
 
-    bool operator==(complex_character other) const {
+    bool operator==(iterator other) const {
       return cur_idx_ == other.cur_idx_;
     }
 
-    bool operator!=(complex_character other) const {
+    bool operator!=(iterator other) const {
       return !(*this == other);
     }
 
