@@ -55,7 +55,8 @@ class complex_character {
             ts = timestamps_->get(id);
           }
         } while (cur_idx_ != monolog_size_ && !olog_->is_valid(id, max_rid_) &&
-                 ts >= range.first && ts <= range.second);
+                 ts >= range_.first && ts <= range_.second);
+        
         return *this;
       }
 

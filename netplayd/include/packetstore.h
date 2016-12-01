@@ -92,7 +92,7 @@ class packet_store: public slog::log_store {
 
     complex_character::result complex_character_lookup(const uint32_t char_id,
                                   const uint32_t ts_beg, const uint32_t ts_end) {
-      store_.complex_character_lookup(results, char_id, ts_beg, ts_end);
+      return store_.complex_character_lookup(char_id, ts_beg, ts_end);
     }
 
     uint32_t srcip_idx() const {
