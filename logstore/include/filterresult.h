@@ -69,7 +69,7 @@ class filter_result {
       cur_idx_++;
       fprintf(stderr, "IDX: %" PRId64 ", ENTRY_LIST_NULL=%d", cur_idx_, (cur_entry_list_ == NULL));
       if (cur_entry_list_ != NULL) {
-        fprintf(stderr, ", ENTRY_LIST_SIZE=%zu\n", cur_entry_list_->size());
+        fprintf(stderr, ", ENTRY_LIST_SIZE=%" PRIu32 "\n", cur_entry_list_->size());
       } else {
         fprintf(stderr, "\n");
       }
