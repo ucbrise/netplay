@@ -7,7 +7,6 @@
 
 #include "expression.h"
 #include "query_plan.h"
-#include "packet_filter.h"
 
 namespace netplay {
 
@@ -102,7 +101,7 @@ class query_planner {
     return true;
   }
 
-  static index_fiter extract_min_filter(const packet_store::handle* h,
+  static index_filter extract_min_filter(const packet_store::handle* h,
                                         clause& clause) {
     clause_iterator min_f;
     uint64_t min_count = UINT64_MAX;
