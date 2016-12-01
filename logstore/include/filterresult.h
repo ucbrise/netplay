@@ -14,11 +14,12 @@ template<typename index_type>
 class filter_result {
  public:
   class filter_iterator : public __input_iterator {
+   public:
     typedef uint64_t value_type;
     typedef uint64_t difference_type;
     typedef const uint64_t* pointer;
     typedef uint64_t reference;
-   public:
+    
     filter_iterator(filter_result *res) {
       res_ = res;
 
