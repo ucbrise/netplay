@@ -19,6 +19,7 @@ class complex_character {
 
     iterator(const uint64_t cur_idx) {
       cur_idx_ = cur_idx;
+      fprintf(stderr, "iterator created with cur_idx = %" PRIu64 "\n");
     }
 
     reference operator*() const {
@@ -26,6 +27,7 @@ class complex_character {
     }
 
     iterator& operator++() {
+      fprintf(stderr, "++ called\n");
       cur_idx_++;
       return *this;
     }
