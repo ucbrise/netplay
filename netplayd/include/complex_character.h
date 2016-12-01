@@ -36,8 +36,6 @@ class complex_character {
         monolog_ = monolog;
         olog_ = olog;
         timestamps_ = timestamps;
-        fprintf(stderr, "Time range: (%" PRIu64 ",%" PRIu64")\n",
-                range_.first, range_.second);
       }
 
       reference operator*() const {
@@ -49,12 +47,15 @@ class complex_character {
           return *this;
 
         uint64_t id;
-        uint32_t ts;
+        uint64_t ts;
         do {
           cur_idx_++;
           if (cur_idx_ != monolog_size_) {
             id = monolog_->get(cur_idx_);
             ts = timestamps_->get(id);
+
+            fprintf(stderr, "Time range: (%" PRIu64 ",%" PRIu64"), ts=%" PRIu64 "\n",
+                range_.first, range_.second, ts);
           }
         } while (cur_idx_ != monolog_size_ && !olog_->is_valid(id, max_rid_) &&
                  ts >= range_.first && ts <= range_.second);
