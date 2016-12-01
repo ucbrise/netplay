@@ -578,8 +578,8 @@ class log_store {
    * @param index .
    % @return The count of the filter query.
    */
-  template<typename INDEX>
-  uint64_t filter_count(INDEX* index, uint64_t min, uint64_t max) const {
+  template<typename index_type>
+  uint64_t filter_count(index_type* index, uint64_t min, uint64_t max) const {
     uint64_t count = 0;
     for (uint64_t i = min; i <= max; i++) {
       entry_list* list = index->get(i);
@@ -653,9 +653,9 @@ class log_store {
     }
   }
 
-  template<typename INDEX>
-  void populate_results(result_type& results, filter_result<INDEX>& filter_res) const {
-    for(auto it = filter_res.begin(); it != filter_res.end(); it++)
+  template<typename index_type>
+  void populate_results(result_type& results, filter_result<index_type>& filter_res) const {
+    for (auto it = filter_res.begin(); it != filter_res.end(); it++)
       results.insert(*it);
   }
 
@@ -668,10 +668,10 @@ class log_store {
    * @param tok_max The largest token to consider.
    * @param max_rid Largest record-id to consider.
    */
-  template<typename INDEX>
-  filter_result<INDEX> filter(INDEX* index, const uint64_t tok_min,
-                              const uint64_t tok_max, const uint64_t max_rid) const {
-    return filter_result<INDEX>(olog_, index, tok_min, tok_max, max_rid);
+  template<typename index_type>
+  filter_result<index_type> filter(index_type* index, const uint64_t tok_min,
+                                   const uint64_t tok_max, const uint64_t max_rid) const {
+    return filter_result<index_type>(olog_, index, tok_min, tok_max, max_rid);
   }
 
   /**
@@ -696,9 +696,9 @@ class log_store {
    * @param sizes Vector to be populated with index sizes.
    * @param idx Monolog containing indexes.
    */
-  template<typename INDEX>
+  template<typename index_type>
   void index_size(std::vector<size_t>& sizes,
-                  monolog_linearizable<INDEX*> *idx) const {
+                  monolog_linearizable<index_type*> *idx) const {
     uint32_t num_indexes = idx->size();
     for (uint32_t i = 0; i < num_indexes; i++) {
       sizes.push_back(idx->at(i)->storage_size());
