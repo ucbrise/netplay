@@ -10,8 +10,13 @@ namespace slog {
 
 typedef std::iterator<std::input_iterator_tag, uint64_t, uint64_t, const uint64_t*, uint64_t> __input_iterator;
 
+class basic_result {
+  virtual __input_iterator begin() = 0;
+  virtual __input_iterator end() = 0;
+};
+
 template<typename index_type>
-class filter_result {
+class filter_result : public basic_result {
  public:
   class filter_iterator : public __input_iterator {
    public:
@@ -91,11 +96,11 @@ class filter_result {
     max_rid_ = max_rid;
   }
 
-  filter_iterator begin() {
+  filter_iterator begin() override {
     return filter_iterator(this);
   }
 
-  filter_iterator end() {
+  filter_iterator end() override {
     return filter_iterator(tok_max_ + 1, 0);
   }
 

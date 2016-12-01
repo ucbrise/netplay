@@ -61,13 +61,17 @@ struct packet_filter {
   range timestamp;
 };
 
+typedef slog::basic_result basic_result;
+typedef slog::__input_iterator __input_iterator;
+typedef std::vector<__input_iterator> iterator_list;
+
 template<typename index_type>
-class packet_filter_result {
+class packet_filter_result : public basic_result {
  public:
   template<typename T>
   using filter_iterator = typename slog::filter_result<T>::filter_iterator;
 
-  class packet_filter_iterator : public slog::__input_iterator {
+  class packet_filter_iterator : public __input_iterator {
    public:
     typedef uint64_t value_type;
     typedef uint64_t difference_type;
@@ -112,11 +116,11 @@ class packet_filter_result {
                        const packet_filter& filter)
     : res_(res), filter_(filter) {}
 
-  packet_filter_iterator begin() {
+  packet_filter_iterator begin() override {
     return packet_filter_iterator(filter_, res_.begin());
   }
 
-  packet_filter_iterator end() {
+  packet_filter_iterator end() override {
     return packet_filter_iterator(filter_, res_.end());
   }  
 
