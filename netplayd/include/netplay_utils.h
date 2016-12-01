@@ -32,12 +32,13 @@ class netplay_utils {
   typedef std::vector<packet_filter> filter_list;
 
   static filter_list build_filter_list(const packet_store::handle* h, expression* e) {
-    uint32_t now = std::time(NULL);
-    
+    uint32_t now = std::time(NULL);    
     filter_list list;
     
     if (e->type == expression_type::PREDICATE) {
-      list.push_back(netplay_utils::build_index_filter(h, (predicate*) e, now));
+      clause _clause;
+      _clause.push_back(netplay_utils::build_index_filter(h, (predicate*) e, now));
+      list.push_back(build_packet_filter(h, _clause));
     } else if (e->type == expression_type::AND) {
       conjunction* c = (conjunction*) e;
       clause _clause;
