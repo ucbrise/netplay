@@ -1,6 +1,14 @@
 #ifndef NETPLAY_UTILS_H_
 #define NETPLAY_UTILS_H_
 
+#include <inttypes.h>
+
+#include <ctime>
+
+#include "packetstore.h"
+#include "query_parser.h"
+#include "expression.h"
+
 namespace netplay {
 
 static const uint32_t ip_prefix_mask[33] = {
@@ -21,6 +29,42 @@ class netplay_utils {
  public:
   typedef std::vector<index_filter> clause;
   typedef clause::iterator clause_iterator;
+  typedef std::vector<packet_filter> filter_list;
+
+  static filter_list build_filter_list(const packet_store::handle* h, expression* e) {
+    uint32_t now = std::time(NULL);
+    
+    filter_list list;
+    
+    if (e->type == expression_type::PREDICATE) {
+      list.push_back(netplay_utils::build_index_filter(h, (predicate*) e, now));
+    } else if (e->type == expression_type::AND) {
+      conjunction* c = (conjunction*) e;
+      clause _clause;
+      for (expression* child : c->children) {
+        if (child->type != expression_type::PREDICATE)
+          throw parse_exception("Filter expression not in DNF");
+        _clause.push_back(netplay_utils::build_index_filter(h, (predicate*) child, now));
+      }
+      list.push_back(build_packet_filter(h, _clause));
+    } else if (e->type == expression_type::OR) {
+      disjunction *d = (disjunction*) e;
+      for (expression* dchild : d->children) {
+        if (dchild->type != expression_type::AND)
+          throw parse_exception("Filter expression not in DNF");
+        conjunction* c = (conjunction*) dchild;
+        clause _clause;
+        for (expression* cchild : c->children) {
+          if (cchild->type != expression_type::PREDICATE)
+            throw parse_exception("Filter expression not in DNF");
+          _clause.push_back(netplay_utils::build_index_filter(h, (predicate*) cchild, now));
+        }
+        list.push_back(build_packet_filter(h, _clause));
+      }
+    }
+
+    return list;
+  }
 
   static packet_filter build_packet_filter(const packet_store::handle* h,
       const clause& clause) {
