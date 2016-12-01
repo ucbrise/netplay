@@ -13,29 +13,13 @@
 
 namespace netplay {
 
-static const uint32_t ip_prefix_mask[33] = {
-  0x00000000U, 0x80000000U, 0xC0000000U,
-  0xE0000000U, 0xF0000000U, 0xF8000000U,
-  0xFC000000U, 0xFE000000U, 0xFF000000U,
-  0xFF800000U, 0xFFC00000U, 0xFFE00000U,
-  0xFFF00000U, 0xFFF80000U, 0xFFFC0000U,
-  0xFFFE0000U, 0xFFFF0000U, 0xFFFF8000U,
-  0xFFFFC000U, 0xFFFFE000U, 0xFFFFF000U,
-  0xFFFFF800U, 0xFFFFFC00U, 0xFFFFFE00U,
-  0xFFFFFF00U, 0xFFFFFF80U, 0xFFFFFFC0U,
-  0xFFFFFFE0U, 0xFFFFFFF0U, 0xFFFFFFF8U,
-  0xFFFFFFFCU, 0xFFFFFFFEU, 0xFFFFFFFFU
-};
-
 class query_planner {
  public:
   typedef std::vector<index_filter> clause;
   typedef clause::iterator clause_iterator;
 
-  static uint32_t now;
-
   static query_plan plan(packet_store::handle* h, expression* e) {
-    now = std::time(NULL);
+    uint32_t now = std::time(NULL);
 
     query_plan _plan;
 
@@ -43,7 +27,7 @@ class query_planner {
       clause_plan _cplan;
       _cplan.valid = true;
       _cplan.perform_pkt_filter = false;
-      _cplan.idx_filter = netplay_utils::build_index_filter(h, (predicate*) e);
+      _cplan.idx_filter = netplay_utils::build_index_filter(h, (predicate*) e, now);
       _plan.push_back(_cplan);
     } else if (e->type == expression_type::AND) {
       conjunction* c = (conjunction*) e;
@@ -51,7 +35,7 @@ class query_planner {
       for (expression* child : c->children) {
         if (child->type != expression_type::PREDICATE)
           throw parse_exception("Filter expression not in DNF");
-        _clause.push_back(netplay_utils::build_index_filter(h, (predicate*) child));
+        _clause.push_back(netplay_utils::build_index_filter(h, (predicate*) child, now));
       }
       clause_plan _cplan = build_clause_plan(h, _clause);
       if (_cplan.valid)
@@ -66,7 +50,7 @@ class query_planner {
         for (expression* cchild : c->children) {
           if (cchild->type != expression_type::PREDICATE)
             throw parse_exception("Filter expression not in DNF");
-          _clause.push_back(netplay_utils::build_index_filter(h, (predicate*) cchild));
+          _clause.push_back(netplay_utils::build_index_filter(h, (predicate*) cchild, now));
         }
         clause_plan _cplan = build_clause_plan(h, _clause);
         if (_cplan.valid)

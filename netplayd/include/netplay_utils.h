@@ -3,11 +3,25 @@
 
 namespace netplay {
 
+static const uint32_t ip_prefix_mask[33] = {
+  0x00000000U, 0x80000000U, 0xC0000000U,
+  0xE0000000U, 0xF0000000U, 0xF8000000U,
+  0xFC000000U, 0xFE000000U, 0xFF000000U,
+  0xFF800000U, 0xFFC00000U, 0xFFE00000U,
+  0xFFF00000U, 0xFFF80000U, 0xFFFC0000U,
+  0xFFFE0000U, 0xFFFF0000U, 0xFFFF8000U,
+  0xFFFFC000U, 0xFFFFE000U, 0xFFFFF000U,
+  0xFFFFF800U, 0xFFFFFC00U, 0xFFFFFE00U,
+  0xFFFFFF00U, 0xFFFFFF80U, 0xFFFFFFC0U,
+  0xFFFFFFE0U, 0xFFFFFFF0U, 0xFFFFFFF8U,
+  0xFFFFFFFCU, 0xFFFFFFFEU, 0xFFFFFFFFU
+};
+
 class netplay_utils {
  public:
 
   static index_filter build_index_filter(const packet_store::handle* h,
-                                         const predicate* p) {
+                                         const predicate* p, const uint32_t now) {
     // TODO: replace this with a map lookup
     if (p->attr == "src_ip")
       return ip_filter(h->srcip_idx(), p->op, p->value);
@@ -18,7 +32,7 @@ class netplay_utils {
     else if (p->attr == "dst_port")
       return port_filter(h->dstport_idx(), p->op, p->value);
     else if (p->attr == "timestamp")
-      return time_filter(h->timestamp_idx(), p->op, p->value);
+      return time_filter(h->timestamp_idx(), p->op, p->value, now);
     else
       throw parse_exception("Invaild attribute: " + p->attr);
   }
@@ -100,7 +114,7 @@ class netplay_utils {
   }
 
   static index_filter time_filter(const uint32_t index_id, const std::string & op,
-                                  const std::string & time_string) {
+                                  const std::string & time_string, const uint32_t now) {
     size_t loc = time_string.find("now");
     uint32_t time = 0;
     if (loc != std::string::npos) {
