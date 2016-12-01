@@ -46,7 +46,7 @@ class complex_character {
 
    private:
     uint64_t cur_idx_;
-    slog::monolog_relaxed<uint64_t, 24>* monolog_;  
+    slog::monolog_relaxed<uint64_t, 24>* monolog_;
   };
 
   /**
@@ -54,9 +54,9 @@ class complex_character {
     *
     * @param filters Packet filters to use for this complex character.
     */
-  complex_character(const std::vector<packet_filter>& filters) {
+  complex_character(const std::vector<packet_filter>& filters)
+    : filters_(filters) {
     monolog_ = new slog::entry_list;
-    filters_ = filters;
   }
 
   /**
@@ -68,8 +68,8 @@ class complex_character {
    * @param ts The packet timestamp.
    */
   void check_and_add(uint64_t pkt_id, const void* pkt) {
-    for (const packet_filter& filter: filters_) {
-      if (filter_.apply(pkt)) {
+    for (const packet_filter& filter : filters_) {
+      if (filter.apply(pkt)) {
         monolog_->push_back(pkt_id);
         return;
       }
@@ -90,7 +90,7 @@ class complex_character {
 
   /* Monolog */
   slog::monolog_relaxed<uint64_t, 24>* monolog_;
-}
+};
 
 }
 
