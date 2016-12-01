@@ -109,6 +109,7 @@ class filter_benchmark {
     for (size_t i = 0; i < cast_queries_.size(); i++) {
       double avg = 0.0;
       size_t size = 0;
+      fprintf(stderr, "Benchmarking latency for complex char %" PRIu32 "\n", char_ids_[i]);
       for (size_t repeat = 0; repeat < 100; repeat++) {
         std::unordered_set<uint64_t> results;
         timestamp_t start = get_timestamp();
