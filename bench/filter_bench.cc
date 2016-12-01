@@ -102,6 +102,16 @@ class filter_benchmark {
     delete handle;
   }
 
+  template<typename container_type>
+  uint64_t count_container(container_type& container) {
+    typedef container_type::iterator iterator_t;
+    uint64_t count = 0;
+    for (iterator_t it = container.begin(); it != container.end(); it++) {
+      count++;
+    }
+    return count;
+  }
+
   void bench_char_latency() {
     std::ofstream out("query_latency_char.txt");
     packet_store::handle* handle = store_->get_handle();
@@ -112,10 +122,10 @@ class filter_benchmark {
       for (size_t repeat = 0; repeat < 100; repeat++) {
         std::vector<uint64_t> results;
         timestamp_t start = get_timestamp();
-        handle->complex_character_lookup(results, char_ids_[i], end_time_ - 4, end_time_);
+        auto res = handle->complex_character_lookup(char_ids_[i], end_time_ - 4, end_time_);
+        size += count_container(res);
         timestamp_t end = get_timestamp();
         avg += (end - start);
-        size += results.size();
       }
       avg /= 100;
       size /= 100;

@@ -36,7 +36,6 @@ namespace netplay {
 class packet_store: public slog::log_store {
  public:
   typedef std::unordered_set<uint64_t> result_type;
-  typedef std::vector<uint64_t> id_list;
   class handle : public slog::log_store::handle {
    public:
     handle(packet_store& store)
@@ -91,7 +90,7 @@ class packet_store: public slog::log_store {
       store_.filter_pkts(results, plan);
     }
 
-    void complex_character_lookup(id_list& results, const uint32_t char_id,
+    complex_character::result complex_character_lookup(const uint32_t char_id,
                                   const uint32_t ts_beg, const uint32_t ts_end) {
       store_.complex_character_lookup(results, char_id, ts_beg, ts_end);
     }
@@ -232,17 +231,13 @@ class packet_store: public slog::log_store {
     }
   }
 
-  void complex_character_lookup(id_list& results, const uint32_t char_id,
-                                const uint32_t ts_beg, const uint32_t ts_end) {
+  complex_character::result complex_character_lookup(const uint32_t char_id,
+      const uint32_t ts_beg,
+      const uint32_t ts_end) {
+    std::pair<uint64_t, uint64_t> time_range(ts_beg, ts_end);
     uint64_t max_rid = olog_->num_ids();
     complex_character* character = complex_characters_->get(char_id);
-    typedef complex_character::iterator iterator_t;
-    for (iterator_t i = character->begin(); i != character->end(); i++) {
-      uint64_t id = *i;
-      uint64_t ts = timestamps_->get(id);
-      if (olog_->is_valid(id, max_rid) && ts >= ts_beg && ts <= ts_end)
-        results.push_back(id);
-    }
+    return character->filter(max_rid, time_range, timestamps_, olog_);
   }
 
   /**
