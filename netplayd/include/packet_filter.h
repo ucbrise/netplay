@@ -60,8 +60,6 @@ struct packet_filter {
   range dst_port;
   range timestamp;
 };
-
-typedef slog::basic_result basic_result;
 typedef slog::__input_iterator __input_iterator;
 typedef std::vector<__input_iterator> iterator_list;
 
