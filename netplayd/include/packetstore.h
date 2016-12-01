@@ -44,7 +44,7 @@ class packet_store: public slog::log_store {
     void insert_pktburst(struct rte_mbuf** pkts, uint16_t cnt) {
       std::time_t now = std::time(nullptr);
       uint64_t id = store_.olog_->request_id_block(cnt);
-      store_.timestamps_.ensure_alloc(id, id + cnt);
+      store_.timestamps_->ensure_alloc(id, id + cnt);
       uint64_t nbytes = 0;
       for (int i = 0; i < cnt; i++)
         nbytes += rte_pktmbuf_pkt_len(pkts[i]);
@@ -69,7 +69,7 @@ class packet_store: public slog::log_store {
         store_.timestamp_idx_->add_entry(now, id);
         store_.olog_->set(id, off, pkt_size);
         store_.append_record(pkt, pkt_size, off);
-        store_.timestamps_.set(id, now);
+        store_.timestamps_->set(id, now);
         store_.olog_->end(id);
         off += pkt_size;
         id++;
@@ -134,6 +134,8 @@ class packet_store: public slog::log_store {
     srcport_idx_ = idx2_->at(0);
     dstport_idx_ = idx2_->at(1);
     timestamp_idx_ = idx4_->at(2);
+
+    timestamps_ = new slog::__monolog_base <uint32_t, 32>();
   }
 
   /**
@@ -173,7 +175,7 @@ class packet_store: public slog::log_store {
       if (idx_id == srcip_idx_id_) {
         auto res = filter(srcip_idx_, tok_beg, tok_end, max_rid);
         if (cplan.perform_pkt_filter) {
-          auto pf_res = build_result(res, cplan.pkt_filter);
+          auto pf_res = build_result(res, cplan.pkt_filter, dlog_, olog_, timestamps_);
           results.insert(pf_res.begin(), pf_res.end());
         } else {
           results.insert(res.begin(), res.end());
@@ -181,7 +183,7 @@ class packet_store: public slog::log_store {
       } else if (idx_id == dstip_idx_id_) {
         auto res = filter(dstip_idx_, tok_beg, tok_end, max_rid);
         if (cplan.perform_pkt_filter) {
-          auto pf_res = build_result(res, cplan.pkt_filter);
+          auto pf_res = build_result(res, cplan.pkt_filter, dlog_, olog_, timestamps_);
           results.insert(pf_res.begin(), pf_res.end());
         } else {
           results.insert(res.begin(), res.end());
@@ -189,7 +191,7 @@ class packet_store: public slog::log_store {
       } else if (idx_id == srcport_idx_id_) {
         auto res = filter(srcport_idx_, tok_beg, tok_end, max_rid);
         if (cplan.perform_pkt_filter) {
-          auto pf_res = build_result(res, cplan.pkt_filter);
+          auto pf_res = build_result(res, cplan.pkt_filter, dlog_, olog_, timestamps_);
           results.insert(pf_res.begin(), pf_res.end());
         } else {
           results.insert(res.begin(), res.end());
@@ -197,7 +199,7 @@ class packet_store: public slog::log_store {
       } else if (idx_id == dstport_idx_id_) {
         auto res = filter(dstport_idx_, tok_beg, tok_end, max_rid);
         if (cplan.perform_pkt_filter) {
-          auto pf_res = build_result(res, cplan.pkt_filter);
+          auto pf_res = build_result(res, cplan.pkt_filter, dlog_, olog_, timestamps_);
           results.insert(pf_res.begin(), pf_res.end());
         } else {
           results.insert(res.begin(), res.end());
@@ -205,7 +207,7 @@ class packet_store: public slog::log_store {
       } else if (idx_id == timestamp_idx_id_) {
         auto res = filter(timestamp_idx_, tok_beg, tok_end, max_rid);
         if (cplan.perform_pkt_filter) {
-          auto pf_res = build_result(res, cplan.pkt_filter);
+          auto pf_res = build_result(res, cplan.pkt_filter, dlog_, olog_, timestamps_);
           results.insert(pf_res.begin(), pf_res.end());
         } else {
           results.insert(res.begin(), res.end());
@@ -256,7 +258,7 @@ class packet_store: public slog::log_store {
   slog::__index2* dstport_idx_;
   slog::__index4* timestamp_idx_;
 
-  slog::__monolog_base <uint32_t, 32> timestamps_;
+  slog::__monolog_base<uint32_t, 32> *timestamps_;
 };
 
 }
