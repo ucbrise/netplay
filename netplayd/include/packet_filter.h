@@ -64,7 +64,8 @@ struct packet_filter {
 template<typename index_type>
 class packet_filter_result {
  public:
-  typedef slog::filter_result<index_type>::filter_iterator filter_iterator;
+  typedef slog::filter_result<index_type> filter_result;
+  typedef filter_result::filter_iterator filter_iterator;
 
   class packet_filter_iterator : public slog::__input_iterator {
    public:
