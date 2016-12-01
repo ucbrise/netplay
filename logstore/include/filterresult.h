@@ -80,6 +80,10 @@ class filter_result {
       return !(*this == other);
     }
 
+    bool finished() {
+      return cur_tok_ == res_->tok_max_ + 1;
+    }
+
    private:
     void advance() {
       if (cur_tok_ == res_->tok_max_ + 1)
