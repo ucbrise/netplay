@@ -36,6 +36,7 @@ namespace netplay {
 class packet_store: public slog::log_store {
  public:
   typedef std::unordered_set<uint64_t> result_type;
+  typedef std::vector<uint64_t> id_list;
   class handle : public slog::log_store::handle {
    public:
     handle(packet_store& store)
@@ -90,7 +91,7 @@ class packet_store: public slog::log_store {
       store_.filter_pkts(results, plan);
     }
 
-    void complex_character_lookup(result_type& results, const uint32_t char_id,
+    void complex_character_lookup(id_list& results, const uint32_t char_id,
                                   const uint32_t ts_beg, const uint32_t ts_end) {
       store_.complex_character_lookup(results, char_id, ts_beg, ts_end);
     }
@@ -231,7 +232,7 @@ class packet_store: public slog::log_store {
     }
   }
 
-  void complex_character_lookup(result_type& results, const uint32_t char_id,
+  void complex_character_lookup(id_list& results, const uint32_t char_id,
                                 const uint32_t ts_beg, const uint32_t ts_end) {
     uint64_t max_rid = olog_->num_ids();
     complex_character* character = complex_characters_->get(char_id);
@@ -240,7 +241,7 @@ class packet_store: public slog::log_store {
       uint64_t id = *i;
       uint64_t ts = timestamps_->get(id);
       if (olog_->is_valid(id, max_rid) && ts >= ts_beg && ts <= ts_end)
-        results.insert(id);
+        results.push_back(id);
     }
   }
 

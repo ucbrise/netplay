@@ -110,7 +110,7 @@ class filter_benchmark {
       double avg = 0.0;
       size_t size = 0;
       for (size_t repeat = 0; repeat < 100; repeat++) {
-        std::unordered_set<uint64_t> results;
+        std::vector<uint64_t> results;
         timestamp_t start = get_timestamp();
         handle->complex_character_lookup(results, char_ids_[i], end_time_ - 4, end_time_);
         timestamp_t end = get_timestamp();
