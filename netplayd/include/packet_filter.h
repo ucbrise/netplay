@@ -78,11 +78,12 @@ class packet_filter_result {
     typedef uint64_t reference;
 
     packet_filter_iterator(const packet_filter& filter,
-                           filter_iterator<index_type>& it,
+                           const filter_iterator<index_type>& it,
                            slog::__monolog_linear_base <uint8_t>* dlog,
                            slog::offsetlog* olog,
                            slog::__monolog_base<uint32_t, 32>* timestamps)
-      : filter_(filter), it_(it) {
+      : filter_(filter) {
+      it_ = it;
       dlog_ = dlog;
       olog_ = olog;
       timestamps_ = timestamps;
@@ -122,7 +123,7 @@ class packet_filter_result {
 
    private:
     const packet_filter& filter_;
-    filter_iterator<index_type>& it_;
+    filter_iterator<index_type> it_;
     slog::__monolog_linear_base<uint8_t>* dlog_;
     slog::offsetlog* olog_;
     slog::__monolog_base<uint32_t, 32>* timestamps_;
