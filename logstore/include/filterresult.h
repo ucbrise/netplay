@@ -30,6 +30,14 @@ class filter_result {
       advance();
     }
 
+    filter_iterator(const filter_iterator& it) {
+      res_ = it.res_;
+
+      cur_tok_ = it.cur_tok_;
+      cur_entry_list_ = it.cur_entry_list_;
+      cur_idx_ = it.cur_idx_;
+    }
+
     filter_iterator(uint64_t tok, int64_t idx) {
       res_ = NULL;
       cur_entry_list_ = NULL;
