@@ -12,6 +12,7 @@ namespace netplay {
 class complex_character {
  public:
   typedef std::pair<uint64_t, uint64_t> time_range;
+
   class result {
    public:
     class iterator : __input_iterator {
@@ -112,48 +113,47 @@ class complex_character {
     uint32_t monolog_size_;
     slog::monolog_relaxed<uint64_t, 24>* monolog_;
     slog::__monolog_base<uint32_t, 32> *timestamps_;
+  };
+
+  /**
+    * Constructor to initialize complex character.
+    *
+    * @param filters Packet filters to use for this complex character.
+    */
+  complex_character(const std::vector<packet_filter>& filters)
+    : filters_(filters) {
+    monolog_ = new slog::entry_list;
   }
-};
 
-/**
-  * Constructor to initialize complex character.
-  *
-  * @param filters Packet filters to use for this complex character.
-  */
-complex_character(const std::vector<packet_filter>& filters)
-  : filters_(filters) {
-  monolog_ = new slog::entry_list;
-}
-
-/**
- * Filters packets using the packet filters, and adds the packet id if the
- * packet passes through any filter.
- *
- * @param pkt_id The id of the packet.
- * @param pkt The packet data.
- * @param ts The packet timestamp.
- */
-void check_and_add(uint64_t pkt_id, void* pkt) {
-  for (const packet_filter& filter : filters_) {
-    if (filter.apply(pkt)) {
-      monolog_->push_back(pkt_id);
-      return;
+  /**
+   * Filters packets using the packet filters, and adds the packet id if the
+   * packet passes through any filter.
+   *
+   * @param pkt_id The id of the packet.
+   * @param pkt The packet data.
+   * @param ts The packet timestamp.
+   */
+  void check_and_add(uint64_t pkt_id, void* pkt) {
+    for (const packet_filter& filter : filters_) {
+      if (filter.apply(pkt)) {
+        monolog_->push_back(pkt_id);
+        return;
+      }
     }
   }
-}
 
-result filter(uint64_t max_rid, const time_range range,
-              slog::__monolog_base<uint32_t, 32>* timestamps,
-              slog::offsetlog* olog) {
-  return result(max_rid, range, monolog_->size(), monolog_, timestamps, olog);
-}
+  result filter(uint64_t max_rid, const time_range range,
+                slog::__monolog_base<uint32_t, 32>* timestamps,
+                slog::offsetlog* olog) {
+    return result(max_rid, range, monolog_->size(), monolog_, timestamps, olog);
+  }
 
-private:
-/* Packet filters */
-const std::vector<packet_filter> filters_;
+ private:
+  /* Packet filters */
+  const std::vector<packet_filter> filters_;
 
-/* Monolog */
-slog::monolog_relaxed<uint64_t, 24>* monolog_;
+  /* Monolog */
+  slog::monolog_relaxed<uint64_t, 24>* monolog_;
 };
 
 }
