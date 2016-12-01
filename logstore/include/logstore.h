@@ -646,7 +646,7 @@ class log_store {
   }
 
   template<typename INDEX>
-  void populate_results(result_type& results, filter_result<INDEX>& filter_res) {
+  void populate_results(result_type& results, filter_result<INDEX>& filter_res) const {
     results.insert(filter_res.begin(), filter_res.end());
   }
 

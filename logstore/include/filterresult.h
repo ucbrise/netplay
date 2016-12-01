@@ -80,7 +80,7 @@ class filter_result {
     filter_result *res_;
   };
 
-  filter_result(const offsetlog* olog, const index_type* index, const uint64_t tok_min,
+  filter_result(offsetlog* olog, index_type* index, const uint64_t tok_min,
                 const uint64_t tok_max, const uint64_t max_rid) {
     olog_ = olog;
     index_ = index;
