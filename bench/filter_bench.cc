@@ -47,8 +47,6 @@ using namespace ::netplay::pktgen;
 using namespace ::slog;
 using namespace ::std::chrono;
 
-uint32_t query_planner::now = std::time(NULL);
-
 class filter_benchmark {
  public:
   typedef unsigned long long int timestamp_t;
@@ -185,9 +183,9 @@ int main(int argc, char** argv) {
   std::string query_path = std::string(argv[optind]);
 
   filter_benchmark ls_bench(load_rate, num_pkts, query_path);
-  if (bench_type.find("latency") == 0) {
+  if (bench_type.find("latency-cast") == 0) {
     ls_bench.bench_latency();
-  } else if (bench_type == "throughput") {
+  } else if (bench_type == "throughput-cast") {
     ls_bench.bench_throughput(query_rate, num_threads);
   } else {
     fprintf(stderr, "Unknown benchmark type: %s; must be one of: "

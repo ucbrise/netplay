@@ -9,8 +9,6 @@
 
 namespace netplay {
 
-uint32_t query_planner::now = std::time(NULL);
-
 class query_handler : virtual public thrift::NetPlayQueryServiceIf {
  public:
   query_handler(netplay::packet_store::handle* handle) {
