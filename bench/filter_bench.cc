@@ -66,7 +66,7 @@ class filter_benchmark {
                    const std::string& query_path) {
 
     store_ = new packet_store();
-    fprintf(stderr, "Loading char queries...\n");
+    fprintf(stderr, "Adding complex chars...\n");
     add_complex_chars(query_path);
     fprintf(stderr, "Loading data...\n");
     load_data(load_rate, num_pkts);
@@ -98,6 +98,8 @@ class filter_benchmark {
               size, avg);
     }
     out.close();
+
+    delete handle;
   }
 
   void bench_char_latency() {
@@ -122,6 +124,8 @@ class filter_benchmark {
               size, avg);
     }
     out.close();
+
+    delete handle;
   }
 
   // Throughput benchmarks
@@ -181,8 +185,11 @@ class filter_benchmark {
     while (std::getline(in, exp)) {
       parser p(exp);
       expression *e = p.parse();
+      fprintf(stderr, "Parsed expression\n");
       filter_list list = netplay_utils::build_filter_list(handle, e);
+      fprintf(stderr, "Created filter list\n");
       char_ids_.push_back(store_->add_complex_character(list));
+      fprintf(stderr, "Added complex char\n");
       free_expression(e);
     }
     fprintf(stderr, "Added %zu chars.\n", char_ids_.size());
