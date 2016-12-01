@@ -10,6 +10,7 @@ namespace slog {
 
 typedef std::iterator<std::input_iterator_tag, uint64_t, uint64_t, const uint64_t*, uint64_t> __input_iterator;
 
+template<typename index_type>
 class filter_result {
  public:
   class filter_iterator : public __input_iterator {
