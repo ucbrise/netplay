@@ -89,11 +89,11 @@ class filter_result {
     max_rid_ = max_rid;
   }
 
-  filter_iterator begin() const {
+  filter_iterator begin() {
     return filter_iterator(this);
   }
 
-  filter_iterator end() const {
+  filter_iterator end() {
     return filter_iterator(tok_max_, 0);
   }
 
