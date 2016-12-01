@@ -5,7 +5,7 @@
 
 #include <ctime>
 
-#include "filterops.h"
+#include "packet_filter.h"
 #include "expression.h"
 #include "query_parser.h"
 

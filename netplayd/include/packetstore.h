@@ -20,7 +20,7 @@
 #include <rte_mbuf.h>
 
 #include "logstore.h"
-#include "filterops.h"
+#include "packet_filter.h"
 
 namespace netplay {
 
@@ -33,9 +33,6 @@ namespace netplay {
  */
 class packet_store: public slog::log_store {
  public:
-
-  /** Type definitions **/
-  // typedef slog::log_store::handle handle;
   class handle : public slog::log_store::handle {
    public:
     handle(packet_store& store)
@@ -76,6 +73,11 @@ class packet_store: public slog::log_store {
         off += pkt_size;
         id++;
       }
+    }
+
+    uint64_t approx_pkt_count(const uint32_t index_id, const uint64_t tok_beg,
+                                const uint64_t tok_end) const {
+      return store_.estimate_pkt_count(index_id, tok_beg, tok_end);
     }
 
     void filter_pkts(std::unordered_set<uint64_t>& results,
@@ -141,6 +143,11 @@ class packet_store: public slog::log_store {
    */
   handle* get_handle() {
     return new handle(*this);
+  }
+
+  uint64_t approx_pkt_count(const uint32_t index_id, const uint64_t tok_beg,
+                              const uint64_t tok_end) const {
+    return filter_count(index_id, tok_beg, tok_end);
   }
 
   /**
