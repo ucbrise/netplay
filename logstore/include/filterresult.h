@@ -19,6 +19,14 @@ class filter_result {
     typedef uint64_t difference_type;
     typedef const uint64_t* pointer;
     typedef uint64_t reference;
+
+    filter_iterator() {
+      res_ = NULL;
+
+      cur_tok_ = UINT64_MAX;
+      cur_entry_list_ = NULL;
+      cur_idx_ = -1;
+    }
     
     filter_iterator(filter_result *res) {
       res_ = res;
