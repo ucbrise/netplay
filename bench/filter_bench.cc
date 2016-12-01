@@ -251,6 +251,10 @@ int main(int argc, char** argv) {
     ls_bench.bench_cast_latency();
   } else if (bench_type == "throughput-cast") {
     ls_bench.bench_cast_throughput(query_rate, num_threads);
+  } else if (bench_type.find("latency-char") == 0) {
+    ls_bench.bench_char_latency();
+  } else if (bench_type == "throughput-char") {
+    ls_bench.bench_char_throughput(query_rate, num_threads);
   } else {
     fprintf(stderr, "Unknown benchmark type: %s; must be one of: "
             "{latency, throughput}\n", bench_type.c_str());
