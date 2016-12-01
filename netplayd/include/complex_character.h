@@ -46,7 +46,6 @@ class complex_character {
         if (cur_idx_ == monolog_size_)
           return *this;
 
-        fprintf(stderr, "++\n");
         uint64_t id;
         do {
           cur_idx_++;
