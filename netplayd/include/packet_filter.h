@@ -96,6 +96,7 @@ class packet_filter_result {
     packet_filter_iterator& operator++() {
       void *pkt;
       uint64_t ts;
+      fprintf(stderr, "++ called\n");
       do {
         it_++;
         uint64_t offset;
@@ -103,6 +104,7 @@ class packet_filter_result {
         olog_->lookup(*it_, offset, length);
         pkt = dlog_->ptr(offset);
         ts = timestamps_->get(*it_);
+        fprintf(stderr, "pkt_id=%" PRIu64, *it);
       } while (!filter_.apply(pkt, ts));
       return *this;
     }
