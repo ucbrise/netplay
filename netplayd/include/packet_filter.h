@@ -66,7 +66,7 @@ typedef slog::__input_iterator __input_iterator;
 typedef std::vector<__input_iterator> iterator_list;
 
 template<typename index_type>
-class packet_filter_result : public basic_result {
+class packet_filter_result {
  public:
   template<typename T>
   using filter_iterator = typename slog::filter_result<T>::filter_iterator;

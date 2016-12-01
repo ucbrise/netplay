@@ -610,49 +610,41 @@ class log_store {
     case 1: {
       auto filter_res = filter(idx1_->at(off), tok_min, tok_max, max_rid);
       populate_results(results, filter_res);
-      delete filter_res;
       break;
     }
     case 2: {
       auto filter_res = filter(idx2_->at(off), tok_min, tok_max, max_rid);
       populate_results(results, filter_res);
-      delete filter_res;
       break;
     }
     case 4: {
       auto filter_res = filter(idx3_->at(off), tok_min, tok_max, max_rid);
       populate_results(results, filter_res);
-      delete filter_res;
       break;
     }
     case 8: {
       auto filter_res = filter(idx4_->at(off), tok_min, tok_max, max_rid);
       populate_results(results, filter_res);
-      delete filter_res;
       break;
     }
     case 16: {
       auto filter_res = filter(idx5_->at(off), tok_min, tok_max, max_rid);
       populate_results(results, filter_res);
-      delete filter_res;
       break;
     }
     case 32: {
       auto filter_res = filter(idx6_->at(off), tok_min, tok_max, max_rid);
       populate_results(results, filter_res);
-      delete filter_res;
       break;
     }
     case 64: {
       auto filter_res = filter(idx7_->at(off), tok_min, tok_max, max_rid);
       populate_results(results, filter_res);
-      delete filter_res;
       break;
     }
     case 128: {
       auto filter_res = filter(idx8_->at(off), tok_min, tok_max, max_rid);
       populate_results(results, filter_res);
-      delete filter_res;
       break;
     }
     default: {
@@ -662,8 +654,8 @@ class log_store {
   }
 
   template<typename index_type>
-  void populate_results(result_type& results, filter_result<index_type>* filter_res) const {
-    for (auto it = filter_res->begin(); it != filter_res->end(); it++)
+  void populate_results(result_type& results, filter_result<index_type>& filter_res) const {
+    for (auto it = filter_res.begin(); it != filter_res.end(); it++)
       results.insert(*it);
   }
 
@@ -677,9 +669,9 @@ class log_store {
    * @param max_rid Largest record-id to consider.
    */
   template<typename index_type>
-  filter_result<index_type>* filter(index_type* index, const uint64_t tok_min,
+  filter_result<index_type> filter(index_type* index, const uint64_t tok_min,
                                    const uint64_t tok_max, const uint64_t max_rid) const {
-    return new filter_result<index_type>(olog_, index, tok_min, tok_max, max_rid);
+    return filter_result<index_type>(olog_, index, tok_min, tok_max, max_rid);
   }
 
   /**
