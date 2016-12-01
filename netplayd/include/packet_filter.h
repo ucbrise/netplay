@@ -53,6 +53,26 @@ struct packet_filter {
            && (ts >= timestamp.first && ts <= timestamp.second);
   }
 
+  inline bool apply(void *pkt) const {
+    struct ether_hdr *eth = (struct ether_hdr *) pkt;
+    struct ipv4_hdr *ip = (struct ipv4_hdr *) (eth + 1);
+    if (ip->next_proto_id == IPPROTO_TCP) {
+      struct tcp_hdr *tcp = (struct tcp_hdr *) (ip + 1);
+      return (ip->src_addr >= src_addr.first && ip->src_addr <= src_addr.second)
+             && (ip->dst_addr >= dst_addr.first && ip->dst_addr <= dst_addr.second)
+             && (tcp->src_port >= src_port.first && tcp->src_port <= src_port.second)
+             && (tcp->dst_port >= dst_port.first && tcp->dst_port <= dst_port.second);
+    } else if (ip->next_proto_id == IPPROTO_UDP) {
+      struct udp_hdr *udp = (struct udp_hdr *) (ip + 1);
+      return (ip->src_addr >= src_addr.first && ip->src_addr <= src_addr.second)
+             && (ip->dst_addr >= dst_addr.first && ip->dst_addr <= dst_addr.second)
+             && (udp->src_port >= src_port.first && udp->src_port <= src_port.second)
+             && (udp->dst_port >= dst_port.first && udp->dst_port <= dst_port.second);
+    }
+    return (ip->src_addr >= src_addr.first && ip->src_addr <= src_addr.second)
+           && (ip->dst_addr >= dst_addr.first && ip->dst_addr <= dst_addr.second);
+  }
+
   typedef std::pair<uint64_t, uint64_t> range;
   range src_addr;
   range dst_addr;

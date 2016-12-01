@@ -20,6 +20,7 @@
 #include <rte_mbuf.h>
 
 #include "logstore.h"
+#include "complex_character.h"
 #include "packet_filter.h"
 #include "query_plan.h"
 
@@ -34,6 +35,7 @@ namespace netplay {
  */
 class packet_store: public slog::log_store {
  public:
+  typedef std::unordered_set<uint64_t> result_type;
   class handle : public slog::log_store::handle {
    public:
     handle(packet_store& store)
@@ -70,6 +72,9 @@ class packet_store: public slog::log_store {
         store_.olog_->set(id, off, pkt_size);
         store_.append_record(pkt, pkt_size, off);
         store_.timestamps_->set(id, now);
+        uint32_t num_chars = store_.complex_characters_->size();
+        for (uint32_t i = 0; i < num_chars; i++)
+          store_.complex_characters_->at(i)->check_and_add(id, pkt);
         store_.olog_->end(id);
         off += pkt_size;
         id++;
@@ -81,9 +86,13 @@ class packet_store: public slog::log_store {
       return store_.approx_pkt_count(index_id, tok_beg, tok_end);
     }
 
-    void filter_pkts(std::unordered_set<uint64_t>& results,
-                     query_plan& plan) const {
+    void filter_pkts(result_type& results, query_plan& plan) const {
       store_.filter_pkts(results, plan);
+    }
+
+    void complex_character_lookup(result_type& results, const uint32_t char_id,
+                                  const uint32_t ts_beg, const uint32_t ts_end) {
+      store_.complex_character_lookup(results, char_id, ts_beg, ts_end);
     }
 
     uint32_t srcip_idx() const {
@@ -113,8 +122,6 @@ class packet_store: public slog::log_store {
    private:
     packet_store& store_;
   };
-
-  typedef unsigned long long int timestamp_t;
 
   /**
    * Constructor to initialize the packet store.
@@ -148,6 +155,16 @@ class packet_store: public slog::log_store {
     return new handle(*this);
   }
 
+  /**
+   * Add a new complex character with specified packet filters.
+   *
+   * @param filters The packet filters.
+   * @return The id of the newly created complex character.
+   */
+  uint32_t add_complex_character(const std::vector<packet_filter>& filters) {
+    return complex_characters_->push_back(new complex_character(filters));
+  }
+
   uint64_t approx_pkt_count(const uint32_t index_id, const uint64_t tok_beg,
                             const uint64_t tok_end) const {
     return filter_count(index_id, tok_beg, tok_end);
@@ -159,10 +176,8 @@ class packet_store: public slog::log_store {
    * @param results The results of the filter query.
    * @param query The filter query.
    */
-  void filter_pkts(std::unordered_set<uint64_t>& results,
-                   query_plan& plan) const {
+  void filter_pkts(result_type& results, query_plan& plan) const {
     uint64_t max_rid = olog_->num_ids();
-
 
     for (clause_plan& cplan : plan) {
       /* Evaluate the min cardinality filter */
@@ -170,7 +185,6 @@ class packet_store: public slog::log_store {
       uint64_t tok_beg = cplan.idx_filter.tok_range.first;
       uint64_t tok_end = cplan.idx_filter.tok_range.second;
 
-      timestamp_t t0 = get_timestamp();
       std::unordered_set<uint64_t> filter_res;
       if (idx_id == srcip_idx_id_) {
         auto res = filter(srcip_idx_, tok_beg, tok_end, max_rid);
@@ -213,9 +227,18 @@ class packet_store: public slog::log_store {
           results.insert(res.begin(), res.end());
         }
       }
-      timestamp_t t1 = get_timestamp();
-      fprintf(stderr, "(%" PRIu32 ":%" PRIu64 ",%" PRIu64 "): Count = %zu, Time = %llu\n",
-              idx_id, tok_beg, tok_end, results.size(), (t1 - t0));
+    }
+  }
+
+  void complex_character_lookup(result_type& results, const uint32_t char_id,
+                                const uint32_t ts_beg, const uint32_t ts_end) {
+    complex_character* character = complex_characters_->get(char_id);
+    typedef complex_character::iterator iterator_t;
+    for (iterator_t i = character.begin(); i != character.end(); i++) {
+      uint64_t id = *i;
+      uint64_t ts = timestamps_->get(id);
+      if (ts >= ts_beg && ts <= ts_end)
+        results.add(id);
     }
   }
 
@@ -228,24 +251,7 @@ class packet_store: public slog::log_store {
     return num_records();
   }
 
-  // DEBUG; TODO: REMOVE!!
-  void print_pkt(void *pkt, uint32_t ts) const {
-    struct ether_hdr *eth = (struct ether_hdr *) pkt;
-    struct ipv4_hdr *ip = (struct ipv4_hdr *) (eth + 1);
-    struct tcp_hdr *tcp = (struct tcp_hdr *) (ip + 1);
-    fprintf(stderr, "sip=%" PRIu32 ",dip=%" PRIu32 ",sprt=%" PRIu16 ",dprt=%"
-            PRIu16 ",ts=%" PRIu32 "\n", ip->src_addr, ip->dst_addr,
-            tcp->src_port, tcp->dst_port, ts);
-  }
-
  private:
-  static timestamp_t get_timestamp() {
-    struct timeval now;
-    gettimeofday(&now, NULL);
-
-    return now.tv_usec + (timestamp_t) now.tv_sec * 1000000;
-  }
-
   uint32_t srcip_idx_id_;
   uint32_t dstip_idx_id_;
   uint32_t srcport_idx_id_;
@@ -259,6 +265,7 @@ class packet_store: public slog::log_store {
   slog::__index4* timestamp_idx_;
 
   slog::__monolog_base<uint32_t, 32> *timestamps_;
+  slog::monolog_linearizable<complex_character*> *complex_characters_;
 };
 
 }
