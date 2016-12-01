@@ -42,10 +42,10 @@ class filter_result {
     }
 
     filter_iterator& operator++() {
-      fprintf(stderr, "++ called\n");
-      while (cur_tok_ != res_->tok_max_ + 1 &&
-             !res_->olog_->is_valid(cur_entry_list_->get(cur_idx_), res_->max_rid_))
+      do {
         advance();
+      } while (cur_tok_ != res_->tok_max_ + 1 &&
+               !res_->olog_->is_valid(cur_entry_list_->get(cur_idx_), res_->max_rid_));
       return *this;
     }
 
