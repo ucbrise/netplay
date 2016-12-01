@@ -104,7 +104,6 @@ class packet_filter_result {
           olog_->lookup(*it_, offset, length);
           pkt = dlog_->ptr(offset);
           ts = timestamps_->get(*it_);
-          fprintf(stderr, "pkt_id=%" PRIu64 "\n", *it_);
         }
       } while (!it_.finished() && !filter_.apply(pkt, ts));
       return *this;
