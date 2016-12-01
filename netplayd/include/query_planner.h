@@ -90,7 +90,7 @@ class query_planner {
         }
       }
 
-      if (tok_range.first <= tok_range.end) {
+      if (tok_range.first <= tok_range.second) {
         i->tok_range = tok_range;
         i++;
       } else {
@@ -155,7 +155,7 @@ class query_planner {
       /* Get the min cardinality filter */
       _plan.idx_filter = extract_min_filter(h, clause);
       _plan.perform_pkt_filter = !clause.empty();
-      _plan.pkt_filter = build_packet_filter(clause);
+      _plan.pkt_filter = build_packet_filter(h, clause);
     }
 
     return _plan;
