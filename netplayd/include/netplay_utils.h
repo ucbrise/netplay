@@ -19,6 +19,59 @@ static const uint32_t ip_prefix_mask[33] = {
 
 class netplay_utils {
  public:
+  typedef std::vector<index_filter> clause;
+
+  static packet_filter build_packet_filter(const packet_store::handle* h,
+      const clause& clause) {
+    packet_filter pf;
+    pf.src_addr = packet_filter::range(0, UINT64_MAX);
+    pf.dst_addr = packet_filter::range(0, UINT64_MAX);
+    pf.src_port = packet_filter::range(0, UINT64_MAX);
+    pf.dst_port = packet_filter::range(0, UINT64_MAX);
+    pf.timestamp = packet_filter::range(0, UINT64_MAX);
+
+    for (const index_filter& f : clause) {
+      if (f.index_id == h->srcip_idx())
+        pf.src_addr = f.tok_range;
+      else if (f.index_id == h->dstip_idx())
+        pf.dst_addr = f.tok_range;
+      else if (f.index_id == h->srcport_idx())
+        pf.src_port = f.tok_range;
+      else if (f.index_id == h->dstport_idx())
+        pf.dst_port = f.tok_range;
+      else if (f.index_id == h->timestamp_idx())
+        pf.timestamp = f.tok_range;
+      else
+        throw parse_exception("Invalid idx id " + std::to_string(f.index_id));
+    }
+
+    return pf;
+  }
+
+  static bool reduce_clause(clause& clause) {
+    for (clause_iterator i = clause.begin(); i != clause.end();) {
+      uint32_t index_id = i->index_id;
+      index_filter::range tok_range = i->tok_range;
+
+      for (clause_iterator j = i + 1; j != clause.end(); ) {
+        if (index_id == j->index_id) {
+          tok_range.first = std::max(tok_range.first, j->tok_range.first);
+          tok_range.second = std::min(tok_range.second, j->tok_range.second);
+          j = clause.erase(j);
+        } else {
+          j++;
+        }
+      }
+
+      if (tok_range.first <= tok_range.second) {
+        i->tok_range = tok_range;
+        i++;
+      } else {
+        return false;
+      }
+    }
+    return true;
+  }
 
   static index_filter build_index_filter(const packet_store::handle* h,
                                          const predicate* p, const uint32_t now) {

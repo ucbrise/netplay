@@ -62,31 +62,6 @@ class query_planner {
   }
 
  private:
-  static bool reduce_clause(clause& clause) {
-    for (clause_iterator i = clause.begin(); i != clause.end();) {
-      uint32_t index_id = i->index_id;
-      index_filter::range tok_range = i->tok_range;
-
-      for (clause_iterator j = i + 1; j != clause.end(); ) {
-        if (index_id == j->index_id) {
-          tok_range.first = std::max(tok_range.first, j->tok_range.first);
-          tok_range.second = std::min(tok_range.second, j->tok_range.second);
-          j = clause.erase(j);
-        } else {
-          j++;
-        }
-      }
-
-      if (tok_range.first <= tok_range.second) {
-        i->tok_range = tok_range;
-        i++;
-      } else {
-        return false;
-      }
-    }
-    return true;
-  }
-
   static index_filter extract_min_filter(const packet_store::handle* h,
                                         clause& clause) {
     clause_iterator min_f;
@@ -104,45 +79,18 @@ class query_planner {
     return f;
   }
 
-  static packet_filter build_packet_filter(const packet_store::handle* h,
-      const clause& clause) {
-    packet_filter pf;
-    pf.src_addr = packet_filter::range(0, UINT64_MAX);
-    pf.dst_addr = packet_filter::range(0, UINT64_MAX);
-    pf.src_port = packet_filter::range(0, UINT64_MAX);
-    pf.dst_port = packet_filter::range(0, UINT64_MAX);
-    pf.timestamp = packet_filter::range(0, UINT64_MAX);
-
-    for (const index_filter& f : clause) {
-      if (f.index_id == h->srcip_idx())
-        pf.src_addr = f.tok_range;
-      else if (f.index_id == h->dstip_idx())
-        pf.dst_addr = f.tok_range;
-      else if (f.index_id == h->srcport_idx())
-        pf.src_port = f.tok_range;
-      else if (f.index_id == h->dstport_idx())
-        pf.dst_port = f.tok_range;
-      else if (f.index_id == h->timestamp_idx())
-        pf.timestamp = f.tok_range;
-      else
-        throw parse_exception("Invalid idx id " + std::to_string(f.index_id));
-    }
-
-    return pf;
-  }
-
   static clause_plan build_clause_plan(const packet_store::handle* h,
                                        clause& clause) {
     clause_plan _plan;
 
     // First reduce the clause
-    _plan.valid = reduce_clause(clause);
+    _plan.valid = netplay_utils::reduce_clause(clause);
 
     if (_plan.valid) {
       /* Get the min cardinality filter */
       _plan.idx_filter = extract_min_filter(h, clause);
       _plan.perform_pkt_filter = !clause.empty();
-      _plan.pkt_filter = build_packet_filter(h, clause);
+      _plan.pkt_filter = netplay_utils::build_packet_filter(h, clause);
     }
 
     return _plan;
