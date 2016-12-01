@@ -34,7 +34,6 @@
 #include "query_parser.h"
 #include "token_bucket.h"
 #include "packetstore.h"
-#include "query_utils.h"
 #include "bench_vport.h"
 #include "pktgen.h"
 

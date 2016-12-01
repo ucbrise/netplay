@@ -125,8 +125,6 @@ class packet_filter_result {
   slog::filter_result<index_type>& res_;
 };
 
-
-
 }
 
 #endif /* FILTEROPS_H_ */
