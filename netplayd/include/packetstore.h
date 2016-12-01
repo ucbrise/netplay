@@ -33,9 +33,11 @@ namespace netplay {
  */
 class packet_store: public slog::log_store {
  public:
-  class handle {
+  class handle : public slog::log_store::handle {
    public:
-    handle(packet_store& store): store_(store) {
+    handle(packet_store& store)
+      : slog::log_store::handle(store),
+        store_(store) {
     }
 
     void insert_pktburst(struct rte_mbuf** pkts, uint16_t cnt) {
@@ -74,7 +76,7 @@ class packet_store: public slog::log_store {
     }
 
     uint64_t approx_pkt_count(const uint32_t index_id, const uint64_t tok_beg,
-                              const uint64_t tok_end) const {
+                                const uint64_t tok_end) const {
       return store_.approx_pkt_count(index_id, tok_beg, tok_end);
     }
 
@@ -144,7 +146,7 @@ class packet_store: public slog::log_store {
   }
 
   uint64_t approx_pkt_count(const uint32_t index_id, const uint64_t tok_beg,
-                            const uint64_t tok_end) const {
+                              const uint64_t tok_end) const {
     return filter_count(index_id, tok_beg, tok_end);
   }
 

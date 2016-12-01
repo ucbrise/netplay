@@ -60,7 +60,7 @@ class query_handler : virtual public thrift::NetPlayQueryServiceIf {
   }
 
   int64_t numRecords() {
-    return handle_->num_records();
+    return handle_->num_pkts();
   }
 
   void storageFootprint(thrift::Storage& _return) {
