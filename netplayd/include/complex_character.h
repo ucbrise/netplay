@@ -52,7 +52,6 @@ class complex_character {
           cur_idx_++;
           if (cur_idx_ != monolog_size_)
             id = monolog_->get(cur_idx_);
-          fprintf(stderr, "cur_idx=%" PRIu64 "\n", cur_idx_);
         } while (cur_idx_ != monolog_size_ && !is_valid(id));
 
         return *this;
