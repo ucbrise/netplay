@@ -77,7 +77,7 @@ class packet_store: public slog::log_store {
 
     uint64_t approx_pkt_count(const uint32_t index_id, const uint64_t tok_beg,
                                 const uint64_t tok_end) const {
-      return store_.estimate_pkt_count(index_id, tok_beg, tok_end);
+      return store_.approx_pkt_count(index_id, tok_beg, tok_end);
     }
 
     void filter_pkts(std::unordered_set<uint64_t>& results,

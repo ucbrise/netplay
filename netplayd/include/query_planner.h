@@ -10,7 +10,7 @@
 
 namespace netplay {
 
-static const uint32_t prefix_mask[33] = {
+static const uint32_t ip_prefix_mask[33] = {
   0x00000000U, 0x80000000U, 0xC0000000U,
   0xE0000000U, 0xF0000000U, 0xF8000000U,
   0xFC000000U, 0xFE000000U, 0xFF000000U,
@@ -216,8 +216,8 @@ class query_planner {
       throw parse_exception("Malformed IP range: " + ip_string);
     }
 
-    return index_filter::range(ip & prefix_mask[prefix],
-                               ip | (~prefix_mask[32 - prefix]));
+    return index_filter::range(ip & ip_prefix_mask[prefix],
+                               ip | (~ip_prefix_mask[32 - prefix]));
   }
 
   static uint32_t ip_string_to_uint32(const char* ip) {
