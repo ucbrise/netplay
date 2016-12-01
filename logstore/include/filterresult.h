@@ -67,16 +67,17 @@ class filter_result {
       if (cur_tok_ == res_->tok_max_ + 1)
         return;
       cur_idx_++;
+      if (cur_entry_list_ == NULL || cur_idx_ == cur_entry_list_->size()) {
+        cur_idx_ = 0;
+        while ((cur_entry_list_ = res_->index_->get(++cur_tok_)) == NULL
+               && cur_tok_ <= res_->tok_max_);
+      }
+
       fprintf(stderr, "IDX: %" PRId64 ", ENTRY_LIST_NULL=%d", cur_idx_, (cur_entry_list_ == NULL));
       if (cur_entry_list_ != NULL) {
         fprintf(stderr, ", ENTRY_LIST_SIZE=%" PRIu32 "\n", cur_entry_list_->size());
       } else {
         fprintf(stderr, "\n");
-      }
-      if (cur_entry_list_ == NULL || cur_idx_ == cur_entry_list_->size()) {
-        cur_idx_ = 0;
-        while ((cur_entry_list_ = res_->index_->get(++cur_tok_)) == NULL
-               && cur_tok_ <= res_->tok_max_);
       }
     }
 
