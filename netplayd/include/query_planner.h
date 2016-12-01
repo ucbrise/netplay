@@ -311,4 +311,6 @@ class query_planner {
   }
 };
 
+}
+
 #endif  // QUERY_PLANNER_H_

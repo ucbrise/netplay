@@ -30,7 +30,7 @@
 #include <rte_mbuf.h>
 
 #include "dpdk_utils.h"
-#include "filterops.h"
+#include "packet_filter.h"
 #include "token_bucket.h"
 #include "packetstore.h"
 #include "query_utils.h"
