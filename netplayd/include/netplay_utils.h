@@ -20,6 +20,7 @@ static const uint32_t ip_prefix_mask[33] = {
 class netplay_utils {
  public:
   typedef std::vector<index_filter> clause;
+  typedef clause::iterator clause_iterator;
 
   static packet_filter build_packet_filter(const packet_store::handle* h,
       const clause& clause) {
