@@ -101,7 +101,7 @@ class packet_filter_result {
         uint16_t length;
         olog_->lookup(*it_, offset, length);
         pkt = dlog_->ptr(offset);
-        ts = timestamps_->get(*id_);
+        ts = timestamps_->get(*it_);
       } while (!filter_.apply(pkt, ts));
       return *this;
     }
