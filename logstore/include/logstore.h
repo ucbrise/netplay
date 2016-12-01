@@ -608,35 +608,43 @@ class log_store {
 
     switch (idx) {
     case 1: {
-      populate_results(results, filter(idx1_->at(off), tok_min, tok_max, max_rid));
+      auto filter_res = filter(idx1_->at(off), tok_min, tok_max, max_rid);
+      populate_results(results, filter_res);
       break;
     }
     case 2: {
-      populate_results(results, filter(idx2_->at(off), tok_min, tok_max, max_rid));
+      auto filter_res = filter(idx2_->at(off), tok_min, tok_max, max_rid);
+      populate_results(results, filter_res);
       break;
     }
     case 4: {
-      populate_results(results, filter(idx3_->at(off), tok_min, tok_max, max_rid));
+      auto filter_res = filter(idx3_->at(off), tok_min, tok_max, max_rid);
+      populate_results(results, filter_res);
       break;
     }
     case 8: {
-      populate_results(results, filter(idx4_->at(off), tok_min, tok_max, max_rid));
+      auto filter_res = filter(idx4_->at(off), tok_min, tok_max, max_rid);
+      populate_results(results, filter_res);
       break;
     }
     case 16: {
-      populate_results(results, filter(idx5_->at(off), tok_min, tok_max, max_rid));
+      auto filter_res = filter(idx5_->at(off), tok_min, tok_max, max_rid);
+      populate_results(results, filter_res);
       break;
     }
     case 32: {
-      populate_results(results, filter(idx6_->at(off), tok_min, tok_max, max_rid));
+      auto filter_res = filter(idx6_->at(off), tok_min, tok_max, max_rid);
+      populate_results(results, filter_res);
       break;
     }
     case 64: {
-      populate_results(results, filter(idx7_->at(off), tok_min, tok_max, max_rid));
+      auto filter_res = filter(idx7_->at(off), tok_min, tok_max, max_rid);
+      populate_results(results, filter_res);
       break;
     }
     case 128: {
-      populate_results(results, filter(idx8_->at(off), tok_min, tok_max, max_rid));
+      auto filter_res = filter(idx8_->at(off), tok_min, tok_max, max_rid);
+      populate_results(results, filter_res);
       break;
     }
     default: {
@@ -646,7 +654,7 @@ class log_store {
   }
 
   template<typename INDEX>
-  void populate_results(result_type& results, const filter_result<INDEX>& filter_res) const {
+  void populate_results(result_type& results, filter_result<INDEX>& filter_res) const {
     results.insert(filter_res.begin(), filter_res.end());
   }
 
