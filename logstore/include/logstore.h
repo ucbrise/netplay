@@ -655,13 +655,13 @@ class log_store {
    *
    * @param results The results set to be populated with matching records ids.
    * @param index The index associated with the token.
-   * @param min The smallest token to consider.
-   * @param max The largest token to consider.
+   * @param tok_min The smallest token to consider.
+   * @param tok_max The largest token to consider.
    * @param max_rid Largest record-id to consider.
    */
   template<typename INDEX>
-  filter_result<INDEX> filter(INDEX* index, const uint64_t min,
-                              const uint64_t max, const uint64_t max_rid) const {
+  filter_result<INDEX> filter(INDEX* index, const uint64_t tok_min,
+                              const uint64_t tok_max, const uint64_t max_rid) const {
     return filter_result<INDEX>(olog_, index, tok_min, tok_max, max_rid);
   }
 
