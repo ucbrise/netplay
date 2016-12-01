@@ -19,7 +19,7 @@ class filter_result {
     typedef const uint64_t* pointer;
     typedef uint64_t reference;
    public:
-    filter_iterator(const filter_result *res) {
+    filter_iterator(filter_result *res) {
       res_ = res;
 
       cur_tok_ = res_->tok_min_;
@@ -80,7 +80,7 @@ class filter_result {
     const filter_result *res_;
   };
 
-  filter_result(const offsetlog* olog, const index_type* index, const uint64_t tok_min,
+  filter_result(const offsetlog* olog, index_type* index, const uint64_t tok_min,
                 const uint64_t tok_max, const uint64_t max_rid) {
     olog_ = olog;
     index_ = index;
@@ -98,7 +98,7 @@ class filter_result {
   }
 
  private:
-  const index_type* index_;
+  index_type* index_;
   const offsetlog* olog_;
   uint64_t tok_min_;
   uint64_t tok_max_;
