@@ -67,7 +67,7 @@ class complex_character {
    * @param pkt The packet data.
    * @param ts The packet timestamp.
    */
-  void check_and_add(uint64_t pkt_id, const void* pkt) {
+  void check_and_add(uint64_t pkt_id, void* pkt) {
     for (const packet_filter& filter : filters_) {
       if (filter.apply(pkt)) {
         monolog_->push_back(pkt_id);
