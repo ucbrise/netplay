@@ -64,9 +64,6 @@ struct packet_filter {
 template<typename index_type>
 class packet_filter_result {
  public:
-  typedef slog::filter_result<index_type> filter_result;
-  typedef filter_result::filter_iterator filter_iterator;
-
   class packet_filter_iterator : public slog::__input_iterator {
    public:
     typedef uint64_t value_type;
@@ -74,7 +71,7 @@ class packet_filter_result {
     typedef const uint64_t* pointer;
     typedef uint64_t reference;
 
-    packet_filter_iterator(const packet_filter& filter, filter_iterator& it)
+    packet_filter_iterator(const packet_filter& filter, slog::filter_result<index_type>::filter_iterator& it)
       : fiter_(filter), it_(it) {}
 
     reference operator*() const {
@@ -104,7 +101,7 @@ class packet_filter_result {
 
    private:
     const packet_filter& filter_;
-    filter_iterator& it_;
+    slog::filter_result<index_type>::filter_iterator& it_;
   };
 
   packet_filter_result(slog::filter_result<index_type>& res,
