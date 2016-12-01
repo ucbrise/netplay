@@ -68,7 +68,6 @@ class query_planner {
         clause_plan _cplan = build_clause_plan(_clause);
         if (_cplan.valid)
           _plan.push_back(_cplan);
-        }
       }
     }
 
@@ -128,7 +127,7 @@ class query_planner {
     pf.dst_port = packet_filter::range(0, UINT64_MAX);
     pf.timestamp = packet_filter::range(0, UINT64_MAX);
 
-    for (const index_filter& f: clause) {
+    for (const index_filter& f : clause) {
       if (f.index_id == h->srcip_idx())
         pf.src_addr = f.tok_range;
       else if (f.index_id == h->dstip_idx())
