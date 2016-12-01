@@ -171,7 +171,7 @@ class packet_store: public slog::log_store {
       filter(filter_res, idx_id, tok_beg, tok_end, max_rid);
       timestamp_t t1 = get_timestamp();
       fprintf(stderr, "(%" PRIu32 ":%" PRIu64 ",%" PRIu64 "): Count = %zu, Time = %llu\n",
-              index_id, tok_beg, tok_end, filter_res.size(), (t1 - t0));
+              idx_id, tok_beg, tok_end, filter_res.size(), (t1 - t0));
 
       /* Iterate through its entries, eliminating those that don't match */
       if (cplan.perform_pkt_filter) {
@@ -213,33 +213,6 @@ class packet_store: public slog::log_store {
   }
 
  private:
-  bool check_filters(uint64_t id, void *pkt, filter_conjunction& conjunction,
-                     const basic_filter& f) const {
-    uint32_t ts = timestamps_.get(id);
-
-    for (basic_filter& basic : conjunction) {
-      if (basic == f) continue;
-      if (basic.index_id() == srcip_idx_id_ &&
-          !src_ip_filter::apply(pkt, basic.token_beg(), basic.token_end())) {
-        return false;
-      } else if (basic.index_id() == dstip_idx_id_ &&
-                 !dst_ip_filter::apply(pkt, basic.token_beg(), basic.token_end())) {
-        return false;
-      } else if (basic.index_id() == srcport_idx_id_ &&
-                 !src_port_filter::apply(pkt, basic.token_beg(), basic.token_end())) {
-        return false;
-      } else if (basic.index_id() == dstport_idx_id_ &&
-                 !dst_port_filter::apply(pkt, basic.token_beg(), basic.token_end())) {
-        return false;
-      } else if (basic.index_id() == timestamp_idx_id_ &&
-                 !timestamp_filter::apply(&ts, basic.token_beg(), basic.token_end())) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
   static timestamp_t get_timestamp() {
     struct timeval now;
     gettimeofday(&now, NULL);

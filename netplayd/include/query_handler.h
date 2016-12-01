@@ -9,7 +9,7 @@
 
 namespace netplay {
 
-uint32_t query_utils::now = std::time(NULL);
+uint32_t query_planner::now = std::time(NULL);
 
 class query_handler : virtual public thrift::NetPlayQueryServiceIf {
  public:
@@ -39,7 +39,7 @@ class query_handler : virtual public thrift::NetPlayQueryServiceIf {
     // Build query plan
     query_plan p;
     try {
-      p = query_planner::plan(hande_, e);
+      p = query_planner::plan(handle_, e);
     } catch (parse_exception& e) {
       fprintf(stderr, "Parse exception: %s\n", e.what());
       thrift::QueryException qe;
