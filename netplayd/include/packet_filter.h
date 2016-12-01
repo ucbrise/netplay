@@ -65,7 +65,7 @@ template<typename index_type>
 class packet_filter_result {
  public:
   template<typename T>
-  using filter_iterator = slog::filter_result<T>::filter_iterator;
+  using filter_iterator = slog::filter_result<typename T>::filter_iterator;
 
   class packet_filter_iterator : public slog::__input_iterator {
    public:
