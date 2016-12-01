@@ -116,11 +116,11 @@ class packet_filter_result {
                        const packet_filter& filter)
     : res_(res), filter_(filter) {}
 
-  packet_filter_iterator begin() override {
+  packet_filter_iterator begin() {
     return packet_filter_iterator(filter_, res_.begin());
   }
 
-  packet_filter_iterator end() override {
+  packet_filter_iterator end() {
     return packet_filter_iterator(filter_, res_.end());
   }  
 
