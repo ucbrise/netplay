@@ -67,7 +67,7 @@ class filter_result {
       if (cur_tok_ == res_->tok_max_ + 1)
         return;
       cur_idx_++;
-      fprintf(stderr, "Next valid: %" PRId64 "\n", cur_idx_);
+      fprintf(stderr, "IDX: %" PRId64 ", ENTRY_LIST_NULL=%d\n", cur_idx_, (cur_entry_list_ == NULL));
       if (cur_entry_list_ == NULL || cur_idx_ == cur_entry_list_->size()) {
         cur_idx_ = 0;
         while ((cur_entry_list_ = res_->index_->get(++cur_tok_)) == NULL
