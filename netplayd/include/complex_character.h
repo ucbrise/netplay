@@ -17,9 +17,10 @@ class complex_character {
     typedef const uint64_t* pointer;
     typedef uint64_t reference;
 
-    iterator(const uint64_t cur_idx) {
+    iterator(const uint64_t cur_idx,
+             slog::monolog_relaxed<uint64_t, 24>* monolog) {
       cur_idx_ = cur_idx;
-      fprintf(stderr, "iterator created with cur_idx = %" PRIu64 "\n");
+      monolog_ = monolog;
     }
 
     reference operator*() const {
@@ -27,7 +28,6 @@ class complex_character {
     }
 
     iterator& operator++() {
-      fprintf(stderr, "++ called\n");
       cur_idx_++;
       return *this;
     }
@@ -79,11 +79,11 @@ class complex_character {
   }
 
   iterator begin() {
-    return iterator(0);
+    return iterator(0, monolog_);
   }
 
   iterator end() {
-    return iterator(monolog_->size());
+    return iterator(monolog_->size(), monolog_);
   }
 
  private:

@@ -92,7 +92,6 @@ class packet_store: public slog::log_store {
 
     void complex_character_lookup(result_type& results, const uint32_t char_id,
                                   const uint32_t ts_beg, const uint32_t ts_end) {
-      fprintf(stderr, "Lookup at handle\n");
       store_.complex_character_lookup(results, char_id, ts_beg, ts_end);
     }
 
@@ -234,15 +233,13 @@ class packet_store: public slog::log_store {
 
   void complex_character_lookup(result_type& results, const uint32_t char_id,
                                 const uint32_t ts_beg, const uint32_t ts_end) {
-    fprintf(stderr, "Lookup at store: %" PRIu32 "\n", char_id);
+    uint64_t max_rid = olog_->num_ids();
     complex_character* character = complex_characters_->get(char_id);
-    fprintf(stderr, "Got complex char, creating iterator\n");
     typedef complex_character::iterator iterator_t;
     for (iterator_t i = character->begin(); i != character->end(); i++) {
       uint64_t id = *i;
       uint64_t ts = timestamps_->get(id);
-      fprintf(stderr, "Looping: %" PRIu64 "\n", id);
-      if (ts >= ts_beg && ts <= ts_end)
+      if (olog_->is_valid(id, max_rid) && ts >= ts_beg && ts <= ts_end)
         results.insert(id);
     }
   }
