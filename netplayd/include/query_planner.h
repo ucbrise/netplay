@@ -41,7 +41,7 @@ class query_planner {
       _cplan.valid = true;
       _cplan.perform_pkt_filter = false;
       _cplan.idx_filter = build_index_filter(h, (predicate*) e);
-      _plan.push_back(h, _cplan);
+      _plan.push_back(_cplan);
     } else if (e->type == expression_type::AND) {
       conjunction* c = (conjunction*) e;
       clause _clause;
