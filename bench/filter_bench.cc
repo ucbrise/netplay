@@ -185,11 +185,8 @@ class filter_benchmark {
     while (std::getline(in, exp)) {
       parser p(exp);
       expression *e = p.parse();
-      fprintf(stderr, "Parsed expression\n");
       filter_list list = netplay_utils::build_filter_list(handle, e);
-      fprintf(stderr, "Created filter list\n");
       uint32_t id = store_->add_complex_character(list);
-      fprintf(stderr, "Added complex char\n");
       char_ids_.push_back(id);
       free_expression(e);
     }

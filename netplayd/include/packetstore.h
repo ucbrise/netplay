@@ -143,6 +143,7 @@ class packet_store: public slog::log_store {
     timestamp_idx_ = idx4_->at(2);
 
     timestamps_ = new slog::__monolog_base <uint32_t, 32>();
+    complex_characters_ = new slog::monolog_linearizable<complex_character*>();
   }
 
   /**
@@ -162,10 +163,7 @@ class packet_store: public slog::log_store {
    * @return The id of the newly created complex character.
    */
   uint32_t add_complex_character(const std::vector<packet_filter>& filters) {
-    fprintf(stderr, "Adding new complex character...\n");
-    complex_character* character = new complex_character(filters);
-    fprintf(stderr, "Created complex character.\n");
-    return complex_characters_->push_back(character);
+    return complex_characters_->push_back(new complex_character(filters));
   }
 
   uint64_t approx_pkt_count(const uint32_t index_id, const uint64_t tok_beg,
