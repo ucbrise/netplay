@@ -4,11 +4,12 @@
 #include <cstdint>
 #include <iterator>
 
+#include "offsetlog.h"
+
 namespace slog {
 
 typedef std::iterator<std::input_iterator_tag, uint64_t, uint64_t, const uint64_t*, uint64_t> __input_iterator;
 
-template<typename index_type>
 class filter_result {
  public:
   class filter_iterator : public __input_iterator {
@@ -24,7 +25,7 @@ class filter_result {
       cur_entry_list_ = res_->index_->get(cur_tok_);
       cur_idx_ = -1;
 
-      advance_to_next_valid_state();
+      advance();
     }
 
     filter_iterator(uint64_t tok, int64_t idx) {
@@ -40,7 +41,9 @@ class filter_result {
     }
 
     filter_iterator& operator++() {
-      advance_to_next_valid_state();
+      while (cur_tok_ != res_->tok_max_ + 1 &&
+             !olog_->is_valid(cur_entry_list_->get(cur_idx_)))
+        advance();
       return *this;
     }
 
@@ -59,10 +62,9 @@ class filter_result {
     }
 
    private:
-    void advance_to_next_valid_state() {
+    void advance() {
       if (cur_tok_ == res_->tok_max_ + 1)
         return;
-
       cur_idx_++;
       if (cur_entry_list_ == NULL || cur_idx_ == cur_entry_list_->size()) {
         cur_idx_ = 0;
@@ -77,9 +79,9 @@ class filter_result {
     filter_result *res_;
   };
 
-  filter_result(const uint32_t index_id, const index_type* index,
-                const uint64_t tok_min, const uint64_t tok_max, const uint64_t max_rid) {
-    index_id_ = index_id;
+  filter_result(const offsetlog* olog, const index_type* index, const uint64_t tok_min,
+                const uint64_t tok_max, const uint64_t max_rid) {
+    olog_ = olog;
     index_ = index;
     tok_min_ = tok_min;
     tok_max_ = tok_max;
@@ -95,8 +97,8 @@ class filter_result {
   }
 
  private:
-  uint32_t index_id_;
   index_type* index_;
+  offsetlog* olog_;
   uint64_t tok_min_;
   uint64_t tok_max_;
   uint64_t max_rid_;

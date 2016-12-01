@@ -48,6 +48,8 @@ struct logstore_storage {
 
 class log_store {
  public:
+  typedef std::unordered_set<uint64_t> result_type;
+
   class handle {
    public:
     /**
@@ -155,12 +157,12 @@ class log_store {
     *
     * @param results The results of the filter query.
     * @param index_id The id for the index to query.
-    * @param min The smallest token to consider.
-    * @param max The largest token to consider.
+    * @param tok_min The smallest token to consider.
+    * @param tok_max The largest token to consider.
     */
-    void filter(std::unordered_set<uint64_t>& results, uint32_t index_id,
-                uint64_t min, uint64_t max) const {
-      base_.filter(results, index_id, min, max);
+    void filter(result_type& results, const uint32_t index_id,
+                const uint64_t tok_min, const uint64_t tok_max) const {
+      base_.filter(results, index_id, tok_min, tok_max);
     }
 
     /**
@@ -204,8 +206,6 @@ class log_store {
 
     log_store& base_;
   };
-
-  typedef std::unordered_set<uint64_t> result_type;
 
   /**
    * Constructor to initialize the log-store.
@@ -372,6 +372,20 @@ class log_store {
   }
 
   /**
+   * Filter index-entries based on query.
+   *
+   * @param results The results of the filter query.
+   * @param index_id The id for the index to query.
+   * @param tok_min The smallest token to consider.
+   * @param tok_max The largest token to consider.
+   */
+  void filter(result_type& results, const uint32_t index_id, const uint64_t tok_min,
+              const uint64_t tok_max) const {
+    uint64_t max_rid = olog_->num_ids();
+    return filter(index_id, tok_min, tok_max, max_rid);
+  }
+
+  /**
    * Get the stream associated with a given stream id.
    *
    * @param stream_id The id of the stream.
@@ -397,20 +411,6 @@ class log_store {
    */
   uint64_t size() const {
     return dtail_.load();
-  }
-
-  /**
-   * Filter index-entries based on query.
-   *
-   * @param results The results of the filter query.
-   * @param index_id The id for the index to query.
-   * @param min The smallest token to consider.
-   * @param max The largest token to consider.
-   */
-  void filter(result_type& results, const uint32_t index_id,
-              const uint64_t min, const uint64_t max) const {
-    uint64_t max_rid = olog_->num_ids();
-    filter(results, index_id, min, max, max_rid);
   }
 
   /** Get storage statistics
@@ -594,13 +594,13 @@ class log_store {
    *
    * @param results The results set to be populated with matching records ids.
    * @param index_id The id of the index corresponding to the token.
-   * @param min The smallest token to consider.
-   * @param man The largest token to consider.
+   * @param tok_min The smallest token to consider.
+   * @param tok_man The largest token to consider.
    * @param max_rid Largest record-id to consider.
    * @param superset The superset to which the results must belong.
    */
-  void filter(result_type& results, const uint32_t index_id, const uint64_t min,
-              const uint64_t max, const uint64_t max_rid) const {
+  void filter(result_type& results, const uint32_t index_id, const uint64_t tok_min,
+              const uint64_t tok_max, const uint64_t max_rid) const {
 
     /* Identify which index the filter is on */
     uint32_t idx = index_id / OFFSETMIN;
@@ -608,41 +608,46 @@ class log_store {
 
     switch (idx) {
     case 1: {
-      filter(results, idx1_->at(off), min, max, max_rid);
+      populate_results(results, filter(idx1_->at(off), tok_min, tok_max, max_rid));
       break;
     }
     case 2: {
-      filter(results, idx2_->at(off), min, max, max_rid);
+      populate_results(results, filter(idx2_->at(off), tok_min, tok_max, max_rid));
       break;
     }
     case 4: {
-      filter(results, idx3_->at(off), min, max, max_rid);
+      populate_results(results, filter(idx3_->at(off), tok_min, tok_max, max_rid));
       break;
     }
     case 8: {
-      filter(results, idx4_->at(off), min, max, max_rid);
+      populate_results(results, filter(idx4_->at(off), tok_min, tok_max, max_rid));
       break;
     }
     case 16: {
-      filter(results, idx5_->at(off), min, max, max_rid);
+      populate_results(results, filter(idx5_->at(off), tok_min, tok_max, max_rid));
       break;
     }
     case 32: {
-      filter(results, idx6_->at(off), min, max, max_rid);
+      populate_results(results, filter(idx6_->at(off), tok_min, tok_max, max_rid));
       break;
     }
     case 64: {
-      filter(results, idx7_->at(off), min, max, max_rid);
+      populate_results(results, filter(idx7_->at(off), tok_min, tok_max, max_rid));
       break;
     }
     case 128: {
-      filter(results, idx8_->at(off), min, max, max_rid);
+      populate_results(results, filter(idx8_->at(off), tok_min, tok_max, max_rid));
       break;
     }
     default: {
       // Do nothing
     }
     }
+  }
+
+  template<typename INDEX>
+  void populate_results(result_type& results, filter_result<INDEX>& filter_res) {
+    results.insert(filter_res.begin(), filter_res.end());
   }
 
   /**
@@ -655,13 +660,9 @@ class log_store {
    * @param max_rid Largest record-id to consider.
    */
   template<typename INDEX>
-  void filter(result_type& results, INDEX* index, const uint64_t min,
+  filter_result<INDEX> filter(result_type& results, INDEX* index, const uint64_t min,
               const uint64_t max, const uint64_t max_rid) const {
-    for (uint64_t i = min; i <= max; i++) {
-      entry_list* list = index->get(i);
-      if (list != NULL)
-        sweep_list(results, list, max_rid);
-    }
+    return filter_result<INDEX>(olog_, index, tok_min, tok_max, max_rid);
   }
 
   /**
