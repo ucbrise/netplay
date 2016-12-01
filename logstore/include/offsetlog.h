@@ -64,7 +64,7 @@ class offsetlog {
         && valid_[record_id].load();
   }
 
-  bool is_valid(uint64_t record_id, uint64_t max_rid) const {
+  bool is_valid(uint64_t record_id, uint64_t max_rid) {
     return record_id < max_rid && valid_[record_id].load() > 0;
   }
 
