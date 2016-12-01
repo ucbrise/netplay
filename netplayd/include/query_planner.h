@@ -7,6 +7,7 @@
 
 #include "expression.h"
 #include "query_plan.h"
+#include "packet_filter.h"
 
 namespace netplay {
 
