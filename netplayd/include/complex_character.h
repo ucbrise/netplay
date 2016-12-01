@@ -46,6 +46,7 @@ class complex_character {
         if (cur_idx_ == monolog_size_)
           return *this;
 
+        fprintf(stderr, "++\n");
         uint64_t id;
         uint64_t ts;
         do {
@@ -54,8 +55,9 @@ class complex_character {
             id = monolog_->get(cur_idx_);
             ts = timestamps_->get(id);
           }
+          fprintf(stderr, "cur_idx=%" PRIu64 "\n", cur_idx_);
         } while (cur_idx_ != monolog_size_ && !olog_->is_valid(id, max_rid_) &&
-                 !(ts >= range_.first && ts <= range_.second));
+                 !in_range(ts));
 
         return *this;
       }
@@ -75,6 +77,10 @@ class complex_character {
       }
 
      private:
+      bool in_range(uint64_t ts) {
+        return ts >= range_.first && ts <= range_.second;
+      }
+
       uint64_t max_rid_;
       time_range range_;
       slog::offsetlog* olog_;
