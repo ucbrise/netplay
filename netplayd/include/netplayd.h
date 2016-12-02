@@ -28,7 +28,7 @@ namespace netplay {
 #define MAX_WRITERS  64
 #define MAX_READERS  64
 
-#define REPORT_INTERVAL   60000000
+#define SLEEP_INTERVAL   60000000
 
 #define CORE_MASK(i)    (1L << (i))
 #define CORE_SET(m, i)  (m & CORE_MASK(i))
@@ -74,7 +74,7 @@ class netplay_daemon {
     }
 
     // Initialize query handler
-    std::thread handler_thread([query_server_port_]() {
+    std::thread handler_thread([this]() {
       using namespace ::apache::thrift;
       using namespace ::apache::thrift::protocol;
       using namespace ::apache::thrift::transport;
@@ -105,7 +105,7 @@ class netplay_daemon {
     uint64_t epoch = start;
     uint64_t epoch_pkts = start_pkts;
     while (1) {
-      usleep(REPORT_INTERVAL);
+      usleep(SLEEP_INTERVAL);
       uint64_t pkts = processed_pkts();
       uint64_t now = curusec();
       
