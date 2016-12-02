@@ -28,7 +28,7 @@ namespace netplay {
 #define MAX_WRITERS  64
 #define MAX_READERS  64
 
-#define SLEEP_INTERVAL   60000000
+#define SLEEP_INTERVAL   10000000
 
 #define CORE_MASK(i)    (1L << (i))
 #define CORE_SET(m, i)  (m & CORE_MASK(i))
@@ -109,8 +109,8 @@ class netplay_daemon {
       uint64_t pkts = processed_pkts();
       uint64_t now = curusec();
       
-      double epoch_rate = (double) (pkts - epoch_pkts) / (double) (now - epoch);
-      double tot_rate = (double) (pkts - start_pkts) / (double) (now - start);
+      double epoch_rate = (double) (pkts - epoch_pkts) * 1000000.0 / (double) (now - epoch);
+      double tot_rate = (double) (pkts - start_pkts) * 1000000.0 / (double) (now - start);
       fprintf(stderr, "[%" PRIu64 "] Packet rate: %lf pkts/s (since last epoch), "
               "%lf pkts/s (since start)\n", (now - start), epoch_rate, tot_rate);
       epoch = now;
