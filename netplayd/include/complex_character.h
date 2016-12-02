@@ -16,7 +16,7 @@ class complex_character {
     uint64_t id;
     uint64_t ts;
   };
-  typedef slog::monolog_relaxed<time_id, 24> monlog_type;
+  typedef slog::monolog_relaxed<time_id, 24> monolog_type;
 
   class result {
    public:
@@ -31,7 +31,7 @@ class complex_character {
                uint64_t max_rid,
                const time_range range,
                const uint32_t monolog_size,
-               monlog_type* monolog,
+               monolog_type* monolog,
                slog::offsetlog* olog) {
         cur_idx_ = cur_idx;
         max_rid_ = max_rid;
@@ -84,12 +84,12 @@ class complex_character {
       slog::offsetlog* olog_;
       uint64_t cur_idx_;
       uint32_t monolog_size_;
-      monlog_type* monolog_;
+      monolog_type* monolog_;
     };
 
     result(uint64_t max_rid, const time_range range,
            const uint32_t monolog_size,
-           monlog_type* monolog,
+           monolog_type* monolog,
            slog::offsetlog* olog) {
       max_rid_ = max_rid;
       range_ = range;
@@ -112,7 +112,7 @@ class complex_character {
     time_range range_;
     slog::offsetlog* olog_;
     uint32_t monolog_size_;
-    monlog_type* monolog_;
+    monolog_type* monolog_;
   };
 
   /**
@@ -122,7 +122,7 @@ class complex_character {
     */
   complex_character(const std::vector<packet_filter>& filters)
     : filters_(filters) {
-    monolog_ = new monolog_type;
+    monolog_ = new monolog_type();
   }
 
   /**
@@ -152,7 +152,7 @@ class complex_character {
   const std::vector<packet_filter> filters_;
 
   /* Monolog */
-  monlog_type* monolog_;
+  monolog_type* monolog_;
 };
 
 }
