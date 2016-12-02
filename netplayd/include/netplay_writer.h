@@ -22,16 +22,6 @@ namespace netplay {
 #define REFRESH_INTERVAL  3355443200ULL
 #define REPORT_INTERVAL   10000000ULL
 
-void print_pkt(const unsigned char* buf, uint16_t len, slog::token_list& tokens) {
-  fprintf(stderr, "[Len: %u, ", len);
-  for (uint16_t i = 0; i < len; i++)
-    fprintf(stderr, "%x ", buf[i]);
-  fprintf(stderr, "; token-list: ");
-  for (auto& token : tokens)
-    fprintf(stderr, "%u:%" PRIu64 " ", token.index_id(), token.data());
-  fprintf(stderr, "]\n");
-}
-
 template<typename vport_init>
 class netplay_writer {
  public:

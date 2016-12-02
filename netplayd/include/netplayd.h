@@ -3,6 +3,10 @@
 
 #include <stdint.h>
 #include <pthread.h>
+#include <unistd.h>
+
+#include <chrono>
+#include <thread>
 
 #include <rte_mbuf.h>
 
@@ -24,6 +28,8 @@ namespace netplay {
 #define MAX_WRITERS  64
 #define MAX_READERS  64
 
+#define REPORT_INTERVAL   60000000
+
 #define CORE_MASK(i)    (1L << (i))
 #define CORE_SET(m, i)  (m & CORE_MASK(i))
 
@@ -40,7 +46,7 @@ template<typename vport_init>
 class netplay_daemon {
  public:
   netplay_daemon(const char* iface, struct rte_mempool* mempool,
-                 int master_core, uint64_t writer_core_mask, 
+                 int master_core, uint64_t writer_core_mask,
                  int query_server_port) {
 
     master_core_ = master_core;
@@ -56,17 +62,19 @@ class netplay_daemon {
   void start() {
     for (uint64_t i = 0; i < MAX_WRITERS; i++) {
       if (CORE_SET(writer_core_mask_, i)) {
+        pthread_t writer_thread_id;
         packet_store::handle* handle = pkt_store_->get_handle();
         writers_[i] = new netplay_writer<vport_init>(i, vport_, handle);
-        pthread_create(&writer_thread_[i], NULL, &writer_thread<vport_init>,
+        pthread_create(&writer_thread_id, NULL, &writer_thread<vport_init>,
                        (void*) writers_[i]);
+        pthread_detach(writer_thread_id);
       } else {
         writers_[i] = NULL;
       }
     }
 
     // Initialize query handler
-    {
+    std::thread handler_thread([query_server_port_]() {
       using namespace ::apache::thrift;
       using namespace ::apache::thrift::protocol;
       using namespace ::apache::thrift::transport;
@@ -86,19 +94,41 @@ class netplay_daemon {
       } catch (std::exception& e) {
         fprintf(stderr, "Query server crashed: %s\n", e.what());
       }
-    }
+    });
 
-    for (uint64_t i = 0; i < MAX_WRITERS; i++) {
-      if (writers_[i] != NULL)
-        pthread_join(writer_thread_[i], NULL);
+    handler_thread.detach();
+  }
+
+  void monitor() {
+    uint64_t start = curusec();
+    uint64_t start_pkts = processed_pkts();
+    uint64_t epoch = start;
+    uint64_t epoch_pkts = start_pkts;
+    while (1) {
+      usleep(REPORT_INTERVAL);
+      uint64_t pkts = processed_pkts();
+      uint64_t now = curusec();
+      
+      double epoch_rate = (double) (pkts - epoch_pkts) / (double) (now - epoch);
+      double tot_rate = (double) (pkts - start_pkts) / (double) (now - start);
+      fprintf(stderr, "[%" PRIu64 "] Packet rate: %lf pkts/s (since last epoch), "
+              "%lf pkts/s (since start)\n", (now - start), epoch_rate, tot_rate);
+      epoch = now;
+      epoch_pkts = pkts;
     }
+  }
+
+ private:
+  inline uint64_t curusec() {
+    using namespace ::std::chrono;
+    auto ts = steady_clock::now().time_since_epoch();
+    return duration_cast<std::chrono::microseconds>(ts).count();
   }
 
   uint64_t processed_pkts() {
     return pkt_store_->num_pkts();
   }
 
- private:
   int master_core_;
   uint64_t writer_core_mask_;
 
@@ -108,8 +138,6 @@ class netplay_daemon {
 
   packet_store *pkt_store_;
   dpdk::virtual_port<vport_init> *vport_;
-
-  pthread_t writer_thread_[MAX_WRITERS];
   netplay_writer<vport_init>* writers_[MAX_WRITERS];
 };
 

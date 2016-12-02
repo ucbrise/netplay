@@ -297,10 +297,12 @@ int main(int argc, char** argv) {
     netplay::netplay_daemon<netplay::dpdk::ovs_ring_init> netplayd(iface,
         mempool, master_core, writer_core_mask, query_server_port);
     netplayd.start();
+    netplayd.monitor();
   } else if (!strcmp("bess", vswitch)) {
     netplay::netplay_daemon<netplay::dpdk::bess_ring_init> netplayd(iface,
         mempool, master_core, writer_core_mask, query_server_port);
     netplayd.start();
+    netplayd.monitor();
   } else {
     fprintf(stderr, "Virtual Switch interface %s is not yet supported.\n", vswitch);
     return -1;
