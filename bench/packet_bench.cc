@@ -64,11 +64,11 @@ class static_rand_generator {
     cur_pos_ = 0;
     for (size_t i = 0; i < size; i++) {
       // Use regular malloc
-      pkts_[i] = malloc(sizeof(struct rte_mbuf));
+      pkts_[i] = (struct rte_mbuf*) malloc(sizeof(struct rte_mbuf));
 
-      rte_mbuf_refcnt_set(pkt_[i], 1);
-      rte_pktmbuf_reset(pkt_[i]);
-      pkt_[i]->pkt_len = pkt_[i]->data_len = PKT_SIZE;
+      rte_mbuf_refcnt_set(pkts_[i], 1);
+      rte_pktmbuf_reset(pkts_[i]);
+      pkts_[i]->pkt_len = pkts_[i]->data_len = PKT_SIZE;
 
       struct ether_hdr* eth = rte_pktmbuf_mtod(pkts_[i], struct ether_hdr*);
       eth->d_addr.addr_bytes[5] = 0;
@@ -87,7 +87,9 @@ class static_rand_generator {
   }
 
   struct rte_mbuf** generate_batch(size_t size) {
-    return pkts_ + cur_pos_;
+    struct rte_mbuf** ret = pkts_ + cur_pos_;
+    cur_pos_ += size;
+    return ret;
   }
 
  private:
