@@ -133,28 +133,27 @@ class packet_loader {
   void load_packets(const uint32_t num_threads, const uint64_t rate_limit,
                     const bool measure_cpu) {
 
-    // // Generate packets
-    // for (uint64_t i = 0; i < num_threads * PKTS_PER_THREAD; i++) {
-    //   pkt_attrs attrs;
-    //   attrs.sip = rand() % 256;
-    //   attrs.dip = rand() % 256;
-    //   attrs.sport = rand() % 10;
-    //   attrs.dport = rand() % 10;
-    //   pkt_data_.push_back(attrs);
-    // }
+    // Generate packets
+    for (uint64_t i = 0; i < num_threads * PKTS_PER_THREAD; i++) {
+      pkt_attrs attrs;
+      attrs.sip = rand() % 256;
+      attrs.dip = rand() % 256;
+      attrs.sport = rand() % 10;
+      attrs.dport = rand() % 10;
+      pkt_data_.push_back(attrs);
+    }
 
-    typedef packet_generator<pktstore_vport> pktgen_type;
+    typedef packet_generator<pktstore_vport, static_rand_generator> pktgen_type;
     std::vector<std::thread> workers;
     uint64_t worker_rate = rate_limit / num_threads;
     std::vector<double> thputs(num_threads, 0.0);
     struct rte_mempool* mempool = init_dpdk("pktbench", 0, 0);
     for (uint32_t i = 0; i < num_threads; i++) {
       workers.push_back(std::thread([i, worker_rate, &thputs, &mempool, this] {
-        // pkt_attrs* buf = &pkt_data_[i * PKTS_PER_THREAD];
+        pkt_attrs* buf = &pkt_data_[i * PKTS_PER_THREAD];
         packet_store::handle* handle = store_->get_handle();
         pktstore_vport* vport = new pktstore_vport(handle);
-        // static_rand_generator* gen = new static_rand_generator(mempool, buf);
-        rand_generator* gen = new rand_generator(mempool);
+        static_rand_generator* gen = new static_rand_generator(mempool, buf);
         pktgen_type pktgen(vport, gen, worker_rate, 0, PKTS_PER_THREAD);
 
         fprintf(stderr, "Starting benchmark.\n");
