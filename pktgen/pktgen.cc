@@ -25,7 +25,7 @@ const char* pktgen_opts =
   "                                 (0 implies no RATE limit, default: 0)\n"
   "  -t, --time-limit=DURATION      DURATION for which %s should run\n"
   "                                 (0 implies no DURATION limit, default: 0)\n"
-  "  -l, --max-packets=MAXPACKETS   MAXPACKETS for that %s should send\n"
+  "  -l, --max-packets=MAXPACKETS   MAXPACKETS that %s should send\n"
   "                                 (default: UINT64_MAX)\n";
 const char* other_opts =
   "\nOther options:\n"
@@ -33,7 +33,7 @@ const char* other_opts =
 
 void print_usage() {
   fprintf(stderr, usage, exec, exec);
-  fprintf(stderr, pktgen_opts, exec, exec, exec, exec);
+  fprintf(stderr, pktgen_opts, exec, exec, exec, exec, exec);
   fputs(other_opts, stderr);
 }
 
