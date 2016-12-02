@@ -74,7 +74,7 @@ class packet_store: public slog::log_store {
         store_.timestamps_->set(id, now);
         uint32_t num_chars = store_.complex_characters_->size();
         for (uint32_t i = 0; i < num_chars; i++)
-          store_.complex_characters_->at(i)->check_and_add(id, pkt);
+          store_.complex_characters_->at(i)->check_and_add(id, pkt, now);
         store_.olog_->end(id);
         off += pkt_size;
         id++;
@@ -237,7 +237,7 @@ class packet_store: public slog::log_store {
     std::pair<uint64_t, uint64_t> time_range(ts_beg, ts_end);
     uint64_t max_rid = olog_->num_ids();
     complex_character* character = complex_characters_->get(char_id);
-    return character->filter(max_rid, time_range, timestamps_, olog_);
+    return character->filter(max_rid, time_range, olog_);
   }
 
   /**
