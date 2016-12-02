@@ -99,13 +99,12 @@ class complex_character {
     }
 
     iterator begin() {
-      return iterator(0, max_rid_, range_, monolog_size_, monolog_,
-                      timestamps_, olog_);
+      return iterator(0, max_rid_, range_, monolog_size_, monolog_, olog_);
     }
 
     iterator end() {
       return iterator(monolog_size_, max_rid_, range_, monolog_size_,
-                      monolog_, timestamps_, olog_);
+                      monolog_,  olog_);
     }
 
    private:
@@ -123,7 +122,7 @@ class complex_character {
     */
   complex_character(const std::vector<packet_filter>& filters)
     : filters_(filters) {
-    monolog_ = new slog::entry_list;
+    monolog_ = new monolog_type;
   }
 
   /**
