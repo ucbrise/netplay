@@ -32,12 +32,11 @@ class netplay_writer {
 
   void start() {
     struct rte_mbuf* pkts[BATCH_SIZE];
-
-    uint64_t start = curusec();
-    uint64_t epoch = start;
+    
     while (1) {
-      rec_pkts_ = vport_->recv_pkts(pkts, BATCH_SIZE);
+      uint16_t recv = vport_->recv_pkts(pkts, BATCH_SIZE);
       handle_->insert_pktburst(pkts, recv);
+      rec_pkts_ += recv;
     }
   }
 
