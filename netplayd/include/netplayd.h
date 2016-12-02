@@ -62,6 +62,7 @@ class netplay_daemon {
   void start() {
     for (uint64_t i = 0; i < MAX_WRITERS; i++) {
       if (CORE_SET(writer_core_mask_, i)) {
+        fprintf(stderr, "Starting writer on core %" PRIu64 "\n", i);
         pthread_t writer_thread_id;
         packet_store::handle* handle = pkt_store_->get_handle();
         writers_[i] = new netplay_writer<vport_init>(i, vport_, handle);
