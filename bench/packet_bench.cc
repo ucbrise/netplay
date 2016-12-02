@@ -112,9 +112,9 @@ class packet_loader {
     std::vector<std::thread> workers;
     uint64_t worker_rate = rate_limit / num_threads;
     std::vector<double> thputs(num_threads, 0.0);
-    struct rte_mempool* mempool = init_dpdk("pktbench", 0, 0);
+    // struct rte_mempool* mempool = init_dpdk("pktbench", 0, 0);
     for (uint32_t i = 0; i < num_threads; i++) {
-      workers.push_back(std::thread([i, worker_rate, &thputs, &mempool, this] {
+      workers.push_back(std::thread([i, worker_rate, &thputs, this] {
         packet_store::handle* handle = store_->get_handle();
         pktstore_vport* vport = new pktstore_vport(handle);
         static_rand_generator* gen = new static_rand_generator();
