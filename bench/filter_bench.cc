@@ -204,17 +204,88 @@ class filter_benchmark {
       for (double thput : pkt_thputs)
         ptot += thput;
 
-      std::ofstream ofs("query_throughput_char.txt", std::ios_base::app);
+      std::ofstream ofs("query_throughput_cast.txt", std::ios_base::app);
       ofs << (qid + 1) << "\t" << num_threads << "\t" << qtot << "\t" << ptot << "\n";
       ofs.close();
     }
   }
 
   void bench_char_throughput(uint64_t query_rate, uint32_t num_threads, bool measure_cpu) {
-    assert(query_rate < 1e6);
-    assert(num_threads >= 1);
-    assert(!measure_cpu);
-    // TODO: Implement
+    uint64_t worker_rate = query_rate / num_threads;
+    for (size_t qid = 0; qid < cast_queries_.size(); qid++) {
+      std::vector<std::thread> workers;
+      std::vector<double> query_thputs(num_threads, 0.0);
+      std::vector<double> pkt_thputs(num_threads, 0.0);
+      for (uint32_t i = 0; i < num_threads; i++) {
+        workers.push_back(std::thread([i, qid, worker_rate, &query_thputs, &pkt_thputs, this] {
+          packet_store::handle* handle = store_->get_handle();
+          token_bucket bucket(worker_rate, 1);
+          uint64_t num_pkts = 0;
+          timestamp_t start = get_timestamp();
+          for (size_t repeat = 0; repeat < kThreadQueryCount; repeat++) {
+            if (worker_rate == 0 || bucket.consume(1)) {
+              auto res = handle->complex_character_lookup(char_ids_[qid], end_time_ - 4, end_time_);
+              num_pkts += count_container(res);
+            } else {
+              repeat--;
+            }
+          }
+          timestamp_t end = get_timestamp();
+          double totsecs = (double) (end - start) / (1000.0 * 1000.0);
+          query_thputs[i] = ((double) kThreadQueryCount / totsecs);
+          pkt_thputs[i] = ((double) num_pkts / totsecs);
+          fprintf(stderr, "Thread #%u(%lfs): Throughput: %lf.\n", i, totsecs, query_thputs[i]);
+        }));
+
+        // Create a cpu_set_t object representing a set of CPUs. Clear it and mark
+        // only CPU i as set.
+        cpu_set_t cpuset;
+        CPU_ZERO(&cpuset);
+        CPU_SET(i, &cpuset);
+        int rc = pthread_setaffinity_np(workers.back().native_handle(),
+                                        sizeof(cpu_set_t), &cpuset);
+        if (rc != 0)
+          fprintf(stderr, "Error calling pthread_setaffinity_np: %d\n", rc);
+      }
+
+      if (measure_cpu) {
+        std::thread cpu_measure_thread([&] {
+          std::ofstream util_stream("char_cpu_utilization_" + std::to_string(qid));
+          cpu_utilization util;
+          while (true) {
+            sleep(1);
+            util_stream << util.current() << "\n";
+          }
+          util_stream.close();
+        });
+
+        // Create a cpu_set_t object representing a set of CPUs. Clear it and mark
+        // only CPU i as set.
+        cpu_set_t cpuset;
+        CPU_ZERO(&cpuset);
+        CPU_SET(num_threads, &cpuset);
+        int rc = pthread_setaffinity_np(cpu_measure_thread.native_handle(),
+                                        sizeof(cpu_set_t), &cpuset);
+        if (rc != 0)
+          fprintf(stderr, "Error calling pthread_setaffinity_np: %d\n", rc);
+        cpu_measure_thread.detach();
+      }
+
+      for (auto& th : workers)
+        th.join();
+
+      double qtot = 0.0;
+      for (double thput : query_thputs)
+        qtot += thput;
+
+      double ptot = 0.0;
+      for (double thput : pkt_thputs)
+        ptot += thput;
+
+      std::ofstream ofs("query_throughput_char.txt", std::ios_base::app);
+      ofs << (qid + 1) << "\t" << num_threads << "\t" << qtot << "\t" << ptot << "\n";
+      ofs.close();
+    }
   }
 
  private:
