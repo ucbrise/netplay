@@ -62,7 +62,7 @@ class static_rand_generator {
  public:
   static_rand_generator() {
     cur_pos_ = 0;
-    for (size_t i = 0; i < size; i++) {
+    for (size_t i = 0; i < PKTS_PER_THREAD; i++) {
       // Use regular malloc
       pkts_[i] = (struct rte_mbuf*) malloc(sizeof(struct rte_mbuf));
 
