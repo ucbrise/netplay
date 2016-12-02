@@ -6,6 +6,11 @@
 #include <errno.h>
 #include <sys/file.h>
 
+#include <exception>
+#include <new>
+
+#include <rte_malloc.h>
+
 #include "dpdk_utils.h"
 #include "ovs_init.h"
 #include "bess_init.h"
@@ -13,6 +18,30 @@
 
 #define DEFAULT_RUN_DIR  "/var/run"
 #define DEFAULT_LOG_DIR  "/var/log"
+
+// Override new and delete operators
+inline void* operator new(size_t size) { 
+  void* ret = rte_malloc(NULL, size, 0); 
+  if (ret == NULL)
+    throw std::bad_alloc();
+  return ret;
+}
+
+inline void* operator new[](size_t size) { 
+  void* ret = rte_malloc(NULL, size, 0); 
+  if (ret == NULL)
+    throw std::bad_alloc();
+  return ret;
+}
+
+inline void operator delete(void* ptr) { 
+  rte_free(ptr);  
+}
+
+inline void operator delete[](void* ptr) { 
+  rte_free(ptr);
+}
+
 
 const char* exec = "netplayd";
 const char* desc = "%s: Open NetPlay daemon\n";
