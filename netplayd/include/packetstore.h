@@ -75,10 +75,10 @@ class packet_store: public slog::log_store {
         uint32_t num_chars = store_.complex_characters_->size();
         for (uint32_t i = 0; i < num_chars; i++)
           store_.complex_characters_->at(i)->check_and_add(id, pkt, now);
-        store_.olog_->end(id);
         off += pkt_size;
         id++;
       }
+      store_.olog_->end(id, cnt);
     }
 
     uint64_t approx_pkt_count(const uint32_t index_id, const uint64_t tok_beg,
