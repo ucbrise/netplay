@@ -62,6 +62,7 @@ class static_rand_generator {
  public:
   static_rand_generator() {
     cur_pos_ = 0;
+    pkts_ = (struct rte_mbuf**) malloc(PKTS_PER_THREAD * sizeof(struct rte_mbuf*));
     for (size_t i = 0; i < PKTS_PER_THREAD; i++) {
       // Use regular malloc
       pkts_[i] = (struct rte_mbuf*) malloc(sizeof(struct rte_mbuf));
@@ -94,7 +95,7 @@ class static_rand_generator {
 
  private:
   uint64_t cur_pos_;
-  struct rte_mbuf* pkts_[PKTS_PER_THREAD];
+  struct rte_mbuf** pkts_;
 };
 
 class packet_loader {
