@@ -172,7 +172,7 @@ class filter_benchmark {
 
       if (measure_cpu) {
         std::thread cpu_measure_thread([&] {
-          std::ofstream util_stream("cast_cpu_utilization_" + std::to_string(qid));
+          std::ofstream util_stream("cast_cpu_utilization_" + std::to_string(qid) + "_" + num_threads + ".txt");
           cpu_utilization util;
           while (true) {
             sleep(1);
@@ -204,7 +204,7 @@ class filter_benchmark {
       for (double thput : pkt_thputs)
         ptot += thput;
 
-      std::ofstream ofs("query_throughput_cast.txt", std::ios_base::app);
+      std::ofstream ofs("query_throughput_cast_" + std::to_string(num_threads) + ".txt", std::ios_base::app);
       ofs << (qid + 1) << "\t" << num_threads << "\t" << qtot << "\t" << ptot << "\n";
       ofs.close();
     }
@@ -250,7 +250,7 @@ class filter_benchmark {
 
       if (measure_cpu) {
         std::thread cpu_measure_thread([&] {
-          std::ofstream util_stream("char_cpu_utilization_" + std::to_string(qid));
+          std::ofstream util_stream("char_cpu_utilization_" + std::to_string(qid) + "_" + num_threads + ".txt");
           cpu_utilization util;
           while (true) {
             sleep(1);
@@ -282,7 +282,7 @@ class filter_benchmark {
       for (double thput : pkt_thputs)
         ptot += thput;
 
-      std::ofstream ofs("query_throughput_char.txt", std::ios_base::app);
+      std::ofstream ofs("query_throughput_char_" + std::to_string(num_threads) + ".txt", std::ios_base::app);
       ofs << (qid + 1) << "\t" << num_threads << "\t" << qtot << "\t" << ptot << "\n";
       ofs.close();
     }
@@ -411,6 +411,15 @@ int main(int argc, char** argv) {
     ls_bench.bench_char_latency();
   } else if (bench_type == "throughput-char") {
     ls_bench.bench_char_throughput(query_rate, num_threads, measure_cpu);
+  } else if (bench_type == "all") {
+    ls_bench.bench_cast_latency();
+    for (uint32_t i = 1; i < 12; i++) {
+      ls_bench.bench_cast_throughput(query_rate, i, measure_cpu);
+    }
+    ls_bench.bench_char_latency();
+    for (uint32_t i = 1; i < 12; i++) {
+      ls_bench.bench_char_throughput(query_rate, i, measure_cpu);
+    }
   } else {
     fprintf(stderr, "Unknown benchmark type: %s; must be one of: "
             "{latency, throughput}\n", bench_type.c_str());
