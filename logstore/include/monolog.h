@@ -13,10 +13,10 @@ namespace slog {
 template<typename monolog_impl>
 class monolog_iterator :
   public std::iterator<std::input_iterator_tag,
-                       typename monolog_impl::value_type,
-                       typename monolog_impl::difference_type,
-                       typename monolog_impl::pointer,
-                       typename monolog_impl::reference> {
+  typename monolog_impl::value_type,
+  typename monolog_impl::difference_type,
+  typename monolog_impl::pointer,
+  typename monolog_impl::reference> {
  public:
   typedef typename monolog_impl::value_type value_type;
   typedef typename monolog_impl::difference_type difference_type;
@@ -75,7 +75,7 @@ class __monolog_base {
   __monolog_base() {
     T* null_ptr = NULL;
     for (auto& x : buckets_) {
-      x.store(null_ptr);
+      x.store(null_ptr, std::memory_order_release);
     }
     buckets_[0].store(new T[FBS], std::memory_order_release);
   }
@@ -231,7 +231,7 @@ class __monolog_linear_base {
 
   ~__monolog_linear_base() {
     for (auto& x : buckets_) {
-      delete[] x.load();
+      delete[] x.load(std::memory_order_acquire);
     }
   }
 
@@ -308,14 +308,14 @@ class __atomic_monolog_base {
   __atomic_monolog_base() {
     __atomic_ref* null_ptr = NULL;
     for (auto& x : buckets_) {
-      x = null_ptr;
+      x.store(null_ptr, std::memory_order_release);
     }
-    buckets_[0].store(new __atomic_ref[FBS]);
+    buckets_[0].store(new __atomic_ref[FBS], std::memory_order_release);
   }
 
   ~__atomic_monolog_base() {
     for (auto& x : buckets_) {
-      delete[] x.load();
+      delete[] x.load(std::memory_order_acquire);
     }
   }
 
@@ -342,7 +342,7 @@ class __atomic_monolog_base {
     if (buckets_[bucket_idx].load(std::memory_order_acquire) == NULL) {
       try_allocate_bucket(bucket_idx);
     }
-    buckets_[bucket_idx].load(std::memory_order_acquire)[bucket_off].store(val);
+    buckets_[bucket_idx].load(std::memory_order_acquire)[bucket_off].store(val, std::memory_order_release);
   }
 
   __atomic_ref& operator[](const uint32_t idx) {
@@ -353,7 +353,7 @@ class __atomic_monolog_base {
     if (buckets_[bucket_idx].load(std::memory_order_acquire) == NULL) {
       try_allocate_bucket(bucket_idx);
     }
-    return buckets_[bucket_idx].load(std::memory_order_acquire)[bucket_off].load();
+    return buckets_[bucket_idx].load(std::memory_order_acquire)[bucket_off].load(std::memory_order_acquire);
   }
 
   T get(const uint32_t idx) const {
@@ -366,7 +366,7 @@ class __atomic_monolog_base {
     uint32_t hibit = bit_utils::highest_bit(pos);
     uint32_t bucket_off = pos ^ (1 << hibit);
     uint32_t bucket_idx = hibit - FBS_HIBIT;
-    return buckets_[bucket_idx].load(std::memory_order_acquire)[bucket_off].load();
+    return buckets_[bucket_idx].load(std::memory_order_acquire)[bucket_off].load(std::memory_order_acquire);
   }
 
   bool cas(const uint32_t idx, T& expected, T replacement) {
@@ -374,8 +374,9 @@ class __atomic_monolog_base {
     uint32_t hibit = bit_utils::highest_bit(pos);
     uint32_t bucket_off = pos ^ (1 << hibit);
     uint32_t bucket_idx = hibit - FBS_HIBIT;
-    return buckets_[bucket_idx].load(std::memory_order_acquire)[bucket_off].compare_exchange_strong(expected,
-           replacement);
+    return buckets_[bucket_idx].load(std::memory_order_acquire)[bucket_off]
+           .atomic_compare_exchange_strong_explicit(expected, replacement,
+               std::memory_order_release, std::memory_order_acquire);
   }
 
  protected:
@@ -401,7 +402,7 @@ class __atomic_monolog_base {
   __atomic_ref* new_bucket(uint32_t size) {
     __atomic_ref* bucket = new __atomic_ref[size];
     for (uint32_t i = 0; i < size; i++) {
-      bucket[i].store(T(0));
+      bucket[i].store(T(0), std::memory_order_release);
     }
     return bucket;
   }
@@ -451,7 +452,7 @@ class monolog_linearizable : public __monolog_base<T, NBUCKETS> {
 
   // Get the size of the MonoLog (i.e., number of completely written entries)
   uint32_t size() const {
-    return read_tail_.load();
+    return read_tail_.load(std::memory_order_acquire);
   }
 
   iterator begin() const {
