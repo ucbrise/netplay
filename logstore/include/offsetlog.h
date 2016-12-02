@@ -41,13 +41,13 @@ class offsetlog {
 
   void end(uint64_t record_id) {
     // valid_[record_id].set();
-    while (!current_read_id_.atomic_compare_exchange_strong_explicit(record_id,
+    while (!current_read_id_.compare_exchange_strong(record_id,
            record_id + 1, std::memory_order_release,
            std::memory_order_acquire));
   }
 
   void end(uint64_t start_id, uint64_t count) {
-    while (!current_read_id_.atomic_compare_exchange_strong_explicit(start_id,
+    while (!current_read_id_.compare_exchange_strong(start_id,
            start_id + count, std::memory_order_release,
            std::memory_order_acquire));
   }
@@ -73,7 +73,7 @@ class offsetlog {
 
   bool is_valid(uint64_t record_id) {
     return record_id < current_write_id_.load(std::memory_order_acquire);
-           //&& valid_[record_id].load();
+    //&& valid_[record_id].load();
   }
 
   bool is_valid(uint64_t record_id, uint64_t max_rid) {
