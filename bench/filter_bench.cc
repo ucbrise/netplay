@@ -29,6 +29,7 @@
 #include <rte_lpm.h>
 #include <rte_mbuf.h>
 
+#include "cpu_utilization.h"
 #include "dpdk_utils.h"
 #include "query_planner.h"
 #include "query_parser.h"
@@ -130,7 +131,7 @@ class filter_benchmark {
   }
 
   // Throughput benchmarks
-  void bench_cast_throughput(uint64_t query_rate, int num_threads, bool measure_cpu) {
+  void bench_cast_throughput(uint64_t query_rate, uint32_t num_threads, bool measure_cpu) {
     uint64_t worker_rate = query_rate / num_threads;
     for (size_t qid = 0; qid < cast_queries_.size(); qid++) {
       std::vector<std::thread> workers;
@@ -209,7 +210,7 @@ class filter_benchmark {
     }
   }
 
-  void bench_char_throughput(uint64_t query_rate, int num_threads, bool measure_cpu) {
+  void bench_char_throughput(uint64_t query_rate, uint32_t num_threads, bool measure_cpu) {
     assert(query_rate < 1e6);
     assert(num_threads >= 1);
     assert(!measure_cpu);
@@ -296,7 +297,7 @@ int main(int argc, char** argv) {
   uint64_t num_pkts = 60 * 1e6;
   uint64_t load_rate = 1e6;
   uint64_t query_rate = 0;
-  int num_threads = 1;
+  uint32_t num_threads = 1;
   bool measure_cpu;
   while ((c = getopt(argc, argv, "b:p:q:l:n:c")) != -1) {
     switch (c) {
