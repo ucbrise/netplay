@@ -55,47 +55,70 @@ static timestamp_t get_timestamp() {
   return now.tv_usec + (timestamp_t) now.tv_sec * 1000000;
 }
 
-#define PKT_SIZE        54
-#define PKTS_PER_THREAD 60000000
+#define HEADER_SIZE             54
+#define RTE_BURST_SIZE          32
+#define PKTS_PER_THREAD         60000000
+
+struct pkt_attrs {
+  uint32_t sip;
+  uint32_t dip;
+  uint16_t sport;
+  uint16_t dport;
+};
 
 class static_rand_generator {
  public:
-  static_rand_generator() {
+  static_rand_generator(struct rte_mempool* mempool, pkt_attrs* pkt_data) {
     cur_pos_ = 0;
-    pkts_ = (struct rte_mbuf**) malloc(PKTS_PER_THREAD * sizeof(struct rte_mbuf*));
-    for (size_t i = 0; i < PKTS_PER_THREAD; i++) {
-      // Use regular malloc
-      pkts_[i] = (struct rte_mbuf*) malloc(sizeof(struct rte_mbuf));
+    pkt_data_ = pkt_data;
 
-      // rte_mbuf_refcnt_set(pkts_[i], 1);
-      // rte_pktmbuf_reset(pkts_[i]);
-      pkts_[i]->pkt_len = pkts_[i]->data_len = PKT_SIZE;
+    int ret = netplay::dpdk::mempool::mbuf_alloc_bulk(pkts_, HEADER_SIZE,
+              RTE_BURST_SIZE, mempool);
+    if (ret != 0) {
+      fprintf(stderr, "Error allocating packets %d\n", ret);
+      exit(-1);
+    }
 
+    for (int i = 0; i < RTE_BURST_SIZE; i++) {
       struct ether_hdr* eth = rte_pktmbuf_mtod(pkts_[i], struct ether_hdr*);
       eth->d_addr.addr_bytes[5] = 0;
       eth->s_addr.addr_bytes[5] = 1;
       eth->ether_type = rte_cpu_to_be_16(0x0800);
 
       struct ipv4_hdr *ip = (struct ipv4_hdr *) (eth + 1);
-      ip->src_addr = rand() % 256;
-      ip->dst_addr = rand() % 256;
+      ip->src_addr = 0;
+      ip->dst_addr = 0;
       ip->next_proto_id = IPPROTO_TCP;
 
       struct tcp_hdr *tcp = (struct tcp_hdr *) (ip + 1);
-      tcp->src_port = rand() % 10;
-      tcp->dst_port = rand() % 10;
+      tcp->src_port = 0;
+      tcp->dst_port = 0;
     }
   }
 
   struct rte_mbuf** generate_batch(size_t size) {
-    struct rte_mbuf** ret = pkts_ + cur_pos_;
+    // Get next batch
+    for (size_t i = 0; i < size; i++) {
+      struct ether_hdr* eth = rte_pktmbuf_mtod(pkts_[i], struct ether_hdr*);
+
+      struct ipv4_hdr *ip = (struct ipv4_hdr *) (eth + 1);
+      ip->src_addr = pkt_data_[cur_pos_ + i].sip;
+      ip->dst_addr = pkt_data_[cur_pos_ + i].dip;
+
+      struct tcp_hdr *tcp = (struct tcp_hdr *) (ip + 1);
+      tcp->src_port = pkt_data_[cur_pos_ + i].sport;
+      tcp->dst_port = pkt_data_[cur_pos_ + i].dport;
+    }
     cur_pos_ += size;
-    return ret;
+
+    return pkts_;
   }
 
  private:
   uint64_t cur_pos_;
-  struct rte_mbuf** pkts_;
+  pkt_attrs* pkt_data_;
+
+  struct rte_mbuf* pkts_[RTE_BURST_SIZE];
 };
 
 class packet_loader {
@@ -109,17 +132,29 @@ class packet_loader {
   // Throughput benchmarks
   void load_packets(const uint32_t num_threads, const uint64_t rate_limit,
                     const bool measure_cpu) {
+
+    // Generate packets
+    for (uint64_t i = 0; i < num_threads * PKTS_PER_THREAD; i++) {
+      pkt_attrs attrs;
+      attrs.sip = rand() % 256;
+      attrs.dip = rand() % 256;
+      attrs.sport = rand() % 10;
+      attrs.dport = rand() % 10;
+      pkt_data_.push_back(attrs);
+    }
+
     typedef packet_generator<pktstore_vport, static_rand_generator> pktgen_type;
     std::vector<std::thread> workers;
     uint64_t worker_rate = rate_limit / num_threads;
     std::vector<double> thputs(num_threads, 0.0);
-    // struct rte_mempool* mempool = init_dpdk("pktbench", 0, 0);
+    struct rte_mempool* mempool = init_dpdk("pktbench", 0, 0);
     for (uint32_t i = 0; i < num_threads; i++) {
-      workers.push_back(std::thread([i, worker_rate, &thputs, this] {
+      workers.push_back(std::thread([i, worker_rate, &thputs, &mempool, this] {
+        pkt_attrs* buf = &pkt_data_[i * PKTS_PER_THREAD];
         packet_store::handle* handle = store_->get_handle();
         pktstore_vport* vport = new pktstore_vport(handle);
-        static_rand_generator* gen = new static_rand_generator();
-        pktgen_type pktgen(vport, gen, worker_rate, 0, kMaxPktsPerThread);
+        static_rand_generator* gen = new static_rand_generator(mempool, buf);
+        pktgen_type pktgen(vport, gen, worker_rate, 0, PKTS_PER_THREAD);
 
         fprintf(stderr, "Starting benchmark.\n");
         timestamp_t start = get_timestamp();
@@ -155,7 +190,7 @@ class packet_loader {
         }
         util_stream.close();
       });
-      
+
       // Create a cpu_set_t object representing a set of CPUs. Clear it and mark
       // only CPU i as set.
       cpu_set_t cpuset;
@@ -182,6 +217,7 @@ class packet_loader {
 
  private:
   packet_store *store_;
+  std::vector<pkt_attrs> pkt_data_;
 };
 
 void print_usage(char *exec) {
