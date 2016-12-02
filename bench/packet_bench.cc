@@ -66,8 +66,8 @@ class static_rand_generator {
       // Use regular malloc
       pkts_[i] = (struct rte_mbuf*) malloc(sizeof(struct rte_mbuf));
 
-      rte_mbuf_refcnt_set(pkts_[i], 1);
-      rte_pktmbuf_reset(pkts_[i]);
+      // rte_mbuf_refcnt_set(pkts_[i], 1);
+      // rte_pktmbuf_reset(pkts_[i]);
       pkts_[i]->pkt_len = pkts_[i]->data_len = PKT_SIZE;
 
       struct ether_hdr* eth = rte_pktmbuf_mtod(pkts_[i], struct ether_hdr*);
