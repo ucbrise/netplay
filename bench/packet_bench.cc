@@ -55,6 +55,46 @@ static timestamp_t get_timestamp() {
   return now.tv_usec + (timestamp_t) now.tv_sec * 1000000;
 }
 
+#define PKT_SIZE        54
+#define PKTS_PER_THREAD 60000000
+
+class static_rand_generator {
+ public:
+  static_rand_generator() {
+    cur_pos_ = 0;
+    for (size_t i = 0; i < size; i++) {
+      // Use regular malloc
+      pkts_[i] = malloc(sizeof(struct rte_mbuf));
+
+      rte_mbuf_refcnt_set(pkt_[i], 1);
+      rte_pktmbuf_reset(pkt_[i]);
+      pkt_[i]->pkt_len = pkt_[i]->data_len = PKT_SIZE;
+
+      struct ether_hdr* eth = rte_pktmbuf_mtod(pkts_[i], struct ether_hdr*);
+      eth->d_addr.addr_bytes[5] = 0;
+      eth->s_addr.addr_bytes[5] = 1;
+      eth->ether_type = rte_cpu_to_be_16(0x0800);
+
+      struct ipv4_hdr *ip = (struct ipv4_hdr *) (eth + 1);
+      ip->src_addr = rand() % 256;
+      ip->dst_addr = rand() % 256;
+      ip->next_proto_id = IPPROTO_TCP;
+
+      struct tcp_hdr *tcp = (struct tcp_hdr *) (ip + 1);
+      tcp->src_port = rand() % 10;
+      tcp->dst_port = rand() % 10;
+    }
+  }
+
+  struct rte_mbuf** generate_batch(size_t size) {
+    return pkts_ + cur_pos_;
+  }
+
+ private:
+  uint64_t cur_pos_;
+  struct rte_mbuf* pkts_[PKTS_PER_THREAD];
+};
+
 class packet_loader {
  public:
   static const uint64_t kMaxPktsPerThread = 60 * 1e6;
@@ -104,7 +144,7 @@ class packet_loader {
 
     if (measure_cpu) {
       std::thread cpu_measure_thread([&] {
-        std::ofstream util_stream("cpu_utilization");
+        std::ofstream util_stream("write_cpu_utilization_" + std::to_string(num_threads) + ".txts");
         cpu_utilization util;
         while (true) {
           sleep(1);
@@ -132,7 +172,7 @@ class packet_loader {
     for (double thput : thputs)
       tot += thput;
 
-    std::ofstream ofs("write_throughput", std::ios_base::app);
+    std::ofstream ofs("write_throughput_" + std::to_string(num_threads) + ".txt", std::ios_base::app);
     ofs << num_threads << "\t" << tot << "\n";
     ofs.close();
   }
