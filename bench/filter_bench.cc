@@ -298,7 +298,7 @@ int main(int argc, char** argv) {
   uint64_t load_rate = 1e6;
   uint64_t query_rate = 0;
   uint32_t num_threads = 1;
-  bool measure_cpu;
+  bool measure_cpu = false;
   while ((c = getopt(argc, argv, "b:p:q:l:n:c")) != -1) {
     switch (c) {
     case 'b':
