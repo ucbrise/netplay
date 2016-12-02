@@ -79,7 +79,6 @@ class packet_loader {
         pktgen_type pktgen(vport, gen, worker_rate, 0, kMaxPktsPerThread);
 
         fprintf(stderr, "Starting benchmark.\n");
-
         timestamp_t start = get_timestamp();
         pktgen.generate();
         timestamp_t end = get_timestamp();

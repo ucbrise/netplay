@@ -52,15 +52,7 @@ class filter_benchmark {
  public:
   typedef unsigned long long int timestamp_t;
 
-  static const uint64_t kWarmupCount = 1000;
-  static const uint64_t kMeasureCount = 100000;
-  static const uint64_t kCooldownCount = 1000;
-
-  static const uint64_t kWarmupTime = 5000000;
-  static const uint64_t kMeasureTime = 10000000;
-  static const uint64_t kCooldownTime = 5000000;
-
-  static const uint64_t kThreadQueryCount = 75000;
+  static const uint64_t kThreadQueryCount = 1000;
 
   filter_benchmark(const uint64_t load_rate, uint64_t num_pkts,
                    const std::string& query_path) {
@@ -120,7 +112,6 @@ class filter_benchmark {
       double avg = 0.0;
       size_t size = 0;
       for (size_t repeat = 0; repeat < 100; repeat++) {
-        std::vector<uint64_t> results;
         timestamp_t start = get_timestamp();
         auto res = handle->complex_character_lookup(char_ids_[i], end_time_ - 4, end_time_);
         size += count_container(res);
@@ -139,15 +130,89 @@ class filter_benchmark {
   }
 
   // Throughput benchmarks
-  void bench_cast_throughput(uint64_t query_rate, int num_threads) {
-    assert(query_rate < 1e6);
-    assert(num_threads >= 1);
-    // TODO: Implement
+  void bench_cast_throughput(uint64_t query_rate, int num_threads, bool measure_cpu) {
+    uint64_t worker_rate = query_rate / num_threads;
+    for (size_t qid = 0; qid < cast_queries_.size(); qid++) {
+      std::vector<std::thread> workers;
+      std::vector<double> query_thputs(num_threads, 0.0);
+      std::vector<double> pkt_thputs(num_threads, 0.0);
+      for (uint32_t i = 0; i < num_threads; i++) {
+        workers.push_back(std::thread([i, qid, worker_rate, &query_thputs, &pkt_thputs, this] {
+          packet_store::handle* handle = store_->get_handle();
+          token_bucket bucket(worker_rate, 1);
+          uint64_t num_pkts = 0;
+          timestamp_t start = get_timestamp();
+          for (size_t repeat = 0; repeat < kThreadQueryCount; repeat++) {
+            if (worker_rate == 0 || bucket.consume(1)) {
+              std::unordered_set<uint64_t> results;
+              handle->filter_pkts(results, cast_queries_[qid]);
+              num_pkts += results.size();
+            } else {
+              repeat--;
+            }
+          }
+          timestamp_t end = get_timestamp();
+          double totsecs = (double) (end - start) / (1000.0 * 1000.0);
+          query_thputs[i] = ((double) kThreadQueryCount / totsecs);
+          pkt_thputs[i] = ((double) num_pkts / totsecs);
+          fprintf(stderr, "Thread #%u(%lfs): Throughput: %lf.\n", i, totsecs, query_thputs[i]);
+        }));
+
+        // Create a cpu_set_t object representing a set of CPUs. Clear it and mark
+        // only CPU i as set.
+        cpu_set_t cpuset;
+        CPU_ZERO(&cpuset);
+        CPU_SET(i, &cpuset);
+        int rc = pthread_setaffinity_np(workers.back().native_handle(),
+                                        sizeof(cpu_set_t), &cpuset);
+        if (rc != 0)
+          fprintf(stderr, "Error calling pthread_setaffinity_np: %d\n", rc);
+      }
+
+      if (measure_cpu) {
+        std::thread cpu_measure_thread([&] {
+          std::ofstream util_stream("cast_cpu_utilization_" + std::to_string(qid));
+          cpu_utilization util;
+          while (true) {
+            sleep(1);
+            util_stream << util.current() << "\n";
+          }
+          util_stream.close();
+        });
+
+        // Create a cpu_set_t object representing a set of CPUs. Clear it and mark
+        // only CPU i as set.
+        cpu_set_t cpuset;
+        CPU_ZERO(&cpuset);
+        CPU_SET(num_threads, &cpuset);
+        int rc = pthread_setaffinity_np(cpu_measure_thread.native_handle(),
+                                        sizeof(cpu_set_t), &cpuset);
+        if (rc != 0)
+          fprintf(stderr, "Error calling pthread_setaffinity_np: %d\n", rc);
+        cpu_measure_thread.detach();
+      }
+
+      for (auto& th : workers)
+        th.join();
+
+      double qtot = 0.0;
+      for (double thput : query_thputs)
+        qtot += thput;
+
+      double ptot = 0.0;
+      for (double thput : pkt_thputs)
+        ptot += thput;
+
+      std::ofstream ofs("query_throughput_char.txt", std::ios_base::app);
+      ofs << (qid + 1) << "\t" << num_threads << "\t" << qtot << "\t" << ptot << "\n";
+      ofs.close();
+    }
   }
 
-  void bench_char_throughput(uint64_t query_rate, int num_threads) {
+  void bench_char_throughput(uint64_t query_rate, int num_threads, bool measure_cpu) {
     assert(query_rate < 1e6);
     assert(num_threads >= 1);
+    assert(!measure_cpu);
     // TODO: Implement
   }
 
@@ -219,7 +284,7 @@ class filter_benchmark {
 };
 
 const char* usage =
-  "Usage: %s [-b bench-type] [-q query-rate] [-l load-rate] [-p num-packets] [-n num-threads] query-path\n";
+  "Usage: %s [-b bench-type] [-q query-rate] [-l load-rate] [-p num-packets] [-n num-threads] [-c measure-cpu] query-path\n";
 
 void print_usage(char *exec) {
   fprintf(stderr, usage, exec);
@@ -232,7 +297,8 @@ int main(int argc, char** argv) {
   uint64_t load_rate = 1e6;
   uint64_t query_rate = 0;
   int num_threads = 1;
-  while ((c = getopt(argc, argv, "b:p:q:l:n:")) != -1) {
+  bool measure_cpu;
+  while ((c = getopt(argc, argv, "b:p:q:l:n:c")) != -1) {
     switch (c) {
     case 'b':
       bench_type = std::string(optarg);
@@ -248,6 +314,9 @@ int main(int argc, char** argv) {
       break;
     case 'n':
       num_threads = atoi(optarg);
+      break;
+    case 'c':
+      measure_cpu = true;
       break;
     default:
       fprintf(stderr, "Could not parse command line arguments.\n");
@@ -265,11 +334,11 @@ int main(int argc, char** argv) {
   if (bench_type.find("latency-cast") == 0) {
     ls_bench.bench_cast_latency();
   } else if (bench_type == "throughput-cast") {
-    ls_bench.bench_cast_throughput(query_rate, num_threads);
+    ls_bench.bench_cast_throughput(query_rate, num_threads, measure_cpu);
   } else if (bench_type.find("latency-char") == 0) {
     ls_bench.bench_char_latency();
   } else if (bench_type == "throughput-char") {
-    ls_bench.bench_char_throughput(query_rate, num_threads);
+    ls_bench.bench_char_throughput(query_rate, num_threads, measure_cpu);
   } else {
     fprintf(stderr, "Unknown benchmark type: %s; must be one of: "
             "{latency, throughput}\n", bench_type.c_str());
