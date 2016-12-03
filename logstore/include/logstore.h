@@ -365,7 +365,7 @@ class log_store {
     olog_->lookup(record_id, record_offset, record_length);
 
     /* Compute the minimum of requested length and available data */
-    length = std::min(length, record_length - offset);
+    length = std::min(length, static_cast<uint16_t>(record_length - offset));
 
     /* Copy data from data log to record buffer. */
     dlog_->read(record_offset + offset, record, length);

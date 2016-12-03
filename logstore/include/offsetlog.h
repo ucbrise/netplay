@@ -68,7 +68,7 @@ class offsetlog {
   }
 
   size_t storage_size() {
-    return offlens_.storage_size() + valid_.storage_size();
+    return offlens_.storage_size();
   }
 
   offlen_type offlens_;
