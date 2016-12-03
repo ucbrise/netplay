@@ -235,11 +235,13 @@ class __monolog_linear_base {
     }
   }
 
-  void ensure_alloc(size_t offset) {
-    size_t bucket_idx = offset / BLOCK_SIZE;
-    size_t bucket_off = offset % BLOCK_SIZE;
-    if (buckets_[bucket_idx].load(std::memory_order_acquire) == NULL) {
-      try_allocate_bucket(bucket_idx);
+  void ensure_alloc(size_t idx1, size_t idx2) {
+    size_t bucket_idx1 = idx1 / BLOCK_SIZE;
+    size_t bucket_idx2 = idx2 / BLOCK_SIZE;
+    for (size_t i = bucket_idx1; i <= bucket_idx2; i++) {
+      if (buckets_[i].load(std::memory_order_acquire) == NULL) {
+        try_allocate_bucket(i);
+      }
     }
   }
 

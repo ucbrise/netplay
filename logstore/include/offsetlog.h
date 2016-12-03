@@ -10,7 +10,7 @@ namespace slog {
 
 class offsetlog {
  public:
-  typedef __monolog_base <uint64_t, 32> offlen_type;
+  typedef __monolog_linear_base <uint64_t, 1024, 16777216> offlen_type;
 
   offsetlog() {
     current_write_id_.store(0L);
