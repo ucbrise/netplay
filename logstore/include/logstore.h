@@ -49,6 +49,9 @@ struct logstore_storage {
 class log_store {
  public:
   typedef std::unordered_set<uint64_t> result_type;
+  typedef uint32_t identifier_t;
+  typedef uint64_t tok_t;
+  typedef uint16_t len_t;
 
   class handle {
    public:
@@ -79,7 +82,7 @@ class log_store {
      *
      * @return The id (> 0) of the newly created index. Returns zero on failure.
      */
-    uint32_t add_index(uint32_t token_length) {
+    identifier_t add_index(size_t token_length) {
       return base_.add_index(token_length);
     }
 
@@ -89,7 +92,7 @@ class log_store {
      * @param fn The filter function.
      * @return The id of the newly created stream.
      */
-    uint32_t add_stream(filter_function fn) {
+    identifier_t add_stream(filter_function fn) {
       return base_.add_stream(fn);
     }
 
@@ -101,7 +104,7 @@ class log_store {
      * @param tokens Tokens associated with the record.
      * @return The unique record id generated for the record.
      */
-    uint64_t insert(const unsigned char* record, uint16_t record_len,
+    uint64_t insert(const unsigned char* record, len_t record_len,
                     token_list& tkns) {
       if (remaining_ids_ == 0) {
         cur_id_ = base_.olog_->request_id_block(id_block_size_);
@@ -148,7 +151,7 @@ class log_store {
      * @return true if the extract is successful, false otherwise.
      */
     bool extract(unsigned char* record, const uint64_t record_id,
-                 uint32_t offset, uint32_t& length) const {
+                 size_t offset, len_t& length) const {
       return base_.extract(record, record_id, offset, length);
     }
 
@@ -160,7 +163,7 @@ class log_store {
     * @param tok_min The smallest token to consider.
     * @param tok_max The largest token to consider.
     */
-    void filter(result_type& results, const uint32_t index_id,
+    void filter(result_type& results, const identifier_t index_id,
                 const uint64_t tok_min, const uint64_t tok_max) const {
       base_.filter(results, index_id, tok_min, tok_max);
     }
@@ -171,7 +174,7 @@ class log_store {
      * @param stream_id The id of the stream.
      * @return The stream associated with the id.
      */
-    entry_list* get_stream(uint32_t stream_id) const {
+    entry_list* get_stream(identifier_t stream_id) const {
       return base_.get_stream(stream_id);
     }
 
@@ -248,7 +251,7 @@ class log_store {
    *
    * @return The id (> 0) of the newly created index. Returns zero on failure.
    */
-  uint32_t add_index(uint32_t token_length) {
+  identifier_t add_index(len_t token_length) {
     switch (token_length) {
     case 1:
       return OFFSET1 + idx1_->push_back(new __index1);
@@ -277,7 +280,7 @@ class log_store {
    * @param fn The filter function.
    * @return The id of the newly created stream.
    */
-  uint32_t add_stream(filter_function fn) {
+  identifier_t add_stream(filter_function fn) {
     return streams_->push_back(new streamlog(fn));
   }
 
@@ -350,8 +353,8 @@ class log_store {
    *  number of bytes extracted.
    * @return true if the extract is successful, false otherwise.
    */
-  bool extract(unsigned char* record, const uint64_t record_id, uint32_t offset,
-               uint32_t& length) const {
+  bool extract(unsigned char* record, const uint64_t record_id, size_t offset,
+               len_t& length) const {
 
     /* Checks if the record_id has been written yet, returns false on failure. */
     if (!olog_->is_valid(record_id))
@@ -379,7 +382,7 @@ class log_store {
    * @param tok_min The smallest token to consider.
    * @param tok_max The largest token to consider.
    */
-  void filter(result_type& results, const uint32_t index_id, const uint64_t tok_min,
+  void filter(result_type& results, const identifier_t index_id, const uint64_t tok_min,
               const uint64_t tok_max) const {
     uint64_t max_rid = olog_->num_ids();
     return filter(results, index_id, tok_min, tok_max, max_rid);
@@ -391,7 +394,7 @@ class log_store {
    * @param stream_id The id of the stream.
    * @return The stream associated with the id.
    */
-  entry_list* get_stream(uint32_t stream_id) const {
+  entry_list* get_stream(identifier_t stream_id) const {
     return streams_->at(stream_id)->get_stream();
   }
 
@@ -474,8 +477,8 @@ class log_store {
   void update_indexes(uint64_t record_id, token_list& tokens) {
     for (token_t& token : tokens) {
       /* Identify which index token belongs to */
-      uint32_t idx = token.index_id() / OFFSETMIN;
-      uint32_t off = token.index_id() % OFFSETMIN;
+      identifier_t idx = token.index_id() / OFFSETMIN;
+      identifier_t off = token.index_id() % OFFSETMIN;
 
       /* Update relevant index */
       uint64_t key = token.data();
@@ -526,8 +529,8 @@ class log_store {
    */
   void update_streams(uint64_t record_id, const unsigned char* record,
                       const uint16_t record_len, const token_list& tokens) {
-    uint32_t num_streams = streams_->size();
-    for (uint32_t i = 0; i < num_streams; i++) {
+    size_t num_streams = streams_->size();
+    for (size_t i = 0; i < num_streams; i++) {
       streams_->at(i)->check_and_add(record_id, record, record_len, tokens);
     }
   }
@@ -541,29 +544,30 @@ class log_store {
    * @param f The filter query (predicate).
    % @return The count of the filter query.
    */
-  uint64_t filter_count(uint32_t index_id, uint32_t min, uint32_t max) const {
+  uint64_t filter_count(const identifier_t index_id, const uint64_t tok_min,
+                        const uint64_t tok_max) const {
     /* Identify which index the filter is on */
-    uint32_t idx = index_id / OFFSETMIN;
-    uint32_t off = index_id % OFFSETMIN;
+    identifier_t idx = index_id / OFFSETMIN;
+    identifier_t off = index_id % OFFSETMIN;
 
     /* Query relevant index */
     switch (idx) {
     case 1:
-      return filter_count(idx1_->at(off), min, max);
+      return filter_count(idx1_->at(off), tok_min, tok_max);
     case 2:
-      return filter_count(idx2_->at(off), min, max);
+      return filter_count(idx2_->at(off), tok_min, tok_max);
     case 4:
-      return filter_count(idx3_->at(off), min, max);
+      return filter_count(idx3_->at(off), tok_min, tok_max);
     case 8:
-      return filter_count(idx4_->at(off), min, max);
+      return filter_count(idx4_->at(off), tok_min, tok_max);
     case 16:
-      return filter_count(idx5_->at(off), min, max);
+      return filter_count(idx5_->at(off), tok_min, tok_max);
     case 32:
-      return filter_count(idx6_->at(off), min, max);
+      return filter_count(idx6_->at(off), tok_min, tok_max);
     case 64:
-      return filter_count(idx7_->at(off), min, max);
+      return filter_count(idx7_->at(off), tok_min, tok_max);
     case 128:
-      return filter_count(idx8_->at(off), min, max);
+      return filter_count(idx8_->at(off), tok_min, tok_max);
     default:
       return 0;
     }
@@ -579,9 +583,10 @@ class log_store {
    % @return The count of the filter query.
    */
   template<typename index_type>
-  uint64_t filter_count(index_type* index, uint64_t min, uint64_t max) const {
+  uint64_t filter_count(index_type* index, const uint64_t tok_min,
+                        const uint64_t tok_max) const {
     uint64_t count = 0;
-    for (uint64_t i = min; i <= max; i++) {
+    for (uint64_t i = tok_min; i <= tok_max; i++) {
       entry_list* list = index->get(i);
       if (list != NULL)
         count += list->size();
@@ -599,12 +604,12 @@ class log_store {
    * @param max_rid Largest record-id to consider.
    * @param superset The superset to which the results must belong.
    */
-  void filter(result_type& results, const uint32_t index_id, const uint64_t tok_min,
+  void filter(result_type& results, const identifier_t index_id, const uint64_t tok_min,
               const uint64_t tok_max, const uint64_t max_rid) const {
 
     /* Identify which index the filter is on */
-    uint32_t idx = index_id / OFFSETMIN;
-    uint32_t off = index_id % OFFSETMIN;
+    identifier_t idx = index_id / OFFSETMIN;
+    identifier_t off = index_id % OFFSETMIN;
 
     switch (idx) {
     case 1: {
@@ -682,8 +687,8 @@ class log_store {
    * @param max_rid The maximum permissible record id.
    */
   void sweep_list(result_type& results, entry_list *list, uint64_t max_rid) const {
-    uint32_t size = list->size();
-    for (uint32_t i = 0; i < size; i++) {
+    size_t size = list->size();
+    for (size_t i = 0; i < size; i++) {
       uint64_t record_id = list->at(i);
       if (olog_->is_valid(record_id, max_rid))
         results.insert(record_id);
@@ -699,8 +704,8 @@ class log_store {
   template<typename index_type>
   void index_size(std::vector<size_t>& sizes,
                   monolog_linearizable<index_type*> *idx) const {
-    uint32_t num_indexes = idx->size();
-    for (uint32_t i = 0; i < num_indexes; i++) {
+    size_t num_indexes = idx->size();
+    for (identifier_t i = 0; i < num_indexes; i++) {
       sizes.push_back(idx->at(i)->storage_size());
     }
   }
@@ -711,8 +716,8 @@ class log_store {
    * @param sizes Vector to be populated with stream sizes.
    */
   void stream_size(std::vector<size_t>& sizes) const {
-    uint32_t num_streams = streams_->size();
-    for (uint32_t i = 0; i < num_streams; i++) {
+    size_t num_streams = streams_->size();
+    for (identifier_t i = 0; i < num_streams; i++) {
       sizes.push_back(streams_->at(i)->get_stream()->storage_size());
     }
   }

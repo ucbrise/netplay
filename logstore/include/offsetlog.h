@@ -1,5 +1,5 @@
-#ifndef SLOG_KVMAP_H_
-#define SLOG_KVMAP_H_
+#ifndef SLOG_OFFSETLOG_H_
+#define SLOG_OFFSETLOG_H_
 
 #include <cstdint>
 
@@ -11,21 +11,6 @@ namespace slog {
 class offsetlog {
  public:
   typedef __monolog_base <uint64_t, 32> offlen_type;
-
-  struct atomic_bool {
-    std::atomic_bool valid;
-    atomic_bool() {
-      valid.store(0);
-    }
-
-    bool load() {
-      return valid.load();
-    }
-
-    void set() {
-      valid.store(true);
-    }
-  };
 
   offsetlog() {
     current_write_id_.store(0L);
@@ -40,7 +25,6 @@ class offsetlog {
   }
 
   void end(uint64_t record_id) {
-    // valid_[record_id].set();
     while (!current_read_id_.compare_exchange_strong(record_id,
            record_id + 1, std::memory_order_release,
            std::memory_order_acquire));
@@ -52,7 +36,7 @@ class offsetlog {
            std::memory_order_acquire));
   }
 
-  uint64_t request_id_block(uint32_t num_records) {
+  uint64_t request_id_block(uint64_t num_records) {
     uint64_t start_id = current_write_id_.fetch_add(num_records,
                         std::memory_order_release);
     offlens_.ensure_alloc(start_id, start_id + num_records);
@@ -60,7 +44,7 @@ class offsetlog {
     return start_id;
   }
 
-  void set(uint32_t record_id, uint64_t offset, uint16_t length) {
+  void set(uint64_t record_id, uint64_t offset, uint16_t length) {
     uint64_t offlen = ((uint64_t) length) << 48 | (offset & 0xFFFFFFFFFFFF);
     offlens_.set(record_id, offlen);
   }
@@ -73,16 +57,14 @@ class offsetlog {
 
   bool is_valid(uint64_t record_id) {
     return record_id < current_write_id_.load(std::memory_order_acquire);
-    //&& valid_[record_id].load();
   }
 
   bool is_valid(uint64_t record_id, uint64_t max_rid) {
-    return record_id < max_rid; //&& valid_[record_id].load() > 0;
+    return record_id < max_rid;
   }
 
   uint64_t num_ids() {
     return current_read_id_.load(std::memory_order_acquire);
-    // return current_write_id_.load(std::memory_order_acquire);
   }
 
   size_t storage_size() {
@@ -90,12 +72,10 @@ class offsetlog {
   }
 
   offlen_type offlens_;
-  __monolog_base <atomic_bool, 32> valid_;
-
   std::atomic<uint64_t> current_write_id_;
   std::atomic<uint64_t> current_read_id_;
 };
 
 }
 
-#endif /* SLOG_KVMAP_H_ */
+#endif /* SLOG_OFFSETLOG_H_ */

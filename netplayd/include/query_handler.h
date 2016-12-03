@@ -11,6 +11,7 @@ namespace netplay {
 
 class query_handler : virtual public thrift::NetPlayQueryServiceIf {
  public:
+  typedef packet_store::len_t len_t;
   query_handler(netplay::packet_store::handle* handle) {
     handle_ = handle;
   }
@@ -69,7 +70,7 @@ class query_handler : virtual public thrift::NetPlayQueryServiceIf {
 
   void extract(std::string& _return, const int64_t record_id, const int16_t off, const int16_t len) {
     unsigned char buf[256];
-    uint32_t len_ = len;
+    len_t len_ = len;
     handle_->extract(buf, record_id, off, len_);
     _return.assign((char*)buf);
   }

@@ -72,8 +72,8 @@ class packet_store: public slog::log_store {
         store_.olog_->set(id, off, pkt_size);
         store_.append_record(pkt, pkt_size, off);
         store_.timestamps_->set(id, now);
-        uint32_t num_chars = store_.complex_characters_->size();
-        for (uint32_t i = 0; i < num_chars; i++)
+        size_t num_chars = store_.complex_characters_->size();
+        for (size_t i = 0; i < num_chars; i++)
           store_.complex_characters_->at(i)->check_and_add(id, pkt, now);
         off += pkt_size;
         id++;
@@ -81,7 +81,7 @@ class packet_store: public slog::log_store {
       store_.olog_->end(id, cnt);
     }
 
-    uint64_t approx_pkt_count(const uint32_t index_id, const uint64_t tok_beg,
+    uint64_t approx_pkt_count(const id_t index_id, const uint64_t tok_beg,
                               const uint64_t tok_end) const {
       return store_.approx_pkt_count(index_id, tok_beg, tok_end);
     }
@@ -90,28 +90,28 @@ class packet_store: public slog::log_store {
       store_.filter_pkts(results, plan);
     }
 
-    complex_character::result complex_character_lookup(const uint32_t char_id,
+    complex_character::result complex_character_lookup(const id_t char_id,
                                   const uint32_t ts_beg, const uint32_t ts_end) {
       return store_.complex_character_lookup(char_id, ts_beg, ts_end);
     }
 
-    uint32_t srcip_idx() const {
+    id_t srcip_idx() const {
       return store_.srcip_idx_id_;
     }
 
-    uint32_t dstip_idx() const {
+    id_t dstip_idx() const {
       return store_.dstip_idx_id_;
     }
 
-    uint32_t srcport_idx() const {
+    id_t srcport_idx() const {
       return store_.srcport_idx_id_;
     }
 
-    uint32_t dstport_idx() const {
+    id_t dstport_idx() const {
       return store_.dstport_idx_id_;
     }
 
-    uint32_t timestamp_idx() const {
+    id_t timestamp_idx() const {
       return store_.timestamp_idx_id_;
     }
 
@@ -250,11 +250,11 @@ class packet_store: public slog::log_store {
   }
 
  private:
-  uint32_t srcip_idx_id_;
-  uint32_t dstip_idx_id_;
-  uint32_t srcport_idx_id_;
-  uint32_t dstport_idx_id_;
-  uint32_t timestamp_idx_id_;
+  id_t srcip_idx_id_;
+  id_t dstip_idx_id_;
+  id_t srcport_idx_id_;
+  id_t dstport_idx_id_;
+  id_t timestamp_idx_id_;
 
   slog::__index4* srcip_idx_;
   slog::__index4* dstip_idx_;
