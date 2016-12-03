@@ -36,7 +36,7 @@ namespace netplay {
 class packet_store: public slog::log_store {
  public:
   typedef std::unordered_set<uint64_t> result_type;
-  typedef __monolog_linear_base <uint64_t, 1024, 16777216> timelist_type;
+  typedef slog::__monolog_linear_base <uint64_t, 1024, 16777216> timelist_type;
   class handle : public slog::log_store::handle {
    public:
     handle(packet_store& store)
