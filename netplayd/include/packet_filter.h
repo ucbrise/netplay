@@ -101,7 +101,7 @@ class packet_filter_result {
                            const filter_iterator<index_type>& it,
                            slog::__monolog_linear_base <uint8_t>* dlog,
                            slog::offsetlog* olog,
-                           slog::__monolog_base<uint32_t, 32>* timestamps)
+                           packet_store::timelist_type* timestamps)
       : filter_(filter) {
       it_ = it;
       dlog_ = dlog;
@@ -148,14 +148,14 @@ class packet_filter_result {
     filter_iterator<index_type> it_;
     slog::__monolog_linear_base<uint8_t>* dlog_;
     slog::offsetlog* olog_;
-    slog::__monolog_base<uint32_t, 32>* timestamps_;
+    packet_store::timelist_type* timestamps_;
   };
 
   packet_filter_result(slog::filter_result<index_type>& res,
                        const packet_filter& filter,
                        slog::__monolog_linear_base <uint8_t>* dlog,
                        slog::offsetlog* olog,
-                       slog::__monolog_base<uint32_t, 32>* timestamps)
+                       packet_store::timelist_type* timestamps)
     : res_(res), filter_(filter) {
     dlog_ = dlog;
     olog_ = olog;
@@ -185,7 +185,7 @@ inline packet_filter_result<index_type> build_result(
   const packet_filter& filter,
   slog::__monolog_linear_base <uint8_t>* dlog,
   slog::offsetlog* olog,
-  slog::__monolog_base<uint32_t, 32>* timestamps) {
+  packet_store::timelist_type* timestamps) {
   return packet_filter_result<index_type>(res, filter, dlog, olog, timestamps);
 }
 
