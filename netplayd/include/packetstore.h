@@ -36,6 +36,7 @@ namespace netplay {
 class packet_store: public slog::log_store {
  public:
   typedef std::unordered_set<uint64_t> result_type;
+  typedef __monolog_linear_base <uint64_t, 1024, 16777216> timelist_type;
   class handle : public slog::log_store::handle {
    public:
     handle(packet_store& store)
@@ -142,7 +143,7 @@ class packet_store: public slog::log_store {
     dstport_idx_ = idx2_->at(1);
     timestamp_idx_ = idx4_->at(2);
 
-    timestamps_ = new slog::__monolog_base <uint32_t, 32>();
+    timestamps_ = new timelist_type();
     complex_characters_ = new slog::monolog_linearizable<complex_character*>();
   }
 
@@ -262,7 +263,7 @@ class packet_store: public slog::log_store {
   slog::__index2* dstport_idx_;
   slog::__index4* timestamp_idx_;
 
-  slog::__monolog_base<uint32_t, 32> *timestamps_;
+  timelist_type *timestamps_;
   slog::monolog_linearizable<complex_character*> *complex_characters_;
 };
 
