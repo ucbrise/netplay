@@ -235,6 +235,40 @@ class __monolog_linear_base {
     }
   }
 
+  void ensure_alloc(size_t offset) {
+    size_t bucket_idx = offset / BLOCK_SIZE;
+    size_t bucket_off = offset % BLOCK_SIZE;
+    if (buckets_[bucket_idx].load(std::memory_order_acquire) == NULL) {
+      try_allocate_bucket(bucket_idx);
+    }
+  }
+
+  // Sets the data at index idx to val. Allocates memory if necessary.
+  void set(size_t idx, const T val) {
+    size_t bucket_idx = idx / BLOCK_SIZE;
+    size_t bucket_off = idx % BLOCK_SIZE;
+    if (buckets_[bucket_idx].load(std::memory_order_acquire) == NULL) {
+      try_allocate_bucket(bucket_idx);
+    }
+    buckets_[bucket_idx].load(std::memory_order_acquire)[bucket_off] = val;
+  }
+
+  // Gets the data at index idx.
+  T get(const size_t idx) const {
+    size_t bucket_idx = idx / BLOCK_SIZE;
+    size_t bucket_off = idx % BLOCK_SIZE;
+    return buckets_[bucket_idx].load(std::memory_order_acquire)[bucket_off];
+  }
+
+  T& operator[](const size_t idx) {
+    size_t bucket_idx = idx / BLOCK_SIZE;
+    size_t bucket_off = idx % BLOCK_SIZE;
+    if (buckets_[bucket_idx].load(std::memory_order_acquire) == NULL) {
+      try_allocate_bucket(bucket_idx);
+    }
+    return buckets_[bucket_idx].load(std::memory_order_acquire)[bucket_off];
+  }
+
   // Write len bytes of data at offset.
   // Allocates memory if necessary.
   void write(const size_t offset, const T* data, const size_t len) {
