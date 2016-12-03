@@ -40,7 +40,6 @@ class offsetlog {
     uint64_t start_id = current_write_id_.fetch_add(num_records,
                         std::memory_order_release);
     offlens_.ensure_alloc(start_id, start_id + num_records);
-    valid_.ensure_alloc(start_id, start_id + num_records);
     return start_id;
   }
 
