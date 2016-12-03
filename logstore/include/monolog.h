@@ -440,7 +440,7 @@ class monolog_linearizable : public __monolog_base<T, NBUCKETS> {
   size_t push_back(const T val) {
     size_t idx = write_tail_.fetch_add(1UL);
     this->set(idx, val);
-    while (!std::atomic_(&read_tail_, &idx, idx + 1))
+    while (!std::atomic_compare_exchange_strong(&read_tail_, &idx, idx + 1))
       ;
     return idx;
   }
