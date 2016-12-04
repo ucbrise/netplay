@@ -146,6 +146,7 @@ class packet_loader {
     typedef packet_generator<pktstore_vport, static_rand_generator> pktgen_type;
     std::vector<std::thread> workers;
     uint64_t worker_rate = rate_limit / num_threads;
+    std::atomic<uint64_t> done = 0;
     std::vector<double> thputs(num_threads, 0.0);
     struct rte_mempool* mempool = init_dpdk("pktbench", 0, 0);
     for (uint32_t i = 0; i < num_threads; i++) {
@@ -159,6 +160,7 @@ class packet_loader {
         fprintf(stderr, "Starting benchmark.\n");
         timestamp_t start = get_timestamp();
         pktgen.generate();
+        done.fetch_add(1);
         timestamp_t end = get_timestamp();
         double totsecs = (double) (end - start) / (1000.0 * 1000.0);
         thputs[i] = ((double) pktgen.total_sent() / totsecs);
@@ -181,10 +183,10 @@ class packet_loader {
     }
 
     if (measure_cpu) {
-      std::thread cpu_measure_thread([&] {
+      std::thread cpu_measure_thread([num_threads, this] {
         std::ofstream util_stream("write_cpu_utilization_" + std::to_string(num_threads) + ".txts");
         cpu_utilization util;
-        while (true) {
+        while (done.load() != num_threads) {
           sleep(1);
           util_stream << util.current() << "\n";
         }
@@ -200,7 +202,8 @@ class packet_loader {
                                       sizeof(cpu_set_t), &cpuset);
       if (rc != 0)
         fprintf(stderr, "Error calling pthread_setaffinity_np: %d\n", rc);
-      cpu_measure_thread.detach();
+
+      cpu_measure_thread.join();
     }
 
     for (auto& th : workers)
