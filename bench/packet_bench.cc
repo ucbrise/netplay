@@ -151,7 +151,7 @@ class packet_loader {
     std::vector<double> thputs(num_threads, 0.0);
     struct rte_mempool* mempool = init_dpdk("pktbench", 0, 0);
     for (uint32_t i = 0; i < num_threads; i++) {
-      workers.push_back(std::thread([i, worker_rate, &thputs, &mempool, this] {
+      workers.push_back(std::thread([i, worker_rate, &thputs, &done, &mempool, this] {
         pkt_attrs* buf = &pkt_data_[i * PKTS_PER_THREAD];
         packet_store::handle* handle = store_->get_handle();
         pktstore_vport* vport = new pktstore_vport(handle);
