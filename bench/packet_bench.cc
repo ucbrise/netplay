@@ -162,6 +162,7 @@ class packet_loader {
         timestamp_t start = get_timestamp();
         pktgen.generate();
         done.fetch_add(1);
+        fprintf(stderr, "Set done: %" PRIu32 "\n", done.load());
         timestamp_t end = get_timestamp();
         double totsecs = (double) (end - start) / (1000.0 * 1000.0);
         thputs[i] = ((double) pktgen.total_sent() / totsecs);
@@ -188,6 +189,7 @@ class packet_loader {
         std::ofstream util_stream("write_cpu_utilization_" + std::to_string(num_threads) + ".txts");
         cpu_utilization util;
         while (done.load() != num_threads) {
+          sleep(1);
           util_stream << util.current() << "\n";
           fprintf(stderr, "Finally set1.\n");
         }
