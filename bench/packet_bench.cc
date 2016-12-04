@@ -183,7 +183,7 @@ class packet_loader {
     }
 
     if (measure_cpu) {
-      std::thread cpu_measure_thread([num_threads, this] {
+      std::thread cpu_measure_thread([num_threads, &done, this] {
         std::ofstream util_stream("write_cpu_utilization_" + std::to_string(num_threads) + ".txts");
         cpu_utilization util;
         while (done.load() != num_threads) {
