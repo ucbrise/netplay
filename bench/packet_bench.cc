@@ -146,7 +146,7 @@ class packet_loader {
     typedef packet_generator<pktstore_vport, static_rand_generator> pktgen_type;
     std::vector<std::thread> workers;
     uint64_t worker_rate = rate_limit / num_threads;
-    std::atomic<int> done;
+    std::atomic<uint32_t> done;
     done.store(1);
     std::vector<double> thputs(num_threads, 0.0);
     struct rte_mempool* mempool = init_dpdk("pktbench", 0, 0);
@@ -189,7 +189,7 @@ class packet_loader {
         cpu_utilization util;
         while (done.load() != num_threads) {
           util_stream << util.current() << "\n";
-          fprintf("Finally set1.\n");
+          fprintf(stderr, "Finally set1.\n");
         }
         util_stream.close();
       });
