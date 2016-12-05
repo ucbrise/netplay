@@ -146,17 +146,22 @@ class packet_loader {
     typedef packet_generator<pktstore_vport, static_rand_generator> pktgen_type;
     std::vector<std::thread> workers;
     uint64_t worker_rate = rate_limit / num_threads;
+
+    uint64_t num_pkts = PKTS_PER_THREAD;
+    if (worker_rate != 0) {
+      num_pkts = worker_rate * 60;
+    }
     std::atomic<uint32_t> done;
     done.store(0);
     std::vector<double> thputs(num_threads, 0.0);
     struct rte_mempool* mempool = init_dpdk("pktbench", 0, 0);
     for (uint32_t i = 0; i < num_threads; i++) {
-      workers.push_back(std::thread([i, worker_rate, &thputs, &done, &mempool, this] {
+      workers.push_back(std::thread([i, worker_rate, num_pkts, &thputs, &done, &mempool, this] {
         pkt_attrs* buf = &pkt_data_[i * PKTS_PER_THREAD];
         packet_store::handle* handle = store_->get_handle();
         pktstore_vport* vport = new pktstore_vport(handle);
         static_rand_generator* gen = new static_rand_generator(mempool, buf);
-        pktgen_type pktgen(vport, gen, worker_rate, 0, PKTS_PER_THREAD);
+        pktgen_type pktgen(vport, gen, worker_rate, 0, num_pkts);
 
         fprintf(stderr, "Starting benchmark.\n");
         timestamp_t start = get_timestamp();
@@ -189,10 +194,9 @@ class packet_loader {
         std::ofstream util_stream("write_cpu_utilization_" + std::to_string(num_threads) + ".txt");
         cpu_utilization util;
         while (done.load() != num_threads) {
-          sleep(1);
           util_stream << util.current() << "\n";
           util_stream.flush();
-          fprintf(stderr, "Finally set1.\n");
+          sleep(1);
         }
         util_stream.close();
       });
