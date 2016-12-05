@@ -196,6 +196,8 @@ class packet_loader {
         util_stream.close();
       });
 
+      fprintf(stderr, "Thread started.\n");
+
       // Create a cpu_set_t object representing a set of CPUs. Clear it and mark
       // only CPU i as set.
       cpu_set_t cpuset;
