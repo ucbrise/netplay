@@ -191,6 +191,7 @@ class packet_loader {
         while (done.load() != num_threads) {
           sleep(1);
           util_stream << util.current() << "\n";
+          util_stream.flush();
           fprintf(stderr, "Finally set1.\n");
         }
         util_stream.close();
