@@ -19,6 +19,7 @@
 #include <string.h>
 #include <ucontext.h>
 #include <unistd.h>
+#include <cxxabi.h>
 
 #include <rte_config.h>
 #include <rte_malloc.h>
