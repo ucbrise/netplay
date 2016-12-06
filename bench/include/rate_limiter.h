@@ -24,8 +24,11 @@ class rate_limiter {
   }
 
   void generate() {
-    double min_batch_ns = (double) (1e9 * BATCH_SIZE) / (double) rate_;
-    fprintf(stderr, "%d ops per %lf ns.\n", BATCH_SIZE, min_batch_ns);
+    double min_batch_ns = 0;
+    if(rate_ != 0) {
+      min_batch_ns = (double) (1e9 * BATCH_SIZE) / (double) rate_;
+      fprintf(stderr, "%d ops per %lf ns.\n", BATCH_SIZE, min_batch_ns);
+    }
 
     struct timespec tspec;
     tspec.tv_sec = 0;
