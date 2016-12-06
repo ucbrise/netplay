@@ -119,14 +119,14 @@ class packet_filter_result {
         it_++;
         if (!it_.finished()) {
           uint64_t offset;
-          uint16_t length;
-          fprintf(stderr, "Lookup off\n");
+          uint16_t length;          
+          fprintf(stderr, "id = %" PRIu64 "; Lookup off\n", id);
           olog_->lookup(*it_, offset, length);
-          fprintf(stderr, "off = %" PRIu64 " Get pkt data\n", offset);
+          fprintf(stderr, "off = %" PRIu64 "; Get pkt data\n", offset);
           unsigned char* pkt_data = (unsigned char*) dlog_->ptr(offset);
           fprintf(stderr, "Get ts\n");
           ts = *((uint64_t*) pkt_data);
-          fprintf(stderr, "ts = %" PRIu64 " Get pkt\n", ts);
+          fprintf(stderr, "ts = %" PRIu64 "; Get pkt\n", ts);
           pkt = pkt_data + sizeof(uint64_t);
         }
       } while (!it_.finished() && !filter_.apply(pkt, ts));
