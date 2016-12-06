@@ -67,6 +67,7 @@ class packet_store: public slog::log_store {
           store_.srcport_idx_->add_entry(udp->src_port, id);
           store_.dstport_idx_->add_entry(udp->dst_port, id);
         }
+        fprintf(stderr, "id=%" PRIu64 "\n", id);
         store_.olog_->set(id, off, pkt_size);
         off += store_.append_pkt(off, now, pkt, pkt_size);
         size_t num_chars = store_.complex_characters_->size();
