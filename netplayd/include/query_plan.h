@@ -14,9 +14,9 @@ struct clause_plan {
 
 typedef std::vector<clause_plan> query_plan;
 
-void print_query_plan(const query_plan& plan) const {
-  for (const auto& plan : query_plan) {
-    index_filter f = plan.idx_filter;
+void print_query_plan(const query_plan& plan) {
+  for (const auto& p : plan) {
+    index_filter f = p.idx_filter;
     fprintf(stderr, "idx-filter: (%" PRIu32 ", %" PRIu64 ", %" PRIu64 ")\t",
             f.index_id, f.tok_range.first, f.tok_range.second);
   }
