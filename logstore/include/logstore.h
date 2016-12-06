@@ -678,7 +678,7 @@ class log_store {
   template<typename index_type>
   filter_result<index_type> filter(index_type* index, const uint64_t tok_min,
                                    const uint64_t tok_max, const uint64_t max_rid) const {
-    return filter_result<index_type>(olog_, index, tok_min, tok_max, max_rid);
+    return filter_result<index_type>(index, tok_min, tok_max, max_rid);
   }
 
   /**
