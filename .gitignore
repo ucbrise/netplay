@@ -55,6 +55,9 @@ nbproject
 # Idea files
 .idea
 
+# Misc. excludes
+queries.txt
+
 # generic ignores
 *.deps
 *.dirstamp
