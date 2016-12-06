@@ -120,7 +120,7 @@ class packet_filter_result {
         if (!it_.finished()) {
           uint64_t offset;
           uint16_t length;          
-          fprintf(stderr, "id = %" PRIu64 "; Lookup off\n", id);
+          fprintf(stderr, "id = %" PRIu64 "; Lookup off\n", *it_);
           olog_->lookup(*it_, offset, length);
           fprintf(stderr, "off = %" PRIu64 "; Get pkt data\n", offset);
           unsigned char* pkt_data = (unsigned char*) dlog_->ptr(offset);

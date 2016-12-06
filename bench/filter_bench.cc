@@ -383,10 +383,10 @@ void crit_err_hdlr(int sig_num, siginfo_t * info, void * ucontext) {
 #error Unsupported architecture. // TODO: Add support for other arch.
 #endif
 
-  std::cerr << "signal " << sig_num
+  std::cerr << "Received signal " << sig_num
             << " (" << strsignal(sig_num) << "), address is "
             << info->si_addr << " from " << caller_address
-            << std::endl << std::endl;
+            << std::endl;
 
   void * array[50];
   int size = backtrace(array, 50);
@@ -441,7 +441,6 @@ void crit_err_hdlr(int sig_num, siginfo_t * info, void * ucontext) {
       std::cerr << "[bt]: (" << i << ") " << messages[i] << std::endl;
     }
   }
-  std::cerr << std::endl;
 
   free(messages);
 
