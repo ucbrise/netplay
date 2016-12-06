@@ -162,7 +162,7 @@ class packet_loader {
         packet_store::handle* handle = store_->get_handle();
         pktstore_vport* vport = new pktstore_vport(handle);
         static_rand_generator* gen = new static_rand_generator(mempool, buf);
-        pktgen_type pktgen(vport, gen, worker_rate, 0, num_pkts);
+        pktgen_type pktgen(vport, gen, worker_rate, num_pkts);
 
         fprintf(stderr, "Starting benchmark.\n");
         timestamp_t start = get_timestamp();
