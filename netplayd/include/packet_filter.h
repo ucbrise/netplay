@@ -120,7 +120,7 @@ class packet_filter_result {
           uint64_t offset;
           uint16_t length;
           olog_->lookup(*it_, offset, length);
-          void* pkt_data = dlog_->ptr(offset);
+          unsigned char* pkt_data = (unsigned char*) dlog_->ptr(offset);
           ts = *((uint64_t*) pkt_data);
           pkt = pkt_data + sizeof(uint64_t);
         }

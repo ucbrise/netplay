@@ -252,12 +252,12 @@ class packet_store: public slog::log_store {
    * @param record_len The length of the buffer.
    * @param offset The offset into the log where data should be written.
    */
-  size_t append_pkt(uint64_t offset, uint64_t ts, void* pkt, uint16_t pkt_len) {
+  size_t append_pkt(uint64_t offset, uint64_t ts, unsigned char* pkt, uint16_t pkt_len) {
 
     /* We can append the value to the log without locking since this
      * thread has exclusive access to the region (offset, offset + sizeof(uint64_t) + pkt_len).
      */
-    void* loc = dlog_->ptr(offset);
+    unsigned char* loc = (unsigned char*) dlog_->ptr(offset);
     memcpy(loc, &ts, sizeof(uint64_t));
     memcpy(loc + sizeof(uint64_t), pkt, pkt_len);
     return pkt_len + sizeof(uint64_t);
