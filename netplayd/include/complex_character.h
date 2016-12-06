@@ -31,14 +31,12 @@ class complex_character {
                uint64_t max_rid,
                const time_range range,
                const uint32_t monolog_size,
-               monolog_type* monolog,
-               slog::offsetlog* olog) {
+               monolog_type* monolog) {
         cur_idx_ = cur_idx;
         max_rid_ = max_rid;
         range_ = range;
         monolog_size_ = monolog_size;
         monolog_ = monolog;
-        olog_ = olog;
       }
 
       reference operator*() const {
@@ -76,12 +74,11 @@ class complex_character {
      private:
       inline bool is_valid(const time_id& val) {
         return val.ts >= range_.first && val.ts <= range_.second
-               && olog_->is_valid(val.id, max_rid_);
+               && val.id < max_rid_;
       }
 
       uint64_t max_rid_;
       time_range range_;
-      slog::offsetlog* olog_;
       uint64_t cur_idx_;
       uint32_t monolog_size_;
       monolog_type* monolog_;
@@ -89,28 +86,25 @@ class complex_character {
 
     result(uint64_t max_rid, const time_range range,
            const uint32_t monolog_size,
-           monolog_type* monolog,
-           slog::offsetlog* olog) {
+           monolog_type* monolog) {
       max_rid_ = max_rid;
       range_ = range;
       monolog_size_ = monolog_size;
       monolog_ = monolog;
-      olog_ = olog;
     }
 
     iterator begin() {
-      return iterator(0, max_rid_, range_, monolog_size_, monolog_, olog_);
+      return iterator(0, max_rid_, range_, monolog_size_, monolog_);
     }
 
     iterator end() {
       return iterator(monolog_size_, max_rid_, range_, monolog_size_,
-                      monolog_,  olog_);
+                      monolog_);
     }
 
    private:
     uint64_t max_rid_;
     time_range range_;
-    slog::offsetlog* olog_;
     uint32_t monolog_size_;
     monolog_type* monolog_;
   };
@@ -142,9 +136,8 @@ class complex_character {
     }
   }
 
-  result filter(uint64_t max_rid, const time_range range,
-                slog::offsetlog* olog) {
-    return result(max_rid, range, monolog_->size(), monolog_, olog);
+  result filter(uint64_t max_rid, const time_range range) {
+    return result(max_rid, range, monolog_->size(), monolog_);
   }
 
  private:

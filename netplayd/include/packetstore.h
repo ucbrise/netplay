@@ -239,7 +239,7 @@ class packet_store: public slog::log_store {
     std::pair<uint64_t, uint64_t> time_range(ts_beg, ts_end);
     uint64_t max_rid = olog_->num_ids();
     complex_character* character = complex_characters_->get(char_id);
-    return character->filter(max_rid, time_range, olog_);
+    return character->filter(max_rid, time_range);
   }
 
   /**
