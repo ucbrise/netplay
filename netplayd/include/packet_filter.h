@@ -117,6 +117,7 @@ class packet_filter_result {
       do {
         it_++;
         if (!it_.finished()) {
+          fprintf(stderr, "Here\n");
           uint64_t offset;
           uint16_t length;
           olog_->lookup(*it_, offset, length);
