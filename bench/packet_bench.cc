@@ -184,7 +184,6 @@ class packet_loader {
         timestamp_t start = get_timestamp();
         pktgen.generate();
         done.fetch_add(1);
-        fprintf(stderr, "Set done: %" PRIu32 "\n", done.load());
         timestamp_t end = get_timestamp();
         double totsecs = (double) (end - start) / (1000.0 * 1000.0);
         thputs[i] = ((double) pktgen.total_sent() / totsecs);
@@ -217,8 +216,6 @@ class packet_loader {
         }
         util_stream.close();
       });
-
-      fprintf(stderr, "Thread started.\n");
 
       // Create a cpu_set_t object representing a set of CPUs. Clear it and mark
       // only CPU i as set.
