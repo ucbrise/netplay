@@ -26,11 +26,11 @@ class filter_result {
       cur_idx_ = -1;
     }
 
-    filter_iterator(filter_result *res) {
+    filter_iterator(const filter_result *res) {
       res_ = res;
 
       cur_tok_ = res_->tok_min_;
-      cur_entry_list_ = res_->index_->get(cur_tok_);
+      cur_entry_list_ = res_->index_->at(cur_tok_);
       cur_idx_ = -1;
 
       advance();
@@ -89,7 +89,7 @@ class filter_result {
       cur_idx_++;
       if (cur_entry_list_ == NULL || static_cast<uint64_t>(cur_idx_) == cur_entry_list_->size()) {
         cur_idx_ = 0;
-        while ((cur_entry_list_ = res_->index_->get(++cur_tok_)) == NULL
+        while ((cur_entry_list_ = res_->index_->at(++cur_tok_)) == NULL
                && cur_tok_ <= res_->tok_max_);
       }
     }
@@ -100,7 +100,7 @@ class filter_result {
     const filter_result *res_;
   };
 
-  filter_result(index_type* index, const uint64_t tok_min,
+  filter_result(const index_type* index, const uint64_t tok_min,
                 const uint64_t tok_max, const uint64_t max_rid) {
     index_ = index;
     tok_min_ = tok_min;
@@ -117,7 +117,7 @@ class filter_result {
   }
 
  private:
-  index_type* index_;
+  const index_type* index_;
   uint64_t tok_min_;
   uint64_t tok_max_;
   uint64_t max_rid_;
