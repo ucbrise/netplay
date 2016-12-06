@@ -144,7 +144,7 @@ class packet_loader {
       pkt_data_.push_back(attrs);
     }
 
-    typedef packet_generator<pktstore_vport, static_rand_generator> pktgen_type;
+    typedef rate_limiter<pktstore_vport, static_rand_generator> pktgen_type;
     std::vector<std::thread> workers;
     uint64_t worker_rate = rate_limit / num_threads;
 
