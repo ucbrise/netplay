@@ -71,9 +71,13 @@ class __index_depth1 {
     return idx_[key];
   }
 
+  value_type* operator[](const uint64_t i) {
+    return idx_[i];
+  }
+
   value_type* at(const uint64_t key) const {
     return idx_.at(key);
-  }
+  }  
 
   void add_entry(const uint64_t key, const uint64_t val) {
     value_type* list = get(key);
@@ -98,6 +102,10 @@ class __index_depth2 {
   value_type* get(const uint64_t key) {
     __index_depth1 <SIZE2, value_type>* ilet = idx_[key / SIZE2];
     return ilet->get(key % SIZE2);
+  }
+
+  __index_depth1 <SIZE2, value_type>* operator[](const uint64_t i) {
+    return idx_[i];
   }
 
   value_type* at(const uint64_t key) const {
@@ -132,6 +140,10 @@ class __index_depth3 {
     return ilet->get(key % (SIZE2 * SIZE3));
   }
 
+  __index_depth2 <SIZE2, SIZE3, value_type>* operator[](const uint64_t i) {
+    return idx_[i];
+  }
+
   value_type* at(const uint64_t key) const {
     __index_depth2 <SIZE2, SIZE3, value_type>* ilet = idx_.at(key / (SIZE2 * SIZE3));
     if (ilet)
@@ -162,6 +174,10 @@ class __index_depth4 {
   value_type* get(const uint64_t key) {
     __index_depth3 <SIZE2, SIZE3, SIZE4, value_type>* ilet = idx_[key / (SIZE2 * SIZE3 * SIZE4)];
     return ilet->get(key % (SIZE2 * SIZE3 * SIZE4));
+  }
+
+  __index_depth3 <SIZE2, SIZE3, SIZE4, value_type>* operator[](const uint64_t i) {
+    return idx_[i];
   }
 
   value_type* at(const uint64_t key) const {
