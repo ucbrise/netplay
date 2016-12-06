@@ -36,6 +36,7 @@
 #include "bench_vport.h"
 #include "dpdk_utils.h"
 #include "cpu_utilization.h"
+#include "rate_limiter.h"
 
 using namespace ::netplay::dpdk;
 using namespace ::netplay::pktgen;
