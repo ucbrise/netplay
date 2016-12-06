@@ -114,15 +114,19 @@ class packet_filter_result {
     packet_filter_iterator& operator++() {
       void *pkt;
       uint64_t ts;
+      fprintf(stderr, "++\n");
       do {
         it_++;
         if (!it_.finished()) {
-          fprintf(stderr, "Here\n");
           uint64_t offset;
           uint16_t length;
+          fprintf(stderr, "Lookup off\n");
           olog_->lookup(*it_, offset, length);
+          fprintf(stderr, "Get pkt data\n");
           unsigned char* pkt_data = (unsigned char*) dlog_->ptr(offset);
+          fprintf(stderr, "Get ts\n");
           ts = *((uint64_t*) pkt_data);
+          fprintf(stderr, "Get pkt\n");
           pkt = pkt_data + sizeof(uint64_t);
         }
       } while (!it_.finished() && !filter_.apply(pkt, ts));
