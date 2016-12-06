@@ -122,11 +122,11 @@ class packet_filter_result {
           uint16_t length;
           fprintf(stderr, "Lookup off\n");
           olog_->lookup(*it_, offset, length);
-          fprintf(stderr, "Get pkt data\n");
+          fprintf(stderr, "off = %" PRIu64 "Get pkt data\n", offset);
           unsigned char* pkt_data = (unsigned char*) dlog_->ptr(offset);
           fprintf(stderr, "Get ts\n");
           ts = *((uint64_t*) pkt_data);
-          fprintf(stderr, "Get pkt\n");
+          fprintf(stderr, "ts = %" PRIu64 "Get pkt\n", ts);
           pkt = pkt_data + sizeof(uint64_t);
         }
       } while (!it_.finished() && !filter_.apply(pkt, ts));
