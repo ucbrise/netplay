@@ -133,7 +133,7 @@ class __index_depth3 {
   }
 
   entry_list* at(const uint64_t key) const {
-    __index_depth3 <SIZE2, SIZE3>* ilet = idx_.at(key / (SIZE2 * SIZE3));
+    __index_depth2 <SIZE2, SIZE3>* ilet = idx_.at(key / (SIZE2 * SIZE3));
     if (ilet)
       return ilet->at(key % (SIZE2 * SIZE3));
     return NULL;
