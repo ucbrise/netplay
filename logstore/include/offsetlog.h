@@ -25,13 +25,13 @@ class offsetlog {
   }
 
   void end(uint64_t record_id) {
-    while (!current_read_id_.compare_exchange_strong(record_id,
+    while (!current_read_id_.compare_exchange_weak(record_id,
            record_id + 1, std::memory_order_release,
            std::memory_order_acquire));
   }
 
   void end(uint64_t start_id, uint64_t count) {
-    while (!current_read_id_.compare_exchange_strong(start_id,
+    while (!current_read_id_.compare_exchange_weak(start_id,
            start_id + count, std::memory_order_release,
            std::memory_order_acquire));
   }
