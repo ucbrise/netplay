@@ -150,8 +150,16 @@ class packet_loader {
   void load_packets(const uint32_t num_threads, const uint64_t rate_limit,
                     const bool measure_cpu) {
 
+    typedef rate_limiter<pktstore_vport, static_rand_generator> pktgen_type;
+    std::vector<std::thread> workers;
+    uint64_t worker_rate = rate_limit / num_threads;
+    uint64_t num_pkts = PKTS_PER_THREAD;
+    if (worker_rate != 0) {
+      num_pkts = worker_rate * 60;
+    }
+
     // Generate packets
-    for (uint64_t i = 0; i < num_threads * PKTS_PER_THREAD; i++) {
+    for (uint64_t i = 0; i < num_threads * num_pkts; i++) {
       pkt_attrs attrs;
       attrs.sip = rand() % 256;
       attrs.dip = rand() % 256;
@@ -160,14 +168,6 @@ class packet_loader {
       pkt_data_.push_back(attrs);
     }
 
-    typedef rate_limiter<pktstore_vport, static_rand_generator> pktgen_type;
-    std::vector<std::thread> workers;
-    uint64_t worker_rate = rate_limit / num_threads;
-
-    uint64_t num_pkts = PKTS_PER_THREAD;
-    if (worker_rate != 0) {
-      num_pkts = worker_rate * 60;
-    }
     std::atomic<uint32_t> done;
     done.store(0);
     std::vector<double> thputs(num_threads, 0.0);
