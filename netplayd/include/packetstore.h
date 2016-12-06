@@ -36,7 +36,6 @@ namespace netplay {
 class packet_store: public slog::log_store {
  public:
   typedef std::unordered_set<uint64_t> result_type;
-  typedef slog::__monolog_linear_base <uint64_t, 1024, 16777216> timelist_type;
   class handle : public slog::log_store::handle {
    public:
     handle(packet_store& store)
@@ -47,8 +46,7 @@ class packet_store: public slog::log_store {
     void insert_pktburst(struct rte_mbuf** pkts, uint16_t cnt) {
       std::time_t now = std::time(nullptr);
       uint64_t id = store_.olog_->request_id_block(cnt);
-      store_.timestamps_->ensure_alloc(id, id + cnt);
-      uint64_t nbytes = 0;
+      uint64_t nbytes = cnt * sizeof(uint64_t);
       for (int i = 0; i < cnt; i++)
         nbytes += rte_pktmbuf_pkt_len(pkts[i]);
       uint64_t off = store_.request_bytes(nbytes);
@@ -69,14 +67,11 @@ class packet_store: public slog::log_store {
           store_.srcport_idx_->add_entry(udp->src_port, id);
           store_.dstport_idx_->add_entry(udp->dst_port, id);
         }
-        store_.timestamp_idx_->add_entry(now, id);
         store_.olog_->set(id, off, pkt_size);
-        store_.append_record(pkt, pkt_size, off);
-        store_.timestamps_->set(id, now);
+        off += store_.append_pkt(off, now, pkt, pkt_size);
         size_t num_chars = store_.complex_characters_->size();
         for (size_t i = 0; i < num_chars; i++)
           store_.complex_characters_->at(i)->check_and_add(id, pkt, now);
-        off += pkt_size;
         id++;
       }
       store_.olog_->end(id, cnt);
@@ -143,7 +138,6 @@ class packet_store: public slog::log_store {
     dstport_idx_ = idx2_->at(1);
     timestamp_idx_ = idx4_->at(2);
 
-    timestamps_ = new timelist_type();
     complex_characters_ = new slog::monolog_linearizable<complex_character*>();
   }
 
@@ -191,7 +185,7 @@ class packet_store: public slog::log_store {
       if (idx_id == srcip_idx_id_) {
         auto res = filter(srcip_idx_, tok_beg, tok_end, max_rid);
         if (cplan.perform_pkt_filter) {
-          auto pf_res = build_result(res, cplan.pkt_filter, dlog_, olog_, timestamps_);
+          auto pf_res = build_result(res, cplan.pkt_filter, dlog_, olog_);
           results.insert(pf_res.begin(), pf_res.end());
         } else {
           results.insert(res.begin(), res.end());
@@ -199,7 +193,7 @@ class packet_store: public slog::log_store {
       } else if (idx_id == dstip_idx_id_) {
         auto res = filter(dstip_idx_, tok_beg, tok_end, max_rid);
         if (cplan.perform_pkt_filter) {
-          auto pf_res = build_result(res, cplan.pkt_filter, dlog_, olog_, timestamps_);
+          auto pf_res = build_result(res, cplan.pkt_filter, dlog_, olog_);
           results.insert(pf_res.begin(), pf_res.end());
         } else {
           results.insert(res.begin(), res.end());
@@ -207,7 +201,7 @@ class packet_store: public slog::log_store {
       } else if (idx_id == srcport_idx_id_) {
         auto res = filter(srcport_idx_, tok_beg, tok_end, max_rid);
         if (cplan.perform_pkt_filter) {
-          auto pf_res = build_result(res, cplan.pkt_filter, dlog_, olog_, timestamps_);
+          auto pf_res = build_result(res, cplan.pkt_filter, dlog_, olog_);
           results.insert(pf_res.begin(), pf_res.end());
         } else {
           results.insert(res.begin(), res.end());
@@ -215,7 +209,7 @@ class packet_store: public slog::log_store {
       } else if (idx_id == dstport_idx_id_) {
         auto res = filter(dstport_idx_, tok_beg, tok_end, max_rid);
         if (cplan.perform_pkt_filter) {
-          auto pf_res = build_result(res, cplan.pkt_filter, dlog_, olog_, timestamps_);
+          auto pf_res = build_result(res, cplan.pkt_filter, dlog_, olog_);
           results.insert(pf_res.begin(), pf_res.end());
         } else {
           results.insert(res.begin(), res.end());
@@ -223,7 +217,7 @@ class packet_store: public slog::log_store {
       } else if (idx_id == timestamp_idx_id_) {
         auto res = filter(timestamp_idx_, tok_beg, tok_end, max_rid);
         if (cplan.perform_pkt_filter) {
-          auto pf_res = build_result(res, cplan.pkt_filter, dlog_, olog_, timestamps_);
+          auto pf_res = build_result(res, cplan.pkt_filter, dlog_, olog_);
           results.insert(pf_res.begin(), pf_res.end());
         } else {
           results.insert(res.begin(), res.end());
@@ -251,6 +245,24 @@ class packet_store: public slog::log_store {
   }
 
  private:
+  /**
+   * Append a packet to the packet store.
+   *
+   * @param record The buffer containing record data.
+   * @param record_len The length of the buffer.
+   * @param offset The offset into the log where data should be written.
+   */
+  size_t append_pkt(uint64_t offset, uint64_t ts, void* pkt, uint16_t pkt_len) {
+
+    /* We can append the value to the log without locking since this
+     * thread has exclusive access to the region (offset, offset + sizeof(uint64_t) + pkt_len).
+     */
+    void* loc = dlog_->ptr(offset);
+    memcpy(loc, &ts, sizeof(uint64_t));
+    memcpy(loc + sizeof(uint64_t), pkt, pkt_len);
+    return pkt_len + sizeof(uint64_t);
+  }
+
   id_t srcip_idx_id_;
   id_t dstip_idx_id_;
   id_t srcport_idx_id_;
@@ -263,7 +275,6 @@ class packet_store: public slog::log_store {
   slog::__index2* dstport_idx_;
   slog::__index4* timestamp_idx_;
 
-  timelist_type *timestamps_;
   slog::monolog_linearizable<complex_character*> *complex_characters_;
 };
 

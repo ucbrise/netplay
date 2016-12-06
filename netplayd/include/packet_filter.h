@@ -83,7 +83,6 @@ struct packet_filter {
 
 typedef slog::__input_iterator __input_iterator;
 typedef std::vector<__input_iterator> iterator_list;
-typedef slog::__monolog_linear_base <uint64_t, 1024, 16777216> timelist_t;
 
 template<typename index_type>
 class packet_filter_result {
@@ -101,13 +100,11 @@ class packet_filter_result {
     packet_filter_iterator(const packet_filter& filter,
                            const filter_iterator<index_type>& it,
                            slog::__monolog_linear_base <uint8_t>* dlog,
-                           slog::offsetlog* olog,
-                           timelist_t* timestamps)
+                           slog::offsetlog* olog)
       : filter_(filter) {
       it_ = it;
       dlog_ = dlog;
       olog_ = olog;
-      timestamps_ = timestamps;
     }
 
     reference operator*() const {
@@ -123,8 +120,9 @@ class packet_filter_result {
           uint64_t offset;
           uint16_t length;
           olog_->lookup(*it_, offset, length);
-          pkt = dlog_->ptr(offset);
-          ts = timestamps_->get(*it_);
+          void* pkt_data = dlog_->ptr(offset);
+          ts = *((uint64_t*) pkt_data);
+          pkt = pkt_data + sizeof(uint64_t);
         }
       } while (!it_.finished() && !filter_.apply(pkt, ts));
       return *this;
@@ -149,26 +147,23 @@ class packet_filter_result {
     filter_iterator<index_type> it_;
     slog::__monolog_linear_base<uint8_t>* dlog_;
     slog::offsetlog* olog_;
-    timelist_t* timestamps_;
   };
 
   packet_filter_result(slog::filter_result<index_type>& res,
                        const packet_filter& filter,
                        slog::__monolog_linear_base <uint8_t>* dlog,
-                       slog::offsetlog* olog,
-                       timelist_t* timestamps)
+                       slog::offsetlog* olog)
     : res_(res), filter_(filter) {
     dlog_ = dlog;
     olog_ = olog;
-    timestamps_ = timestamps;
   }
 
   packet_filter_iterator begin() {
-    return packet_filter_iterator(filter_, res_.begin(), dlog_, olog_, timestamps_);
+    return packet_filter_iterator(filter_, res_.begin(), dlog_, olog_);
   }
 
   packet_filter_iterator end() {
-    return packet_filter_iterator(filter_, res_.end(), dlog_, olog_, timestamps_);
+    return packet_filter_iterator(filter_, res_.end(), dlog_, olog_);
   }
 
  private:
@@ -177,7 +172,6 @@ class packet_filter_result {
   const packet_filter& filter_;
   slog::__monolog_linear_base<uint8_t>* dlog_;
   slog::offsetlog* olog_;
-  timelist_t* timestamps_;
 };
 
 template<typename index_type>
@@ -185,9 +179,8 @@ inline packet_filter_result<index_type> build_result(
   slog::filter_result<index_type>& res,
   const packet_filter& filter,
   slog::__monolog_linear_base <uint8_t>* dlog,
-  slog::offsetlog* olog,
-  timelist_t* timestamps) {
-  return packet_filter_result<index_type>(res, filter, dlog, olog, timestamps);
+  slog::offsetlog* olog) {
+  return packet_filter_result<index_type>(res, filter, dlog, olog);
 }
 
 }
