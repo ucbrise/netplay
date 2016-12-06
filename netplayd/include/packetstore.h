@@ -139,7 +139,7 @@ class packet_store: public slog::log_store {
     dstport_idx_ = idx2_->at(1);
     timestamp_idx_ = idx4_->at(2);
 
-    fprintf(stderr, "source_ip=%" PRIu32 "\n", srcport_idx_id_);
+    fprintf(stderr, "source_ip=%" PRIu32 "\n", srcip_idx_id_);
     fprintf(stderr, "destination_ip=%" PRIu32 "\n", dstip_idx_id_);
     fprintf(stderr, "source_port=%" PRIu32 "\n", srcport_idx_id_);
     fprintf(stderr, "destination_port=%" PRIu32 "\n", dstport_idx_id_);
