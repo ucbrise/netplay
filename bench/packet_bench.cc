@@ -14,6 +14,7 @@
 #include <atomic>
 #include <thread>
 #include <mutex>
+#include <iostream>
 
 #include <execinfo.h>
 #include <signal.h>
