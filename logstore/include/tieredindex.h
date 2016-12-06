@@ -64,19 +64,19 @@ class indexlet {
   std::array<atomic_ref, SIZE> idx_;
 };
 
-template<size_t SIZE>
+template<size_t SIZE, typename value_type = entry_list>
 class __index_depth1 {
  public:
-  entry_list* get(const uint64_t key) {
+  value_type* get(const uint64_t key) {
     return idx_[key];
   }
 
-  entry_list* at(const uint64_t key) const {
+  value_type* at(const uint64_t key) const {
     return idx_.at(key);
   }
 
   void add_entry(const uint64_t key, const uint64_t val) {
-    entry_list* list = get(key);
+    value_type* list = get(key);
     list->push_back(val);
   }
 
@@ -89,26 +89,26 @@ class __index_depth1 {
   }
 
  protected:
-  indexlet<entry_list, SIZE> idx_;
+  indexlet<value_type, SIZE> idx_;
 };
 
-template<size_t SIZE1, size_t SIZE2>
+template<size_t SIZE1, size_t SIZE2, typename value_type = entry_list>
 class __index_depth2 {
  public:
-  entry_list* get(const uint64_t key) {
-    __index_depth1 <SIZE2>* ilet = idx_[key / SIZE2];
+  value_type* get(const uint64_t key) {
+    __index_depth1 <SIZE2, value_type>* ilet = idx_[key / SIZE2];
     return ilet->get(key % SIZE2);
   }
 
-  entry_list* at(const uint64_t key) const {
-    __index_depth1 <SIZE2>* ilet = idx_.at(key / SIZE2);
+  value_type* at(const uint64_t key) const {
+    __index_depth1 <SIZE2, value_type>* ilet = idx_.at(key / SIZE2);
     if (ilet)
       return ilet->at(key % SIZE2);
     return NULL;
   }
 
   void add_entry(const uint64_t key, const uint64_t val) {
-    entry_list* list = get(key);
+    value_type* list = get(key);
     list->push_back(val);
   }
 
@@ -121,26 +121,26 @@ class __index_depth2 {
   }
 
  private:
-  indexlet<__index_depth1 <SIZE2>, SIZE1> idx_;
+  indexlet<__index_depth1 <SIZE2, value_type>, SIZE1> idx_;
 };
 
-template<size_t SIZE1, size_t SIZE2, size_t SIZE3>
+template<size_t SIZE1, size_t SIZE2, size_t SIZE3, typename value_type = entry_list>
 class __index_depth3 {
  public:
-  entry_list* get(const uint64_t key) {
-    __index_depth2 <SIZE2, SIZE3>* ilet = idx_[key / (SIZE2 * SIZE3)];
+  value_type* get(const uint64_t key) {
+    __index_depth2 <SIZE2, SIZE3, value_type>* ilet = idx_[key / (SIZE2 * SIZE3)];
     return ilet->get(key % (SIZE2 * SIZE3));
   }
 
-  entry_list* at(const uint64_t key) const {
-    __index_depth2 <SIZE2, SIZE3>* ilet = idx_.at(key / (SIZE2 * SIZE3));
+  value_type* at(const uint64_t key) const {
+    __index_depth2 <SIZE2, SIZE3, value_type>* ilet = idx_.at(key / (SIZE2 * SIZE3));
     if (ilet)
       return ilet->at(key % (SIZE2 * SIZE3));
     return NULL;
   }
 
   void add_entry(const uint64_t key, const uint64_t val) {
-    entry_list* list = get(key);
+    value_type* list = get(key);
     list->push_back(val);
   }
 
@@ -153,26 +153,26 @@ class __index_depth3 {
   }
 
  private:
-  indexlet<__index_depth2 <SIZE2, SIZE3>, SIZE1> idx_;
+  indexlet<__index_depth2 <SIZE2, SIZE3, value_type>, SIZE1> idx_;
 };
 
-template<size_t SIZE1, size_t SIZE2, size_t SIZE3, size_t SIZE4>
+template<size_t SIZE1, size_t SIZE2, size_t SIZE3, size_t SIZE4, typename value_type = entry_list>
 class __index_depth4 {
  public:
-  entry_list* get(const uint64_t key) {
-    __index_depth3 <SIZE2, SIZE3, SIZE4>* ilet = idx_[key / (SIZE2 * SIZE3 * SIZE4)];
+  value_type* get(const uint64_t key) {
+    __index_depth3 <SIZE2, SIZE3, SIZE4, value_type>* ilet = idx_[key / (SIZE2 * SIZE3 * SIZE4)];
     return ilet->get(key % (SIZE2 * SIZE3 * SIZE4));
   }
 
-  entry_list* at(const uint64_t key) const {
-    __index_depth3 <SIZE2, SIZE3, SIZE4>* ilet = idx_.at(key / (SIZE2 * SIZE3 * SIZE4));
+  value_type* at(const uint64_t key) const {
+    __index_depth3 <SIZE2, SIZE3, SIZE4, value_type>* ilet = idx_.at(key / (SIZE2 * SIZE3 * SIZE4));
     if (ilet)
       return ilet->at(key % (SIZE2 * SIZE3 * SIZE4));
     return NULL;
   }
 
   void add_entry(const uint64_t key, uint64_t val) {
-    entry_list* list = get(key);
+    value_type* list = get(key);
     list->push_back(val);
   }
 
@@ -185,7 +185,7 @@ class __index_depth4 {
   }
 
  private:
-  indexlet<__index_depth3 <SIZE2, SIZE3, SIZE4>, SIZE1> idx_;
+  indexlet<__index_depth3 <SIZE2, SIZE3, SIZE4, value_type>, SIZE1> idx_;
 };
 
 typedef __index_depth1 <256> __index1;
