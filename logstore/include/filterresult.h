@@ -59,6 +59,7 @@ class filter_result {
     }
 
     filter_iterator& operator++() {
+      fprintf(stderr, "fr++");
       do {
         advance();
       } while (cur_tok_ != res_->tok_max_ + 1 &&
@@ -94,6 +95,7 @@ class filter_result {
         while ((cur_entry_list_ = res_->index_->get(++cur_tok_)) == NULL
                && cur_tok_ <= res_->tok_max_);
       }
+      fprintf(stderr, "cur_idx=%" PRId64 ", cur_tok=%" PRIu64 "\n", cur_idx_, cur_tok_);
     }
 
     entry_list* cur_entry_list_;

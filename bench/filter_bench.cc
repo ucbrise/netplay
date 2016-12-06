@@ -423,14 +423,14 @@ void crit_err_hdlr(int sig_num, siginfo_t * info, void * ucontext) {
 
       // if demangling is successful, output the demangled function name
       if (status == 0) {
-        std::cerr << "[bt]: (" << i << ") " << messages[i] << " : "
+        std::cerr << "[bt]: (" << i << ") " << messages[i] << ": "
                   << real_name << "+" << offset_begin << offset_end
                   << std::endl;
 
       }
       // otherwise, output the mangled function name
       else {
-        std::cerr << "[bt]: (" << i << ") " << messages[i] << " : "
+        std::cerr << "[bt]: (" << i << ") " << messages[i] << ": "
                   << mangled_name << "+" << offset_begin << offset_end
                   << std::endl;
       }

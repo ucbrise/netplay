@@ -114,7 +114,7 @@ class packet_filter_result {
     packet_filter_iterator& operator++() {
       void *pkt;
       uint64_t ts;
-      fprintf(stderr, "++\n");
+      fprintf(stderr, "pf++\n");
       do {
         it_++;
         if (!it_.finished()) {
