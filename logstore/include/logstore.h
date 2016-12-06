@@ -450,7 +450,7 @@ class log_store {
    */
   uint64_t request_bytes(uint64_t request_bytes) {
     uint64_t off = dtail_.fetch_add(request_bytes);
-    dlog_.ensure_alloc(off, off + request_bytes);
+    dlog_->ensure_alloc(off, off + request_bytes);
     return off;
   }
 
