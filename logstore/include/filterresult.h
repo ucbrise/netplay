@@ -95,7 +95,7 @@ class filter_result {
         while ((cur_entry_list_ = res_->index_->get(++cur_tok_)) == NULL
                && cur_tok_ <= res_->tok_max_);
       }
-      fprintf(stderr, "cur_idx=%" PRId64 ", cur_tok=%" PRIu64 "\n", cur_idx_, cur_tok_);
+      fprintf(stderr, "cur_idx=%" PRId64 ", cur_tok=%" PRIu64 ", is_null=%d, value=%" PRIu64 "\n", cur_idx_, cur_tok_, (cur_entry_list_ == NULL), cur_entry_list_->get(cur_idx_));
     }
 
     entry_list* cur_entry_list_;
