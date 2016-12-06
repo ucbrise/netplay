@@ -25,7 +25,7 @@ class indexlet {
   }
 
   T* operator[](const uint32_t i) {
-    if (idx_[i].load() == NULL) {
+    if (idx_[i].load(std::memory_order_acquire) == NULL) {
       T* item = new T();
       T* null_ptr = NULL;
 
@@ -71,6 +71,10 @@ class __index_depth1 {
     return idx_[key];
   }
 
+  entry_list* at(const uint64_t key) const {
+    return idx_.at(key);
+  }
+
   void add_entry(const uint64_t key, const uint64_t val) {
     entry_list* list = get(key);
     list->push_back(val);
@@ -94,6 +98,13 @@ class __index_depth2 {
   entry_list* get(const uint64_t key) {
     __index_depth1 <SIZE2>* ilet = idx_[key / SIZE2];
     return ilet->get(key % SIZE2);
+  }
+
+  entry_list* at(const uint64_t key) const {
+    __index_depth1 <SIZE2>* ilet = idx_.at(key / SIZE2);
+    if (ilet)
+      return ilet->at(key % SIZE2);
+    return NULL;
   }
 
   void add_entry(const uint64_t key, const uint64_t val) {
@@ -121,6 +132,13 @@ class __index_depth3 {
     return ilet->get(key % (SIZE2 * SIZE3));
   }
 
+  entry_list* at(const uint64_t key) const {
+    __index_depth3 <SIZE2, SIZE3>* ilet = idx_.at(key / (SIZE2 * SIZE3));
+    if (ilet)
+      return ilet->at(key % (SIZE2 * SIZE3));
+    return NULL;
+  }
+
   void add_entry(const uint64_t key, const uint64_t val) {
     entry_list* list = get(key);
     list->push_back(val);
@@ -142,9 +160,15 @@ template<size_t SIZE1, size_t SIZE2, size_t SIZE3, size_t SIZE4>
 class __index_depth4 {
  public:
   entry_list* get(const uint64_t key) {
-    __index_depth3 <SIZE2, SIZE3, SIZE4>* ilet = idx_[key
-        / (SIZE2 * SIZE3 * SIZE4)];
+    __index_depth3 <SIZE2, SIZE3, SIZE4>* ilet = idx_[key / (SIZE2 * SIZE3 * SIZE4)];
     return ilet->get(key % (SIZE2 * SIZE3 * SIZE4));
+  }
+
+  entry_list* at(const uint64_t key) const {
+    __index_depth3 <SIZE2, SIZE3, SIZE4>* ilet = idx_.at(key / (SIZE2 * SIZE3 * SIZE4));
+    if (ilet)
+      return ilet->at(key % (SIZE2 * SIZE3 * SIZE4));
+    return NULL;
   }
 
   void add_entry(const uint64_t key, uint64_t val) {
