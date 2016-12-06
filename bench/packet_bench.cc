@@ -57,6 +57,14 @@ const char* usage =
 
 typedef uint64_t timestamp_t;
 
+typedef struct _sig_ucontext {
+  unsigned long     uc_flags;
+  struct ucontext   *uc_link;
+  stack_t           uc_stack;
+  struct sigcontext uc_mcontext;
+  sigset_t          uc_sigmask;
+} sig_ucontext_t;
+
 static timestamp_t get_timestamp() {
   struct timeval now;
   gettimeofday(&now, NULL);
