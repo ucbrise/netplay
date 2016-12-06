@@ -329,6 +329,7 @@ class filter_benchmark {
       parser p(exp);
       expression *e = p.parse();
       query_plan qp = query_planner::plan(handle, e);
+      netplay::print_query_plan(qp);
       cast_queries_.push_back(qp);
       free_expression(e);
     }
