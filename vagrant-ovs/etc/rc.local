@@ -4,9 +4,8 @@ exec 2> /tmp/rc.local.log      # send stderr from rc.local to a log file
 exec 1>&2                      # send stdout to the same log file
 set -x                         # tell sh to display commands before execution
 
-export DPDK_DIR=/home/vagrant/dpdk-16.07
-export DPDK_TARGET=x86_64-native-linuxapp-gcc
-export DPDK_BUILD=$DPDK_DIR/$DPDK_TARGET
+export DPDK_DIR=/home/vagrant/netplay/3rdparty/dpdk-16.07
+export DPDK_BUILD=$DPDK_DIR/build
 
 # skip if already mounted
 mkdir -p /mnt/huge
