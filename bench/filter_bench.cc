@@ -12,6 +12,7 @@
 #include <vector>
 #include <sstream>
 #include <algorithm>
+#include <iostream>
 
 #include <execinfo.h>
 #include <signal.h>
@@ -56,11 +57,11 @@ using namespace ::slog;
 using namespace ::std::chrono;
 
 typedef struct _sig_ucontext {
- unsigned long     uc_flags;
- struct ucontext   *uc_link;
- stack_t           uc_stack;
- struct sigcontext uc_mcontext;
- sigset_t          uc_sigmask;
+  unsigned long     uc_flags;
+  struct ucontext   *uc_link;
+  stack_t           uc_stack;
+  struct sigcontext uc_mcontext;
+  sigset_t          uc_sigmask;
 } sig_ucontext_t;
 
 class filter_benchmark {
@@ -372,7 +373,14 @@ class filter_benchmark {
 void crit_err_hdlr(int sig_num, siginfo_t * info, void * ucontext) {
   sig_ucontext_t * uc = (sig_ucontext_t *)ucontext;
 
-  void * caller_address = (void *) uc->uc_mcontext.eip; // x86 specific
+  /* Get the address at the time the signal was raised */
+#if defined(__i386__) // gcc specific
+  void *caller_address = (void *) uc->uc_mcontext.eip; // EIP: x86 specific
+#elif defined(__x86_64__) // gcc specific
+  void *caller_address = (void *) uc->uc_mcontext.rip; // RIP: x86_64 specific
+#else
+#error Unsupported architecture. // TODO: Add support for other arch.
+#endif
 
   std::cerr << "signal " << sig_num
             << " (" << strsignal(sig_num) << "), address is "
