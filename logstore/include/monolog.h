@@ -78,9 +78,6 @@ class __monolog_base {
       x.store(null_ptr, std::memory_order_release);
     }
     buckets_[0].store(new T[FBS], std::memory_order_release);
-    for (size_t i = 1; i <= 8; i++) {
-      try_allocate_bucket(i);
-    }
   }
 
   ~__monolog_base() {
