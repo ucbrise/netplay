@@ -59,6 +59,7 @@ class packet_store: public slog::log_store {
       size_t num_chars = store_.num_filters_.load(std::memory_order_acquire);
       auto char_index = store_.char_idx_->get(now);
       auto time_list = store_.timestamp_idx_->get(now);
+      time_list->push_back_range(id, id + cnt - 1);
 
       for (int i = 0; i < cnt; i++) {
         unsigned char* pkt = rte_pktmbuf_mtod(pkts[i], unsigned char*);
@@ -76,7 +77,6 @@ class packet_store: public slog::log_store {
           store_.srcport_idx_->add_entry(udp->src_port, id);
           store_.dstport_idx_->add_entry(udp->dst_port, id);
         }
-        time_list->push_back(id);
         store_.olog_->set_without_alloc(id, off, pkt_size);
         off += store_.append_pkt(off, now, pkt, pkt_size);
         for (size_t i = 0; i < num_chars; i++) {
