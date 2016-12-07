@@ -1,8 +1,7 @@
 #!/bin/sh
 set -e
 
-third_party="`dirname "$0"`"
-third_party="`cd "$thrid_party"; pwd`"
+third_party="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 echo "Working directory: $third_party"
 
