@@ -24,7 +24,7 @@ class indexlet {
     }
   }
 
-  T* operator[](const uint32_t i) {
+  T* get(const uint32_t i) {
     if (idx_[i].load(std::memory_order_acquire) == NULL) {
       T* item = new T();
       T* null_ptr = NULL;
@@ -32,14 +32,18 @@ class indexlet {
       // Only one thread will be successful in replacing the NULL reference with newly
       // allocated item.
       if (!std::atomic_compare_exchange_strong_explicit(
-          &idx_[i], &null_ptr, item, std::memory_order_release,
-          std::memory_order_acquire)) {
+            &idx_[i], &null_ptr, item, std::memory_order_release,
+            std::memory_order_acquire)) {
         // All other threads will deallocate the newly allocated item.
         delete item;
       }
     }
 
     return idx_[i].load(std::memory_order_acquire);
+  }
+
+  T* operator[](const uint32_t i) {
+    return get(i);
   }
 
   T* at(const uint32_t i) const {
@@ -77,7 +81,7 @@ class __index_depth1 {
 
   value_type* at(const uint64_t key) const {
     return idx_.at(key);
-  }  
+  }
 
   void add_entry(const uint64_t key, const uint64_t val) {
     value_type* list = get(key);

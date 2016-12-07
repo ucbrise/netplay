@@ -477,8 +477,7 @@ class monolog_linearizable : public __monolog_base<T, NBUCKETS> {
     size_t idx = write_tail_.fetch_add(1UL, std::memory_order_release);
     this->set(idx, val);
     while (!std::atomic_compare_exchange_weak_explicit(&read_tail_, &idx,
-           idx + 1, std::memory_order_release, std::memory_order_acquire))
-      ;
+           idx + 1, std::memory_order_release, std::memory_order_acquire));
     return idx;
   }
 
