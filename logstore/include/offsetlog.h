@@ -48,6 +48,11 @@ class offsetlog {
     offlens_.set(record_id, offlen);
   }
 
+  void set_without_alloc(uint64_t record_id, uint64_t offset, uint16_t length) {
+    uint64_t offlen = ((uint64_t) length) << 48 | (offset & 0xFFFFFFFFFFFF);
+    offlens_.set_unsafe(record_id, offlen);
+  }
+
   void lookup(uint64_t record_id, uint64_t& offset, uint16_t& length) {
     uint64_t ol = offlens_.get(record_id);
     offset = ol & 0xFFFFFFFF;

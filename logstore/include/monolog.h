@@ -112,6 +112,16 @@ class __monolog_base {
     buckets_[bucket_idx].load(std::memory_order_acquire)[bucket_off] = val;
   }
 
+  // Sets the data at index idx to val. Does NOT allocate memory -- ensure
+  // memory is allocated before calling this function.
+  void set_unsafe(size_t idx, const T val) {
+   size_t pos = idx + FBS;
+    size_t hibit = bit_utils::highest_bit(pos);
+    size_t bucket_off = pos ^ (1 << hibit);
+    size_t bucket_idx = hibit - FBS_HIBIT;
+    buckets_[bucket_idx].load(std::memory_order_acquire)[bucket_off] = val; 
+  }
+
   // Sets a contiguous region of the MonoLog base to the provided data.
   void set(size_t idx, const T* data, const size_t len) {
     size_t pos = idx + FBS;
@@ -124,6 +134,29 @@ class __monolog_base {
       if (buckets_[bucket_idx].load(std::memory_order_acquire) == NULL) {
         try_allocate_bucket(bucket_idx);
       }
+      size_t bucket_remaining =
+        ((1U << (bucket_idx + FBS_HIBIT)) - bucket_off) * sizeof(T);
+      size_t bytes_to_write = std::min(bucket_remaining, data_remaining);
+      data_remaining -= bytes_to_write;
+      data_off += bytes_to_write;
+      memcpy(buckets_[bucket_idx].load(std::memory_order_acquire) + bucket_off,
+             data + data_off, bytes_to_write);
+      bucket_idx++;
+      bucket_off = 0;
+    }
+  }
+
+  // Sets a contiguous region of the MonoLog base to the provided data. Does 
+  // NOT allocate memory -- ensure memory is allocated before calling this 
+  // function.
+  void set_unsafe(size_t idx, const T* data, const size_t len) {
+    size_t pos = idx + FBS;
+    size_t hibit = bit_utils::highest_bit(pos);
+    size_t bucket_off = pos ^ (1 << hibit);
+    size_t bucket_idx = hibit - FBS_HIBIT;
+    size_t data_remaining = len * sizeof(T);
+    size_t data_off = 0;
+    while (data_remaining) {
       size_t bucket_remaining =
         ((1U << (bucket_idx + FBS_HIBIT)) - bucket_off) * sizeof(T);
       size_t bytes_to_write = std::min(bucket_remaining, data_remaining);
@@ -255,21 +288,13 @@ class __monolog_linear_base {
     buckets_[bucket_idx].load(std::memory_order_acquire)[bucket_off] = val;
   }
 
-  // Gets the data at index idx.
-  T get(const size_t idx) const {
+  // Sets the data at index idx to val. Does NOT allocate memory -- ensure
+  // memory is allocated before calling this function.
+  void set_unsafe(size_t idx, const T val) {
     size_t bucket_idx = idx / BLOCK_SIZE;
     size_t bucket_off = idx % BLOCK_SIZE;
-    return buckets_[bucket_idx].load(std::memory_order_acquire)[bucket_off];
-  }
-
-  T& operator[](const size_t idx) {
-    size_t bucket_idx = idx / BLOCK_SIZE;
-    size_t bucket_off = idx % BLOCK_SIZE;
-    if (buckets_[bucket_idx].load(std::memory_order_acquire) == NULL) {
-      try_allocate_bucket(bucket_idx);
-    }
-    return buckets_[bucket_idx].load(std::memory_order_acquire)[bucket_off];
-  }
+    buckets_[bucket_idx].load(std::memory_order_acquire)[bucket_off] = val;
+  }  
 
   // Write len bytes of data at offset.
   // Allocates memory if necessary.
@@ -283,6 +308,22 @@ class __monolog_linear_base {
            data, len);
   }
 
+  // Write len bytes of data at offset. Does NOT allocate memory -- ensure
+  // memory is allocated before calling this function.
+  void write_unsafe(const size_t offset, const T* data, const size_t len) {
+    size_t bucket_idx = offset / BLOCK_SIZE;
+    size_t bucket_off = offset % BLOCK_SIZE;
+    memcpy(buckets_[bucket_idx].load(std::memory_order_acquire) + bucket_off,
+           data, len);
+  }
+
+  // Gets the data at index idx.
+  T get(const size_t idx) const {
+    size_t bucket_idx = idx / BLOCK_SIZE;
+    size_t bucket_off = idx % BLOCK_SIZE;
+    return buckets_[bucket_idx].load(std::memory_order_acquire)[bucket_off];
+  }
+
   // Get len bytes of data at offset.
   void read(const size_t offset, T* data, const size_t len) const {
     size_t bucket_idx = offset / BLOCK_SIZE;
@@ -290,6 +331,15 @@ class __monolog_linear_base {
     memcpy(data,
            buckets_[bucket_idx].load(std::memory_order_acquire) + bucket_off,
            len);
+  }
+
+  T& operator[](const size_t idx) {
+    size_t bucket_idx = idx / BLOCK_SIZE;
+    size_t bucket_off = idx % BLOCK_SIZE;
+    if (buckets_[bucket_idx].load(std::memory_order_acquire) == NULL) {
+      try_allocate_bucket(bucket_idx);
+    }
+    return buckets_[bucket_idx].load(std::memory_order_acquire)[bucket_off];
   }
 
   void* ptr(const size_t offset) {
