@@ -55,6 +55,8 @@ class packet_store: public slog::log_store {
       for (int i = 0; i < cnt; i++)
         nbytes += rte_pktmbuf_pkt_len(pkts[i]);
       uint64_t off = store_.request_bytes(nbytes);
+
+      size_t num_chars = store_.num_filters_.load(std::memory_order_acquire);
       auto char_index = store_.char_idx_->get(now);
 
       for (int i = 0; i < cnt; i++) {
@@ -76,7 +78,6 @@ class packet_store: public slog::log_store {
         store_.timestamp_idx_->add_entry(now, id);
         store_.olog_->set(id, off, pkt_size);
         off += store_.append_pkt(off, now, pkt, pkt_size);
-        size_t num_chars = store_.num_filters_.load(std::memory_order_acquire);
         for (size_t i = 0; i < num_chars; i++) {
           for (auto& filter: store_.filters_[i]) {
             if (filter.apply(pkt)) {
