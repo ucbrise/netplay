@@ -311,9 +311,13 @@ class filter_benchmark {
     pktstore_vport* vport = new pktstore_vport(handle);
     rand_generator* gen = new rand_generator(mempool);
     packet_generator<pktstore_vport> pktgen(vport, gen, load_rate, 0, num_pkts);
+    uint32_t start_time = std::time(NULL);
     pktgen.generate();
     end_time_ = std::time(NULL);
-    fprintf(stderr, "Loaded %zu packets.\n", handle->num_pkts());
+    uint32_t totsecs = end_time_ - start_time;
+    double pkt_rate = (double) handle->num_pkts() / (double) totsecs;
+    fprintf(stderr, "Loaded %zu packets in %" PRIu32 "s (%lf packets/s).\n",
+            handle->num_pkts(), totsecs, pkt_rate);
     delete handle;
   }
 
