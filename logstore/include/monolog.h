@@ -67,8 +67,8 @@ class monolog_iterator :
 template<class T, size_t NBUCKETS = 32>
 class __monolog_base {
  public:
-  static const size_t FBS = 1024;
-  static const size_t FBS_HIBIT = 10;
+  static const size_t FBS = 1048576;
+  static const size_t FBS_HIBIT = 20;
 
   typedef std::atomic<T*> __atomic_bucket_ref;
 
