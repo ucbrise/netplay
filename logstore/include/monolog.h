@@ -115,11 +115,11 @@ class __monolog_base {
   // Sets the data at index idx to val. Does NOT allocate memory -- ensure
   // memory is allocated before calling this function.
   void set_unsafe(size_t idx, const T val) {
-   size_t pos = idx + FBS;
+    size_t pos = idx + FBS;
     size_t hibit = bit_utils::highest_bit(pos);
     size_t bucket_off = pos ^ (1 << hibit);
     size_t bucket_idx = hibit - FBS_HIBIT;
-    buckets_[bucket_idx].load(std::memory_order_acquire)[bucket_off] = val; 
+    buckets_[bucket_idx].load(std::memory_order_acquire)[bucket_off] = val;
   }
 
   // Sets a contiguous region of the MonoLog base to the provided data.
@@ -146,8 +146,8 @@ class __monolog_base {
     }
   }
 
-  // Sets a contiguous region of the MonoLog base to the provided data. Does 
-  // NOT allocate memory -- ensure memory is allocated before calling this 
+  // Sets a contiguous region of the MonoLog base to the provided data. Does
+  // NOT allocate memory -- ensure memory is allocated before calling this
   // function.
   void set_unsafe(size_t idx, const T* data, const size_t len) {
     size_t pos = idx + FBS;
@@ -294,7 +294,7 @@ class __monolog_linear_base {
     size_t bucket_idx = idx / BLOCK_SIZE;
     size_t bucket_off = idx % BLOCK_SIZE;
     buckets_[bucket_idx].load(std::memory_order_acquire)[bucket_off] = val;
-  }  
+  }
 
   // Write len bytes of data at offset.
   // Allocates memory if necessary.
@@ -531,6 +531,16 @@ class monolog_linearizable : public __monolog_base<T, NBUCKETS> {
     return idx;
   }
 
+  size_t push_back_range(const T start, const T end) {
+    size_t cnt = (end - start + 1);
+    size_t idx = write_tail_.fetch_add(cnt, std::memory_order_release);
+    for (size_t i = 0; i < cnt; i++)
+      this->set(idx + i, start + i);
+    while (!std::atomic_compare_exchange_weak_explicit(&read_tail_, &idx,
+           idx + cnt, std::memory_order_release, std::memory_order_acquire));
+    return idx;
+  }
+
   // Get the entry at the specified index `idx'.
   T at(const size_t idx) const {
     return this->get(idx);
@@ -579,6 +589,14 @@ class monolog_relaxed : public __monolog_base<T, NBUCKETS> {
   size_t push_back(const T val) {
     size_t idx = tail_.fetch_add(1U, std::memory_order_release);
     this->set(idx, val);
+    return idx;
+  }
+
+  size_t push_back_range(const T start, const T end) {
+    size_t cnt = (end - start + 1);
+    size_t idx = tail_.fetch_add(cnt, std::memory_order_release);
+    for (size_t i = 0; i < cnt; i++)
+      this->set(idx + i, start + i);
     return idx;
   }
 
