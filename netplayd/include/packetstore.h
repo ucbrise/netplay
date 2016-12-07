@@ -76,7 +76,7 @@ class packet_store: public slog::log_store {
           store_.dstport_idx_->add_entry(udp->dst_port, id);
         }
         store_.timestamp_idx_->add_entry(now, id);
-        store_.olog_->set(id, off, pkt_size);
+        store_.olog_->set_without_alloc(id, off, pkt_size);
         off += store_.append_pkt(off, now, pkt, pkt_size);
         for (size_t i = 0; i < num_chars; i++) {
           for (auto& filter: store_.filters_[i]) {
