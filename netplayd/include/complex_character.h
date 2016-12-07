@@ -4,12 +4,13 @@
 #include <vector>
 #include <cstdint>
 
+#include "tieredindex.h"
 #include "packet_filter.h"
 #include "monolog.h"
 
 namespace netplay {
 
-class complex_character {
+class complex_character_index {
  public:
   typedef std::pair<uint64_t, uint64_t> time_range;
   struct time_id {
@@ -17,6 +18,9 @@ class complex_character {
     uint64_t ts;
   };
   typedef slog::monolog_relaxed<time_id, 24> monolog_type;
+
+  typedef slog::indexlet<slog::entry_list> char_index;
+  typedef slog::__index_depth2<65536, 65536, char_index> time_char_index;
 
   class result {
    public:
@@ -27,33 +31,44 @@ class complex_character {
       typedef const uint64_t* pointer;
       typedef uint64_t reference;
 
-      iterator(const uint64_t cur_idx,
-               uint64_t max_rid,
-               const time_range range,
-               const uint32_t monolog_size,
-               monolog_type* monolog) {
-        cur_idx_ = cur_idx;
-        max_rid_ = max_rid;
-        range_ = range;
-        monolog_size_ = monolog_size;
-        monolog_ = monolog;
+      iterator(const result* res) {
+        res_ = res;
+
+        cur_idx_ = -1;
+        cur_ts_ = res_->range_.first;
+        cur_list_ = NULL;
+        char_index* c = res_->index_->at(cur_ts_);
+        if (c != NULL)
+          cur_list_ = c->at(res_->char_id_);
+
+        advance();
+      }
+
+      iterator(const int64_t idx, const uint64_t ts) {
+        res_ = NULL;
+
+        cur_idx_ = idx;
+        cur_ts_ = ts;
+        cur_list_ = NULL;
+      }
+
+      iterator(const iterator& other) {
+        res_ = other.res_;
+
+        cur_idx_ = other.cur_idx_;
+        cur_ts_ = other.cur_ts_;
+        cur_list_ = other.cur_list_;
       }
 
       reference operator*() const {
-        return monolog_->get(cur_idx_).id;
+        return cur_list_->at(cur_idx_);
       }
 
       iterator& operator++() {
-        if (cur_idx_ == monolog_size_)
-          return *this;
-
-        time_id val;
         do {
-          cur_idx_++;
-          if (cur_idx_ != monolog_size_)
-            val = monolog_->get(cur_idx_);
-        } while (cur_idx_ != monolog_size_ && !is_valid(val));
-
+          advance();
+        } while (cur_ts_ <= res_->range_.second &&
+                 cur_list_->at(cur_idx_) >= res_->max_rid_);
         return *this;
       }
 
@@ -64,7 +79,7 @@ class complex_character {
       }
 
       bool operator==(iterator other) const {
-        return cur_idx_ == other.cur_idx_;
+        return (cur_idx_ == other.cur_idx_) && (cur_ts_ == other.cur_ts_);
       }
 
       bool operator!=(iterator other) const {
@@ -72,80 +87,66 @@ class complex_character {
       }
 
      private:
-      inline bool is_valid(const time_id& val) {
-        return val.ts >= range_.first && val.ts <= range_.second
-               && val.id < max_rid_;
+      inline void advance() {
+        if (cur_ts_ == res_->range_.second + 1)
+          return;
+
+        cur_idx_++;
+        if (cur_list_ == NULL || static_cast<uint64_t>(cur_idx_) == cur_list_->size()) {
+          cur_idx_ = 0;
+          cur_list_ = NULL;
+          while (cur_list_ == NULL && cur_ts_ <= res_->range_.second) {
+            char_index* c;
+            if ((c = res_->index_->at(++cur_ts_)) != NULL)
+              cur_list_ = c->at(res_->char_id_);
+          }
+        }
       }
 
-      uint64_t max_rid_;
-      time_range range_;
-      uint64_t cur_idx_;
-      uint32_t monolog_size_;
-      monolog_type* monolog_;
+      int64_t cur_idx_;
+      uint64_t cur_ts_;
+      slog::entry_list* cur_list_;
+
+      const result* res_;
     };
 
-    result(uint64_t max_rid, const time_range range,
-           const uint32_t monolog_size,
-           monolog_type* monolog) {
-      max_rid_ = max_rid;
-      range_ = range;
-      monolog_size_ = monolog_size;
-      monolog_ = monolog;
-    }
+    result(const uint64_t max_rid, const uint32_t char_id,
+           const time_range range, const time_char_index* index)
+      : max_rid_(max_rid), char_id_(char_id), range_(range), index_(index) {}
 
     iterator begin() {
-      return iterator(0, max_rid_, range_, monolog_size_, monolog_);
+      return iterator(this);
     }
 
     iterator end() {
-      return iterator(monolog_size_, max_rid_, range_, monolog_size_,
-                      monolog_);
+      return iterator(0, range_.second + 1);
     }
 
    private:
-    uint64_t max_rid_;
-    time_range range_;
-    uint32_t monolog_size_;
-    monolog_type* monolog_;
+    const uint64_t max_rid_;
+    const uint32_t char_id_;
+    const time_range range_;
+    const time_char_index* index_;
   };
 
   /**
-    * Constructor to initialize complex character.
-    *
-    * @param filters Packet filters to use for this complex character.
+    * Constructor to initialize complex character index.
     */
-  complex_character(const std::vector<packet_filter>& filters)
-    : filters_(filters) {
-    monolog_ = new monolog_type();
+  complex_character_index() {
+    index_ = new time_char_index();
   }
 
-  /**
-   * Filters packets using the packet filters, and adds the packet id if the
-   * packet passes through any filter.
-   *
-   * @param pkt_id The id of the packet.
-   * @param pkt The packet data.
-   * @param ts The packet timestamp.
-   */
-  void check_and_add(uint64_t pkt_id, void* pkt, uint64_t ts) {
-    for (const packet_filter& filter : filters_) {
-      if (filter.apply(pkt)) {
-        monolog_->push_back({ pkt_id, ts });
-        return;
-      }
-    }
+  char_index* get(uint64_t ts) {
+    return index_->get(ts);
   }
 
-  result filter(uint64_t max_rid, const time_range range) {
-    return result(max_rid, range, monolog_->size(), monolog_);
+  result filter(const uint64_t max_rid, const uint32_t char_id, const time_range range) {
+    return result(max_rid, char_id, range, index_);
   }
 
  private:
-  /* Packet filters */
-  const std::vector<packet_filter> filters_;
-
-  /* Monolog */
-  monolog_type* monolog_;
+  /* Time-based complex character index */
+  time_char_index* index_;
 };
 
 }

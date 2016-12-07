@@ -24,6 +24,8 @@
 #include "packet_filter.h"
 #include "query_plan.h"
 
+#define MAX_FILTERS 65536
+
 namespace netplay {
 
 /**
@@ -36,6 +38,9 @@ namespace netplay {
 class packet_store: public slog::log_store {
  public:
   typedef std::unordered_set<uint64_t> result_type;
+  typedef std::vector<packet_filter> filter_list;
+  typedef complex_character_index::result filter_result;
+
   class handle : public slog::log_store::handle {
    public:
     handle(packet_store& store)
@@ -50,6 +55,7 @@ class packet_store: public slog::log_store {
       for (int i = 0; i < cnt; i++)
         nbytes += rte_pktmbuf_pkt_len(pkts[i]);
       uint64_t off = store_.request_bytes(nbytes);
+      auto char_index = store_.char_idx_->get(now);
 
       for (int i = 0; i < cnt; i++) {
         unsigned char* pkt = rte_pktmbuf_mtod(pkts[i], unsigned char*);
@@ -70,9 +76,15 @@ class packet_store: public slog::log_store {
         store_.timestamp_idx_->add_entry(now, id);
         store_.olog_->set(id, off, pkt_size);
         off += store_.append_pkt(off, now, pkt, pkt_size);
-        size_t num_chars = store_.complex_characters_->size();
-        for (size_t i = 0; i < num_chars; i++)
-          store_.complex_characters_->at(i)->check_and_add(id, pkt, now);
+        size_t num_chars = store_.num_filters_.load(std::memory_order_acquire);
+        for (size_t i = 0; i < num_chars; i++) {
+          for (auto& filter: store_.filters_[i]) {
+            if (filter.apply(pkt)) {
+              char_index->get(i)->push_back(id);
+              break;
+            }
+          }
+        }
         id++;
       }
       store_.olog_->end(id, cnt);
@@ -87,8 +99,8 @@ class packet_store: public slog::log_store {
       store_.filter_pkts(results, plan);
     }
 
-    complex_character::result complex_character_lookup(const id_t char_id,
-                                  const uint32_t ts_beg, const uint32_t ts_end) {
+    filter_result complex_character_lookup(const id_t char_id,
+        const uint32_t ts_beg, const uint32_t ts_end) {
       return store_.complex_character_lookup(char_id, ts_beg, ts_end);
     }
 
@@ -139,13 +151,8 @@ class packet_store: public slog::log_store {
     dstport_idx_ = idx2_->at(1);
     timestamp_idx_ = idx4_->at(2);
 
-    fprintf(stderr, "source_ip=%" PRIu32 "\n", srcip_idx_id_);
-    fprintf(stderr, "destination_ip=%" PRIu32 "\n", dstip_idx_id_);
-    fprintf(stderr, "source_port=%" PRIu32 "\n", srcport_idx_id_);
-    fprintf(stderr, "destination_port=%" PRIu32 "\n", dstport_idx_id_);
-    fprintf(stderr, "timestamp=%" PRIu32 "\n", timestamp_idx_id_);
-
-    complex_characters_ = new slog::monolog_linearizable<complex_character*>();
+    char_idx_ = new complex_character_index();
+    num_filters_.store(0U, std::memory_order_release);
   }
 
   /**
@@ -159,13 +166,15 @@ class packet_store: public slog::log_store {
   }
 
   /**
-   * Add a new complex character with specified packet filters.
+   * Add a new complex character with specified packet filter.
    *
-   * @param filters The packet filters.
+   * @param filter The packet filter.
    * @return The id of the newly created complex character.
    */
-  uint32_t add_complex_character(const std::vector<packet_filter>& filters) {
-    return complex_characters_->push_back(new complex_character(filters));
+  uint32_t add_complex_character(const filter_list& filter) {
+    size_t idx = num_filters_.fetch_add(1UL, std::memory_order_release);
+    filters_[idx] = filter;
+    return idx;
   }
 
   uint64_t approx_pkt_count(const uint32_t index_id, const uint64_t tok_beg,
@@ -233,13 +242,12 @@ class packet_store: public slog::log_store {
     }
   }
 
-  complex_character::result complex_character_lookup(const uint32_t char_id,
-      const uint32_t ts_beg,
-      const uint32_t ts_end) {
+  filter_result complex_character_lookup(const uint32_t char_id,
+                                         const uint32_t ts_beg,
+                                         const uint32_t ts_end) {
     std::pair<uint64_t, uint64_t> time_range(ts_beg, ts_end);
     uint64_t max_rid = olog_->num_ids();
-    complex_character* character = complex_characters_->get(char_id);
-    return character->filter(max_rid, time_range);
+    return char_idx_->filter(max_rid, char_id, time_range);
   }
 
   /**
@@ -282,7 +290,11 @@ class packet_store: public slog::log_store {
   slog::__index2* dstport_idx_;
   slog::__index4* timestamp_idx_;
 
-  slog::monolog_linearizable<complex_character*> *complex_characters_;
+  /* Complex characters */
+  /* Packet filters */
+  std::array<filter_list, MAX_FILTERS> filters_;
+  std::atomic<uint32_t> num_filters_;
+  complex_character_index* char_idx_;
 };
 
 }
