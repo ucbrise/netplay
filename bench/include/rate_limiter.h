@@ -8,7 +8,50 @@
 
 using namespace ::std::chrono;
 
-template<typename vport_type, typename generator_type>
+template<size_t batch_size>
+class pacer {
+ public:
+  pacer(uint64_t rate) {
+    rate_ = rate;
+    batch_size_ = batch_size;
+    min_batch_ns_ = 0;
+    if (rate_ != 0)
+      min_batch_ns_ = (1e9 * batch_size) / rate_;
+    tspec_.tv_sec = 0;
+    num_ops_ = 0;
+
+    epoch_ = high_resolution_clock::now();
+  }
+
+  void pace() {
+    num_ops_++;
+    if (rate_ != 0 && num_ops_ % batch_size == 0) {
+      auto now = high_resolution_clock::now();
+      auto batch_ns = duration_cast<nanoseconds>(now - epoch_).count();
+      if (batch_ns < min_batch_ns_) {
+        tspec_.tv_nsec = (min_batch_ns_ - batch_ns);
+        nanosleep(&tspec_, NULL);
+      }
+      epoch_ = high_resolution_clock::now();
+    }
+  }
+
+  uint64_t num_ops() {
+    return num_ops_;
+  }
+
+ private:
+  uint64_t num_ops_;
+  uint64_t rate_;
+  uint64_t batch_size_;
+  uint64_t min_batch_ns_;
+
+  time_point<high_resolution_clock> epoch_;
+
+  struct timespec tspec_;
+};
+
+template<typename vport_type, typename generator_type, size_t batch_size = BATCH_SIZE, size_t burst_size = BURST_SIZE>
 class rate_limiter {
  public:
   rate_limiter(vport_type* vport, generator_type* generator,
@@ -16,7 +59,7 @@ class rate_limiter {
 
     rate_ = rate;
     pkt_limit_ = pkt_limit;
-    
+
     tot_sent_pkts_ = 0;
 
     vport_ = vport;
@@ -25,9 +68,9 @@ class rate_limiter {
 
   void generate() {
     double min_batch_ns = 0;
-    if(rate_ != 0) {
-      min_batch_ns = (double) (1e9 * BATCH_SIZE) / (double) rate_;
-      fprintf(stderr, "%d ops per %lf ns.\n", BATCH_SIZE, min_batch_ns);
+    if (rate_ != 0) {
+      min_batch_ns = (double) (1e9 * batch_size) / (double) rate_;
+      fprintf(stderr, "%zu ops per %lf ns.\n", batch_size, min_batch_ns);
     }
 
     struct timespec tspec;
@@ -36,10 +79,10 @@ class rate_limiter {
     auto start = high_resolution_clock::now();
     auto epoch = start;
     while (tot_sent_pkts_ < pkt_limit_) {
-      auto pkts = generator_->generate_batch(RTE_BURST_SIZE);
-      uint16_t sent = vport_->send_pkts(pkts, RTE_BURST_SIZE);
+      auto pkts = generator_->generate_batch(burst_size);
+      uint16_t sent = vport_->send_pkts(pkts, burst_size);
       tot_sent_pkts_ += sent;
-      if (rate_ != 0 && tot_sent_pkts_ % BATCH_SIZE == 0) {
+      if (rate_ != 0 && tot_sent_pkts_ % batch_size == 0) {
         auto now = high_resolution_clock::now();
         auto batch_ns = duration_cast<nanoseconds>(now - epoch).count();
         if (batch_ns < min_batch_ns) {
@@ -59,7 +102,7 @@ class rate_limiter {
   uint64_t rate_;
   uint64_t pkt_limit_;
   uint64_t tot_sent_pkts_;
-  
+
   vport_type* vport_;
   generator_type* generator_;
 };

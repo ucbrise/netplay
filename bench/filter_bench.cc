@@ -46,6 +46,7 @@
 #include "bench_vport.h"
 #include "pktgen.h"
 #include "netplay_utils.h"
+#include "rate_limiter.h"
 
 #define PKT_LEN 54
 #define PKT_BURST 32
@@ -198,17 +199,14 @@ class filter_benchmark {
       for (uint32_t i = 0; i < num_threads; i++) {
         workers.push_back(std::thread([i, qid, worker_rate, &query_thputs, &pkt_thputs, this] {
           packet_store::handle* handle = store_->get_handle();
-          token_bucket bucket(worker_rate, 1);
+          pacer<1> p(worker_rate);
           uint64_t num_pkts = 0;
           timestamp_t start = get_timestamp();
           for (size_t repeat = 0; repeat < kThreadQueryCount; repeat++) {
-            if (worker_rate == 0 || bucket.consume(1)) {
-              std::unordered_set<uint64_t> results;
-              handle->filter_pkts(results, cast_queries_[qid]);
-              num_pkts += results.size();
-            } else {
-              repeat--;
-            }
+            std::unordered_set<uint64_t> results;
+            handle->filter_pkts(results, cast_queries_[qid]);
+            p.pace();
+            num_pkts += results.size();
           }
           timestamp_t end = get_timestamp();
           double totsecs = (double) (end - start) / (1000.0 * 1000.0);
@@ -277,16 +275,13 @@ class filter_benchmark {
       for (uint32_t i = 0; i < num_threads; i++) {
         workers.push_back(std::thread([i, qid, worker_rate, &query_thputs, &pkt_thputs, this] {
           packet_store::handle* handle = store_->get_handle();
-          token_bucket bucket(worker_rate, 1);
+          pacer<10> p(worker_rate);
           uint64_t num_pkts = 0;
           timestamp_t start = get_timestamp();
           for (size_t repeat = 0; repeat < kThreadQueryCount; repeat++) {
-            if (worker_rate == 0 || bucket.consume(1)) {
-              auto res = handle->complex_character_lookup(char_ids_[qid], end_time_ - 4, end_time_);
-              num_pkts += count_container(res);
-            } else {
-              repeat--;
-            }
+            auto res = handle->complex_character_lookup(char_ids_[qid], end_time_ - 4, end_time_);
+            num_pkts += count_container(res);
+            p.pace();
           }
           timestamp_t end = get_timestamp();
           double totsecs = (double) (end - start) / (1000.0 * 1000.0);
