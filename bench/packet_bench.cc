@@ -40,14 +40,12 @@
 #include <rte_mbuf.h>
 
 #include "packetstore.h"
-#include "pktgen.h"
 #include "bench_vport.h"
 #include "dpdk_utils.h"
 #include "cpu_utilization.h"
 #include "rate_limiter.h"
 
 using namespace ::netplay::dpdk;
-using namespace ::netplay::pktgen;
 using namespace ::netplay;
 using namespace ::slog;
 using namespace ::std::chrono;
