@@ -27,7 +27,7 @@ class pacer {
     num_ops_++;
     if (rate_ != 0 && num_ops_ % batch_size == 0) {
       auto now = high_resolution_clock::now();
-      auto batch_ns = duration_cast<nanoseconds>(now - epoch_).count();
+      uint64_t batch_ns = duration_cast<nanoseconds>(now - epoch_).count();
       if (batch_ns < min_batch_ns_) {
         tspec_.tv_nsec = (min_batch_ns_ - batch_ns);
         nanosleep(&tspec_, NULL);
