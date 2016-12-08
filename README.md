@@ -16,9 +16,10 @@ NetPlay has the following major dependencies:
 
 * DPDK
 * Thrift
-* A virtual switch implementation (OVS by default, but also supports BESS.
-  Contact us if you want to use NetPlay with other virtual switch 
-  implementations)
+* A virtual switch implementation (OVS by default, but also supports BESS.\*)
+  
+\* Contact us if you want to use NetPlay with other virtual switch 
+implementations.
 
 Install all (major and minor) dependencies on Ubuntu 14.04 or later as follows:
 
@@ -43,3 +44,7 @@ This will also run all tests by default.
 ## Using NetPlay
 
 TODO: Add description.
+
+## Contact Us
+
+Anurag Khandelwal (anuragk@berkeley.edu)
