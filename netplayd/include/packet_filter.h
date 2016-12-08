@@ -84,11 +84,10 @@ struct packet_filter {
 typedef slog::__input_iterator __input_iterator;
 typedef std::vector<__input_iterator> iterator_list;
 
-template<typename index_type>
 class packet_filter_result {
  public:
-  template<typename T>
-  using filter_iterator = typename slog::filter_result<T>::filter_iterator;
+  
+  typedef slog::filter_result::filter_iterator filter_iterator;
 
   class packet_filter_iterator : public __input_iterator {
    public:
@@ -98,7 +97,7 @@ class packet_filter_result {
     typedef uint64_t reference;
 
     packet_filter_iterator(const packet_filter& filter,
-                           const filter_iterator<index_type>& it,
+                           const filter_iterator& it,
                            slog::__monolog_linear_base <uint8_t>* dlog,
                            slog::offsetlog* olog)
       : filter_(filter) {
@@ -112,8 +111,8 @@ class packet_filter_result {
     }
 
     packet_filter_iterator& operator++() {
-      void *pkt;
-      uint64_t ts;
+      void *pkt = NULL;
+      uint64_t ts = 0;
       do {
         it_++;
         if (!it_.finished()) {
@@ -144,12 +143,12 @@ class packet_filter_result {
 
    private:
     const packet_filter& filter_;
-    filter_iterator<index_type> it_;
+    filter_iterator it_;
     slog::__monolog_linear_base<uint8_t>* dlog_;
     slog::offsetlog* olog_;
   };
 
-  packet_filter_result(slog::filter_result<index_type>& res,
+  packet_filter_result(slog::filter_result& res,
                        const packet_filter& filter,
                        slog::__monolog_linear_base <uint8_t>* dlog,
                        slog::offsetlog* olog)
@@ -167,20 +166,19 @@ class packet_filter_result {
   }
 
  private:
-  slog::filter_result<index_type>& res_;
+  slog::filter_result& res_;
 
   const packet_filter& filter_;
   slog::__monolog_linear_base<uint8_t>* dlog_;
   slog::offsetlog* olog_;
 };
 
-template<typename index_type>
-inline packet_filter_result<index_type> build_result(
-  slog::filter_result<index_type>& res,
+inline packet_filter_result build_result(
+  slog::filter_result& res,
   const packet_filter& filter,
   slog::__monolog_linear_base <uint8_t>* dlog,
   slog::offsetlog* olog) {
-  return packet_filter_result<index_type>(res, filter, dlog, olog);
+  return packet_filter_result(res, filter, dlog, olog);
 }
 
 }

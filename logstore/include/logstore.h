@@ -584,12 +584,11 @@ class log_store {
    * @param index .
    % @return The count of the filter query.
    */
-  template<typename index_type>
-  uint64_t filter_count(index_type* index, const uint64_t tok_min,
+  uint64_t filter_count(tiered_index_base* index, const uint64_t tok_min,
                         const uint64_t tok_max) const {
     uint64_t count = 0;
     for (uint64_t i = tok_min; i <= tok_max; i++) {
-      entry_list* list = index->get(i);
+      entry_list* list = index->at(i);
       if (list != NULL)
         count += list->size();
     }
@@ -660,8 +659,7 @@ class log_store {
     }
   }
 
-  template<typename index_type>
-  void populate_results(result_type& results, filter_result<index_type>& filter_res) const {
+  void populate_results(result_type& results, filter_result& filter_res) const {
     for (auto it = filter_res.begin(); it != filter_res.end(); it++)
       results.insert(*it);
   }
@@ -675,10 +673,9 @@ class log_store {
    * @param tok_max The largest token to consider.
    * @param max_rid Largest record-id to consider.
    */
-  template<typename index_type>
-  filter_result<index_type> filter(index_type* index, const uint64_t tok_min,
-                                   const uint64_t tok_max, const uint64_t max_rid) const {
-    return filter_result<index_type>(index, tok_min, tok_max, max_rid);
+  filter_result filter(tiered_index_base* index, const uint64_t tok_min,
+                       const uint64_t tok_max, const uint64_t max_rid) const {
+    return filter_result(index, tok_min, tok_max, max_rid);
   }
 
   /**

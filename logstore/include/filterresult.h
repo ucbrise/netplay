@@ -8,7 +8,6 @@ namespace slog {
 
 typedef std::iterator<std::input_iterator_tag, uint64_t, uint64_t, const uint64_t*, uint64_t> __input_iterator;
 
-template<typename index_type>
 class filter_result {
  public:
   class filter_iterator : public __input_iterator {
@@ -100,7 +99,7 @@ class filter_result {
     const filter_result *res_;
   };
 
-  filter_result(const index_type* index, const uint64_t tok_min,
+  filter_result(const tiered_index_base* index, const uint64_t tok_min,
                 const uint64_t tok_max, const uint64_t max_rid) {
     index_ = index;
     tok_min_ = tok_min;
@@ -117,7 +116,7 @@ class filter_result {
   }
 
  private:
-  const index_type* index_;
+  const tiered_index_base* index_;
   uint64_t tok_min_;
   uint64_t tok_max_;
   uint64_t max_rid_;
