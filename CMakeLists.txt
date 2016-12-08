@@ -23,7 +23,7 @@ if(EXISTS ${PROJECT_SOURCE_DIR}/3rdparty/thrift)
   set(THRIFT_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/3rdparty/thrift/build/include)
   set(THRIFT_LIB_DIR ${PROJECT_SOURCE_DIR}/3rdparty/thrift/build/lib)
 else()
-  message(FATAL_ERROR "Ensure Apache is installed by runnning 3rdparty/setup.sh")
+  message(FATAL_ERROR "Ensure Apache Thrift is installed by runnning 3rdparty/setup.sh")
 endif()
 
 add_subdirectory(thrift)
