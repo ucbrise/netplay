@@ -15,8 +15,7 @@ We plan on providing scripts for other operating systems quite soon.
 NetPlay has the following major dependencies:
 
 * DPDK
-* Thrift
-* A virtual switch implementation (OVS by default, but also supports BESS.\*)
+* A virtual switch implementation (OVS by default, BESS is also supported.\*)
   
 \* Contact us if you want to use NetPlay with other virtual switch 
 implementations.
