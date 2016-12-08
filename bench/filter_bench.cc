@@ -75,7 +75,10 @@ class filter_benchmark {
                    const std::string& query_path): query_path_(query_path) {
     store_ = new packet_store();
     mempool_ = init_dpdk("filter", 0, 0);
-    
+
+    output_suffix_ = "_" + std::to_string(load_rate) + "_" +
+                     std::to_string(num_pkts) + ".txt";
+
     fprintf(stderr, "Adding complex chars...\n");
     add_complex_chars();
     fprintf(stderr, "Loading data...\n");
@@ -104,7 +107,7 @@ class filter_benchmark {
 
   void load_cast_queries() {
     cast_queries_.clear();
-    
+
     std::ifstream in(query_path_);
     if (!in.is_open()) {
       fprintf(stderr, "Could not open query file %s\n", query_path_.c_str());
@@ -127,7 +130,7 @@ class filter_benchmark {
 
   // Latency benchmarks
   void bench_cast_latency(size_t repeat_max = kThreadQueryCount) {
-    std::ofstream out("query_latency_cast.txt");
+    std::ofstream out("latency_cast" + output_suffix_);
     packet_store::handle* handle = store_->get_handle();
 
     for (size_t i = 0; i < cast_queries_.size(); i++) {
@@ -144,8 +147,7 @@ class filter_benchmark {
       avg /= repeat_max;
       size /= repeat_max;
       out << (i + 1) << "\t" << size << "\t" << avg << "\n";
-      fprintf(stderr, "Query %zu: Count = %zu, Latency = %lf\n", (i + 1),
-              size, avg);
+      fprintf(stderr, "q%zu: Count=%zu, Latency=%lf\n", (i + 1), size, avg);
     }
     out.close();
 
@@ -163,7 +165,7 @@ class filter_benchmark {
   }
 
   void bench_char_latency(size_t repeat_max = kThreadQueryCount) {
-    std::ofstream out("query_latency_char.txt");
+    std::ofstream out("latency_char" + output_suffix_);
     packet_store::handle* handle = store_->get_handle();
 
     for (size_t i = 0; i < cast_queries_.size(); i++) {
@@ -179,8 +181,7 @@ class filter_benchmark {
       avg /= repeat_max;
       size /= repeat_max;
       out << (i + 1) << "\t" << size << "\t" << avg << "\n";
-      fprintf(stderr, "Query %zu: Count = %zu, Latency = %lf\n", (i + 1),
-              size, avg);
+      fprintf(stderr, "q%zu: Count=%zu, Latency=%lf\n", (i + 1), size, avg);
     }
     out.close();
 
@@ -261,7 +262,7 @@ class filter_benchmark {
       for (double thput : pkt_thputs)
         ptot += thput;
 
-      std::ofstream ofs("query_throughput_cast_" + std::to_string(num_threads) + ".txt", std::ios_base::app);
+      std::ofstream ofs("throughput_cast_" + std::to_string(num_threads) + output_suffix_, std::ios_base::app);
       ofs << (qid + 1) << "\t" << num_threads << "\t" << qtot << "\t" << ptot << "\n";
       ofs.close();
     }
@@ -339,7 +340,7 @@ class filter_benchmark {
       for (double thput : pkt_thputs)
         ptot += thput;
 
-      std::ofstream ofs("query_throughput_char_" + std::to_string(num_threads) + ".txt", std::ios_base::app);
+      std::ofstream ofs("throughput_char_" + std::to_string(num_threads) + output_suffix_, std::ios_base::app);
       ofs << (qid + 1) << "\t" << num_threads << "\t" << qtot << "\t" << ptot << "\n";
       ofs.close();
     }
@@ -380,6 +381,8 @@ class filter_benchmark {
   const std::string query_path_;
   std::vector<query_plan> cast_queries_;
   std::vector<uint32_t> char_ids_;
+
+  std::string output_suffix_;
 
   struct rte_mempool* mempool_;
   packet_store *store_;
