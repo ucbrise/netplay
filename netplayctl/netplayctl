@@ -1,7 +1,0 @@
-#!/bin/bash
-
-bin="`dirname "$0"`"
-bin="`cd "$bin"; pwd`"
-
-python -i $bin/py/preamble.py
-

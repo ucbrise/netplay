@@ -295,12 +295,12 @@ int main(int argc, char** argv) {
   struct rte_mempool* mempool = netplay::dpdk::init_dpdk(vswitch, master_core, 1);
   if (!strcmp("ovs", vswitch)) {
     netplay::netplay_daemon<netplay::dpdk::ovs_ring_init> netplayd(iface,
-        mempool, master_core, writer_core_mask, query_server_port);
+        mempool, writer_core_mask, query_server_port);
     netplayd.start();
     netplayd.monitor();
   } else if (!strcmp("bess", vswitch)) {
     netplay::netplay_daemon<netplay::dpdk::bess_ring_init> netplayd(iface,
-        mempool, master_core, writer_core_mask, query_server_port);
+        mempool, writer_core_mask, query_server_port);
     netplayd.start();
     netplayd.monitor();
   } else {
