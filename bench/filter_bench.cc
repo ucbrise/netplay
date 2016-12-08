@@ -72,27 +72,68 @@ class filter_benchmark {
   static const uint64_t kThreadQueryCount = 1000;
 
   filter_benchmark(const uint64_t load_rate, uint64_t num_pkts,
-                   const std::string& query_path) {
-
+                   const std::string& query_path): query_path_(query_path) {
     store_ = new packet_store();
+    mempool_ = init_dpdk("filter", 0, 0);
+    
     fprintf(stderr, "Adding complex chars...\n");
-    add_complex_chars(query_path);
+    add_complex_chars();
     fprintf(stderr, "Loading data...\n");
     load_data(load_rate, num_pkts);
     fprintf(stderr, "Loading cast queries...\n");
-    load_cast_queries(query_path);
+    load_cast_queries();
     fprintf(stderr, "Initialization complete.\n");
   }
 
+  void load_data(uint64_t load_rate, uint64_t num_pkts) {
+    packet_store::handle* handle = store_->get_handle();
+    pktstore_vport* vport = new pktstore_vport(handle);
+    rand_generator* gen = new rand_generator(mempool_);
+    packet_generator<pktstore_vport> pktgen(vport, gen, load_rate, 0, num_pkts);
+    start_time_ = std::time(NULL);
+    pktgen.generate();
+    end_time_ = std::time(NULL);
+    uint32_t totsecs = end_time_ - start_time_;
+    double pkt_rate = (double) handle->num_pkts() / (double) totsecs;
+    fprintf(stderr, "Loaded %zu packets in %" PRIu32 "s (%lf packets/s).\n",
+            handle->num_pkts(), totsecs, pkt_rate);
+    delete handle;
+    delete gen;
+    delete vport;
+  }
+
+  void load_cast_queries() {
+    cast_queries_.clear();
+    
+    std::ifstream in(query_path_);
+    if (!in.is_open()) {
+      fprintf(stderr, "Could not open query file %s\n", query_path_.c_str());
+      exit(-1);
+    }
+    packet_store::handle* handle = store_->get_handle();
+    std::string exp;
+    while (std::getline(in, exp)) {
+      parser p(exp);
+      expression *e = p.parse();
+      query_plan qp = query_planner::plan(handle, e);
+      netplay::print_query_plan(qp);
+      cast_queries_.push_back(qp);
+      free_expression(e);
+    }
+    fprintf(stderr, "Loaded %zu cast queries.\n", cast_queries_.size());
+
+    delete handle;
+  }
+
   // Latency benchmarks
-  void bench_cast_latency() {
+  void bench_cast_latency(size_t repeat_max = kThreadQueryCount) {
     std::ofstream out("query_latency_cast.txt");
     packet_store::handle* handle = store_->get_handle();
 
     for (size_t i = 0; i < cast_queries_.size(); i++) {
       double avg = 0.0;
       size_t size = 0;
-      for (size_t repeat = 0; repeat < 100; repeat++) {
+      for (size_t repeat = 0; repeat < repeat_max; repeat++) {
         std::unordered_set<uint64_t> results;
         timestamp_t start = get_timestamp();
         handle->filter_pkts(results, cast_queries_[i]);
@@ -100,8 +141,8 @@ class filter_benchmark {
         avg += (end - start);
         size += results.size();
       }
-      avg /= 100;
-      size /= 100;
+      avg /= repeat_max;
+      size /= repeat_max;
       out << (i + 1) << "\t" << size << "\t" << avg << "\n";
       fprintf(stderr, "Query %zu: Count = %zu, Latency = %lf\n", (i + 1),
               size, avg);
@@ -121,22 +162,22 @@ class filter_benchmark {
     return count;
   }
 
-  void bench_char_latency() {
+  void bench_char_latency(size_t repeat_max = kThreadQueryCount) {
     std::ofstream out("query_latency_char.txt");
     packet_store::handle* handle = store_->get_handle();
 
     for (size_t i = 0; i < cast_queries_.size(); i++) {
       double avg = 0.0;
       size_t size = 0;
-      for (size_t repeat = 0; repeat < 100; repeat++) {
+      for (size_t repeat = 0; repeat < repeat_max; repeat++) {
         timestamp_t start = get_timestamp();
         auto res = handle->complex_character_lookup(char_ids_[i], end_time_ - 4, end_time_);
         size += count_container(res);
         timestamp_t end = get_timestamp();
         avg += (end - start);
       }
-      avg /= 100;
-      size /= 100;
+      avg /= repeat_max;
+      size /= repeat_max;
       out << (i + 1) << "\t" << size << "\t" << avg << "\n";
       fprintf(stderr, "Query %zu: Count = %zu, Latency = %lf\n", (i + 1),
               size, avg);
@@ -305,47 +346,10 @@ class filter_benchmark {
   }
 
  private:
-  void load_data(uint64_t load_rate, uint64_t num_pkts) {
-    struct rte_mempool* mempool = init_dpdk("filter", 0, 0);
-    packet_store::handle* handle = store_->get_handle();
-    pktstore_vport* vport = new pktstore_vport(handle);
-    rand_generator* gen = new rand_generator(mempool);
-    packet_generator<pktstore_vport> pktgen(vport, gen, load_rate, 0, num_pkts);
-    uint32_t start_time = std::time(NULL);
-    pktgen.generate();
-    end_time_ = std::time(NULL);
-    uint32_t totsecs = end_time_ - start_time;
-    double pkt_rate = (double) handle->num_pkts() / (double) totsecs;
-    fprintf(stderr, "Loaded %zu packets in %" PRIu32 "s (%lf packets/s).\n",
-            handle->num_pkts(), totsecs, pkt_rate);
-    delete handle;
-  }
-
-  void load_cast_queries(const std::string& query_path) {
-    std::ifstream in(query_path);
+  void add_complex_chars() {
+    std::ifstream in(query_path_);
     if (!in.is_open()) {
-      fprintf(stderr, "Could not open query file %s\n", query_path.c_str());
-      exit(-1);
-    }
-    packet_store::handle* handle = store_->get_handle();
-    std::string exp;
-    while (std::getline(in, exp)) {
-      parser p(exp);
-      expression *e = p.parse();
-      query_plan qp = query_planner::plan(handle, e);
-      netplay::print_query_plan(qp);
-      cast_queries_.push_back(qp);
-      free_expression(e);
-    }
-    fprintf(stderr, "Loaded %zu cast queries.\n", cast_queries_.size());
-
-    delete handle;
-  }
-
-  void add_complex_chars(const std::string& query_path) {
-    std::ifstream in(query_path);
-    if (!in.is_open()) {
-      fprintf(stderr, "Could not open query file %s\n", query_path.c_str());
+      fprintf(stderr, "Could not open query file %s\n", query_path_.c_str());
       exit(-1);
     }
     packet_store::handle* handle = store_->get_handle();
@@ -370,9 +374,14 @@ class filter_benchmark {
     return now.tv_usec + (timestamp_t) now.tv_sec * 1000000;
   }
 
+  uint32_t start_time_;
   uint32_t end_time_;
+
+  const std::string query_path_;
   std::vector<query_plan> cast_queries_;
   std::vector<uint32_t> char_ids_;
+
+  struct rte_mempool* mempool_;
   packet_store *store_;
 };
 
@@ -520,6 +529,9 @@ int main(int argc, char** argv) {
     ls_bench.bench_char_latency();
   } else if (bench_type == "throughput-char") {
     ls_bench.bench_char_throughput(query_rate, num_threads, measure_cpu);
+  } else if (bench_type.find("latency") == 0) {
+    ls_bench.bench_cast_latency();
+    ls_bench.bench_char_latency();
   } else if (bench_type == "all") {
     ls_bench.bench_cast_latency();
     for (uint32_t i = 1; i < 12; i++) {
