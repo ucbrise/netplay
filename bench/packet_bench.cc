@@ -237,7 +237,7 @@ class packet_loader {
     for (double thput : thputs)
       tot += thput;
 
-    std::ofstream ofs("write_throughput_" + std::to_string(num_threads) + ".txt", std::ios_base::app);
+    std::ofstream ofs("write_throughput_" + std::to_string(num_threads) + "_" + std::to_string(rate_limit) + ".txt", std::ios_base::app);
     ofs << num_threads << "\t" << tot << "\n";
     ofs.close();
   }

@@ -230,7 +230,7 @@ class filter_benchmark {
 
       if (measure_cpu) {
         std::thread cpu_measure_thread([&] {
-          std::ofstream util_stream("cast_cpu_utilization_" + std::to_string(qid) + "_" + std::to_string(num_threads) + ".txt");
+          std::ofstream util_stream("cast_cpu_utilization_" + std::to_string(qid) + "_" + std::to_string(num_threads) + output_suffix_);
           cpu_utilization util;
           while (true) {
             sleep(1);
@@ -308,7 +308,7 @@ class filter_benchmark {
 
       if (measure_cpu) {
         std::thread cpu_measure_thread([&] {
-          std::ofstream util_stream("char_cpu_util_" + std::to_string(qid) + "_" + std::to_string(num_threads) + ".txt");
+          std::ofstream util_stream("char_cpu_utilization_" + std::to_string(qid) + "_" + std::to_string(num_threads) + output_suffix_);
           cpu_utilization util;
           while (true) {
             sleep(1);
