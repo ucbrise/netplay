@@ -72,16 +72,21 @@ class filter_benchmark {
     mempool_ = init_dpdk("filter", 0, 0);
     output_suffix_ = ".txt";
 
+    gen_ = new rand_generator(mempool_);
+
     load_filters();
     add_complex_chars();
+  }
+
+  ~filter_benchmark() {
+    delete gen_;
   }
 
   void load_data(uint64_t num_pkts) {
     fprintf(stderr, "Loading packets...\n");
     packet_store::handle* handle = store_->get_handle();
     pktstore_vport* vport = new pktstore_vport(handle);
-    rand_generator* gen = new rand_generator(mempool_);
-    packet_generator<pktstore_vport> pktgen(vport, gen, load_rate_, 0, num_pkts);
+    packet_generator<pktstore_vport> pktgen(vport, gen_, load_rate_, 0, num_pkts);
     start_time_ = std::time(NULL);
     pktgen.generate();
     end_time_ = std::time(NULL);
@@ -91,7 +96,6 @@ class filter_benchmark {
             pktgen.total_sent(), totsecs, pkt_rate);
     build_casts();
     delete handle;
-    delete gen;
     delete vport;
     output_suffix_ = "_" + std::to_string(load_rate_) + "_" +
                      std::to_string(handle->num_pkts()) + ".txt";
@@ -340,6 +344,8 @@ class filter_benchmark {
 
   uint32_t start_time_;
   uint32_t end_time_;
+
+  rand_generator* gen_;
 
   const std::string query_path_;
   std::vector<std::string> filters_;
