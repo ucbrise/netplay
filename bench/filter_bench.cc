@@ -64,48 +64,37 @@ class filter_benchmark {
   static const uint64_t CHAR_COUNT = 100000;
   static const uint64_t CAST_COUNT = 100;
 
-  filter_benchmark(const uint64_t load_rate, uint64_t num_pkts,
-                   const std::string& query_path): query_path_(query_path) {
+  filter_benchmark(const uint64_t load_rate, const std::string& query_path)
+    : query_path_(query_path) {
+
+    load_rate_ = load_rate;
     store_ = new packet_store();
     mempool_ = init_dpdk("filter", 0, 0);
+    output_suffix_ = ".txt";
 
-    output_suffix_ = "_" + std::to_string(load_rate) + "_" +
-                     std::to_string(num_pkts) + ".txt";
-
-    fprintf(stderr, "Loading filters...\n");
     load_filters();
-    fprintf(stderr, "Adding complex chars...\n");
     add_complex_chars();
-    fprintf(stderr, "Loading data...\n");
-    load_data(load_rate, num_pkts);
-    fprintf(stderr, "Creating casts...\n");
-    build_casts();
-    fprintf(stderr, "Initialization complete.\n");
   }
 
-  void load_data(uint64_t load_rate, uint64_t num_pkts) {
+  void load_data(uint64_t num_pkts) {
+    fprintf(stderr, "Loading packets...\n");
     packet_store::handle* handle = store_->get_handle();
     pktstore_vport* vport = new pktstore_vport(handle);
     rand_generator* gen = new rand_generator(mempool_);
-    packet_generator<pktstore_vport> pktgen(vport, gen, load_rate, 0, num_pkts);
+    packet_generator<pktstore_vport> pktgen(vport, gen, load_rate_, 0, num_pkts);
     start_time_ = std::time(NULL);
     pktgen.generate();
     end_time_ = std::time(NULL);
     uint32_t totsecs = end_time_ - start_time_;
-    double pkt_rate = (double) handle->num_pkts() / (double) totsecs;
+    double pkt_rate = (double) pktgen.total_sent() / (double) totsecs;
     fprintf(stderr, "Loaded %zu packets in %" PRIu32 "s (%lf packets/s).\n",
-            handle->num_pkts(), totsecs, pkt_rate);
+            pktgen.total_sent(), totsecs, pkt_rate);
+    build_casts();
     delete handle;
     delete gen;
     delete vport;
-  }
-
-  void build_casts() {
-    casts_.clear();
-    for (std::string& exp: filters_) {
-      auto c = cast_builder(store_, exp).build();
-      casts_.push_back(c);
-    }
+    output_suffix_ = "_" + std::to_string(load_rate_) + "_" +
+                     std::to_string(handle->num_pkts()) + ".txt";
   }
 
   // Latency benchmarks
@@ -307,13 +296,23 @@ class filter_benchmark {
   }
 
  private:
+  void build_casts() {
+    fprintf(stderr, "Building casts...\n");
+    casts_.clear();
+    for (std::string& exp : filters_) {
+      auto c = cast_builder(store_, exp).build();
+      casts_.push_back(c);
+    }
+  }
+
   void load_filters() {
+    fprintf(stderr, "Loading filters...\n");
     std::ifstream in(query_path_);
     if (!in.is_open()) {
       fprintf(stderr, "Could not open query file %s\n", query_path_.c_str());
       exit(-1);
     }
-    
+
     std::string exp;
     while (std::getline(in, exp)) {
       filters_.push_back(exp);
@@ -322,7 +321,8 @@ class filter_benchmark {
   }
 
   void add_complex_chars() {
-    for (std::string& exp: filters_) {
+    fprintf(stderr, "Adding complex characters...\n");
+    for (std::string& exp : filters_) {
       auto c = character_builder(store_, exp).build();
       characters_.push_back(c);
     }
@@ -335,6 +335,8 @@ class filter_benchmark {
 
     return now.tv_usec + (timestamp_t) now.tv_sec * 1000000;
   }
+
+  uint64_t load_rate_;
 
   uint32_t start_time_;
   uint32_t end_time_;
@@ -349,8 +351,6 @@ class filter_benchmark {
   struct rte_mempool* mempool_;
   packet_store *store_;
 };
-
-
 
 const char* usage =
   "Usage: %s [-b bench-type] [-q query-rate] [-l load-rate] [-p num-packets] [-n num-threads] [-c measure-cpu] query-path\n";
@@ -410,26 +410,41 @@ int main(int argc, char** argv) {
   }
 
   std::string query_path = std::string(argv[optind]);
-
-  filter_benchmark ls_bench(load_rate, num_pkts, query_path);
+  filter_benchmark ls_bench(load_rate, query_path);
   if (bench_type.find("latency-cast") == 0) {
+    ls_bench.load_data(num_pkts);
     ls_bench.bench_cast_latency();
   } else if (bench_type == "throughput-cast") {
+    ls_bench.load_data(num_pkts);
     ls_bench.bench_cast_throughput(query_rate, num_threads, measure_cpu);
   } else if (bench_type.find("latency-char") == 0) {
+    ls_bench.load_data(num_pkts);
     ls_bench.bench_char_latency();
   } else if (bench_type == "throughput-char") {
+    ls_bench.load_data(num_pkts);
     ls_bench.bench_char_throughput(query_rate, num_threads, measure_cpu);
   } else if (bench_type.find("latency") == 0) {
+    ls_bench.load_data(num_pkts);
     ls_bench.bench_cast_latency();
     ls_bench.bench_char_latency();
+  } else if (bench_type.find("latency-trend") == 0) {
+    for (uint64_t p = 10000000; p <= num_pkts; p += 10000000) {
+      ls_bench.load_data(num_pkts);
+      ls_bench.bench_cast_latency();
+      ls_bench.bench_char_latency();
+    }
+  } else if (bench_type == "throughput") {
+    ls_bench.load_data(num_pkts);
+    ls_bench.bench_cast_throughput(query_rate, num_threads, measure_cpu);
+    ls_bench.bench_char_throughput(query_rate, num_threads, measure_cpu);
   } else if (bench_type == "all") {
+    ls_bench.load_data(num_pkts);
     ls_bench.bench_cast_latency();
-    for (uint32_t i = 1; i < 12; i++) {
+    for (uint32_t i = 1; i < 8; i++) {
       ls_bench.bench_cast_throughput(query_rate, i, measure_cpu);
     }
     ls_bench.bench_char_latency();
-    for (uint32_t i = 1; i < 12; i++) {
+    for (uint32_t i = 1; i < 8; i++) {
       ls_bench.bench_char_throughput(query_rate, i, measure_cpu);
     }
   } else {
