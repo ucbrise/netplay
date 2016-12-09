@@ -429,7 +429,7 @@ int main(int argc, char** argv) {
     ls_bench.bench_char_latency();
   } else if (bench_type.find("latency-trend") == 0) {
     for (uint64_t p = 10000000; p <= num_pkts; p += 10000000) {
-      ls_bench.load_data(num_pkts);
+      ls_bench.load_data(p);
       ls_bench.bench_cast_latency();
       ls_bench.bench_char_latency();
     }
