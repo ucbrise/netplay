@@ -428,7 +428,10 @@ int main(int argc, char** argv) {
     ls_bench.bench_cast_latency();
     ls_bench.bench_char_latency();
   } else if (bench_type.find("latency-trend") == 0) {
+    fprintf(stderr, "Latency trend benchmark\n");
     for (uint64_t p = 10000000; p <= num_pkts; p += 10000000) {
+      fprintf(stderr, "Number of packets to be loaded: %" PRIu64 "\n", p);
+      fprintf(stderr, "Expected time: %" PRIu64 "s\n", p / load_rate);
       ls_bench.load_data(p);
       ls_bench.bench_cast_latency();
       ls_bench.bench_char_latency();
