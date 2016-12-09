@@ -412,18 +412,23 @@ int main(int argc, char** argv) {
   std::string query_path = std::string(argv[optind]);
   filter_benchmark ls_bench(load_rate, query_path);
   if (bench_type.find("latency-cast") == 0) {
+    fprintf(stderr, "Latency cast benchmark\n");
     ls_bench.load_data(num_pkts);
     ls_bench.bench_cast_latency();
   } else if (bench_type == "throughput-cast") {
+    fprintf(stderr, "Throughput cast benchmark\n");
     ls_bench.load_data(num_pkts);
     ls_bench.bench_cast_throughput(query_rate, num_threads, measure_cpu);
   } else if (bench_type.find("latency-char") == 0) {
+    fprintf(stderr, "Latency char benchmark\n");
     ls_bench.load_data(num_pkts);
     ls_bench.bench_char_latency();
   } else if (bench_type == "throughput-char") {
+    fprintf(stderr, "Throughput char benchmark\n");
     ls_bench.load_data(num_pkts);
     ls_bench.bench_char_throughput(query_rate, num_threads, measure_cpu);
   } else if (bench_type.find("latency") == 0) {
+    fprintf(stderr, "Latency benchmark\n");
     ls_bench.load_data(num_pkts);
     ls_bench.bench_cast_latency();
     ls_bench.bench_char_latency();
@@ -437,10 +442,12 @@ int main(int argc, char** argv) {
       ls_bench.bench_char_latency();
     }
   } else if (bench_type == "throughput") {
+    fprintf(stderr, "Throughput benchmark\n");
     ls_bench.load_data(num_pkts);
     ls_bench.bench_cast_throughput(query_rate, num_threads, measure_cpu);
     ls_bench.bench_char_throughput(query_rate, num_threads, measure_cpu);
   } else if (bench_type == "all") {
+    fprintf(stderr, "All benchmark\n");
     ls_bench.load_data(num_pkts);
     ls_bench.bench_cast_latency();
     for (uint32_t i = 1; i < 8; i++) {
