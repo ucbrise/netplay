@@ -78,7 +78,7 @@ class filter_benchmark {
     fprintf(stderr, "Loading data...\n");
     load_data(load_rate, num_pkts);
     fprintf(stderr, "Creating casts...\n");
-    create_casts();
+    build_casts();
     fprintf(stderr, "Initialization complete.\n");
   }
 
@@ -97,6 +97,14 @@ class filter_benchmark {
     delete handle;
     delete gen;
     delete vport;
+  }
+
+  void build_casts() {
+    casts_.clear();
+    for (std::string& exp: filters_) {
+      auto c = cast_builder(store_, exp).build();
+      casts_.push_back(c);
+    }
   }
 
   // Latency benchmarks
@@ -318,14 +326,6 @@ class filter_benchmark {
       characters_.push_back(c);
     }
     fprintf(stderr, "Added %zu complex characters.\n", characters_.size());
-  }
-
-  void create_casts() {
-    casts_.clear();
-    for (std::string& exp: filters_) {
-      auto c = cast_builder(store_, exp).build();
-      casts_.push_back(c);
-    }
   }
 
   static timestamp_t get_timestamp() {
