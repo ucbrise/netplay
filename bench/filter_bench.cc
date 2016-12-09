@@ -97,8 +97,6 @@ class filter_benchmark {
     delete handle;
     delete gen;
     delete vport;
-
-    store_->print_offlens();
   }
 
   void build_casts() {
