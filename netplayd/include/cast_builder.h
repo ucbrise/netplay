@@ -12,36 +12,37 @@ namespace netplay {
 class cast {
  public:
   cast(expression* exp, packet_store* store) {
-    handle_ = store->get_handle();
-    plan_ = query_planner::plan(handle_, exp);
+    store_ = store;
+    packet_store::handle* handle = store->get_handle();
+    plan_ = query_planner::plan(handle, exp);
+    delete handle;
   }
 
-  ~cast() {
-    delete handle_;
+  cast(const cast& other) {
+    store_ = other.store_;
+    plan_ = other.plan_;
   }
 
   template<typename aggregate_type>
   typename aggregate_type::result_type execute() {
-    return handle_->execute_cast<aggregate_type>(plan_);
+    return store_->execute_cast<aggregate_type>(plan_);
   }
 
  private:
   query_plan plan_;
-  packet_store::handle* handle_;
+  packet_store* store_;
 };
 
 class cast_builder {
  public:
   cast_builder(packet_store* store, const std::string& exp) {
     store_ = store;
-    handle_ = store->get_handle();
     parser p(exp);
     exp_ = p.parse();
   }
 
   ~cast_builder() {
     free_expression(exp_);
-    delete handle_;
   }
 
   cast build() {
@@ -50,7 +51,6 @@ class cast_builder {
 
  private:
   packet_store* store_;
-  packet_store::handle* handle_;
   expression* exp_;
 };
 
