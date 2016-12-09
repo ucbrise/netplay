@@ -67,15 +67,15 @@ class rand_generator {
       struct ether_hdr* eth = rte_pktmbuf_mtod(pkts_[i], struct ether_hdr*);
 
       uint32_t r = rand();
-      unsigned char* arr = (unsigned char*) &r;
+      unsigned char* arr = (unsigned char*) r;
 
       struct ipv4_hdr *ip = (struct ipv4_hdr *) (eth + 1);
-      ip->src_addr = arr[0];
-      ip->dst_addr = arr[1];
+      ip->src_addr = rand() % 256;
+      ip->dst_addr = rand() % 256;
 
       struct tcp_hdr *tcp = (struct tcp_hdr *) (ip + 1);
-      tcp->src_port = arr[2] % 10;
-      tcp->dst_port = arr[3] % 10;
+      tcp->src_port = rand() % 10;
+      tcp->dst_port = rand() % 10;
     }
 
     return pkts_;
