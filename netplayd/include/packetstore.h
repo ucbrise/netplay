@@ -169,6 +169,17 @@ class packet_store: public slog::log_store {
     num_filters_.store(0U, std::memory_order_release);
   }
 
+  // TODO: REMOVE!!!
+  void print_offlens() {
+    uint64_t off;
+    uint16_t len;
+    uint64_t sz = olog_->num_ids();
+    for (uint64_t i = 0; i < sz; i++) {
+      olog_->lookup(i, off, len);
+      fprintf(stderr, "%" PRIu64 " -> %" PRIu64 ", %" PRIu16 "\n", i, off, len);
+    }
+  }
+
   /**
    * Get a handle to the packet store. Each thread **must** have its own handle
    * -- handles cannot be shared between threads.
