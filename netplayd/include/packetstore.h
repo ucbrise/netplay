@@ -113,8 +113,8 @@ class packet_store: public slog::log_store {
 
     template<typename aggregate_type>
     typename aggregate_type::result_type query_character(const uint32_t char_id,
-                                                         const uint32_t ts_beg,
-                                                         const uint32_t ts_end) {
+        const uint32_t ts_beg,
+        const uint32_t ts_end) {
       return store_.query_character<aggregate_type>(char_id, ts_beg, ts_end);
     }
 
@@ -212,46 +212,12 @@ class packet_store: public slog::log_store {
       uint64_t tok_end = cplan.idx_filter.tok_range.second;
 
       std::unordered_set<uint64_t> filter_res;
-      if (idx_id == srcip_idx_id_) {
-        auto res = filter(srcip_idx_, tok_beg, tok_end, max_rid);
-        if (cplan.perform_pkt_filter) {
-          auto pf_res = packet_filter_result(res, cplan.pkt_filter, dlog_, olog_);
-          results.insert(pf_res.begin(), pf_res.end());
-        } else {
-          results.insert(res.begin(), res.end());
-        }
-      } else if (idx_id == dstip_idx_id_) {
-        auto res = filter(dstip_idx_, tok_beg, tok_end, max_rid);
-        if (cplan.perform_pkt_filter) {
-          auto pf_res = packet_filter_result(res, cplan.pkt_filter, dlog_, olog_);
-          results.insert(pf_res.begin(), pf_res.end());
-        } else {
-          results.insert(res.begin(), res.end());
-        }
-      } else if (idx_id == srcport_idx_id_) {
-        auto res = filter(srcport_idx_, tok_beg, tok_end, max_rid);
-        if (cplan.perform_pkt_filter) {
-          auto pf_res = packet_filter_result(res, cplan.pkt_filter, dlog_, olog_);
-          results.insert(pf_res.begin(), pf_res.end());
-        } else {
-          results.insert(res.begin(), res.end());
-        }
-      } else if (idx_id == dstport_idx_id_) {
-        auto res = filter(dstport_idx_, tok_beg, tok_end, max_rid);
-        if (cplan.perform_pkt_filter) {
-          auto pf_res = packet_filter_result(res, cplan.pkt_filter, dlog_, olog_);
-          results.insert(pf_res.begin(), pf_res.end());
-        } else {
-          results.insert(res.begin(), res.end());
-        }
-      } else if (idx_id == timestamp_idx_id_) {
-        auto res = filter(timestamp_idx_, tok_beg, tok_end, max_rid);
-        if (cplan.perform_pkt_filter) {
-          auto pf_res = packet_filter_result(res, cplan.pkt_filter, dlog_, olog_);
-          results.insert(pf_res.begin(), pf_res.end());
-        } else {
-          results.insert(res.begin(), res.end());
-        }
+      auto res = filter(idx_id, tok_beg, tok_end, max_rid);
+      if (cplan.perform_pkt_filter) {
+        auto pf_res = packet_filter_result(res, cplan.pkt_filter, dlog_, olog_);
+        results.insert(pf_res.begin(), pf_res.end());
+      } else {
+        results.insert(res.begin(), res.end());
       }
     }
   }
@@ -273,8 +239,8 @@ class packet_store: public slog::log_store {
 
   template<typename aggregate_type>
   typename aggregate_type::result_type query_character(const uint32_t char_id,
-                                                       const uint32_t ts_beg,
-                                                       const uint32_t ts_end) {
+      const uint32_t ts_beg,
+      const uint32_t ts_end) {
     filter_result result = complex_character_lookup(char_id, ts_beg, ts_end);
     return aggregate_type::aggregate(result);
   }
