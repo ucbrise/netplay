@@ -34,36 +34,6 @@ namespace pktgen {
 
 #define REPORT_INTERVAL         100000000ULL
 
-
-struct prng_8bit {
- public:
-  prng_8bit() {
-    a = rand() % 256;
-    b = rand() % 256;
-    c = rand() % 256;
-    x = rand() % 256;
-    uint32_t s = std::time(NULL);
-    unsigned char* seed = (unsigned char*) &s;
-    a ^= seed[0];
-    b ^= seed[1];
-    c ^= seed[2];
-  }
-
-  unsigned char rand() {
-    x++;
-    a = (a ^ c ^ x);
-    b = (b + a);
-    c = (c + ((b >> 1) ^ a));
-    return c;
-  }
-
- private:
-  unsigned char a;
-  unsigned char b;
-  unsigned char c;
-  unsigned char x;
-};
-
 class rand_generator {
  public:
   rand_generator(struct rte_mempool* mempool) {
@@ -96,20 +66,22 @@ class rand_generator {
     for (size_t i = 0; i < size; i++) {
       struct ether_hdr* eth = rte_pktmbuf_mtod(pkts_[i], struct ether_hdr*);
 
+      uint32_t r = rand();
+      unsigned char* arr = (unsigned char*) r;
+
       struct ipv4_hdr *ip = (struct ipv4_hdr *) (eth + 1);
-      ip->src_addr = rng.rand();
-      ip->dst_addr = rng.rand();
+      ip->src_addr = arr[0];
+      ip->dst_addr = arr[1];
 
       struct tcp_hdr *tcp = (struct tcp_hdr *) (ip + 1);
-      tcp->src_port = rng.rand() % 10;
-      tcp->dst_port = rng.rand() % 10;
+      tcp->src_port = arr[2] % 10;
+      tcp->dst_port = arr[3] % 10;
     }
 
     return pkts_;
   }
 
  private:
-  prng_8bit rng;
   struct rte_mbuf* pkts_[RTE_BURST_SIZE];
 };
 
