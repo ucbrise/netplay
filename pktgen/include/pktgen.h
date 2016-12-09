@@ -67,7 +67,7 @@ class rand_generator {
       struct ether_hdr* eth = rte_pktmbuf_mtod(pkts_[i], struct ether_hdr*);
 
       uint32_t r = rand();
-      unsigned char* arr = (unsigned char*) r;
+      unsigned char* arr = (unsigned char*) &r;
 
       struct ipv4_hdr *ip = (struct ipv4_hdr *) (eth + 1);
       ip->src_addr = arr[0];
