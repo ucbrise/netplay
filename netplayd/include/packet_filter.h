@@ -83,6 +83,8 @@ struct packet_filter {
   range timestamp;
 };
 
+typedef std::vector<packet_filter> filter_list;
+
 typedef slog::__input_iterator __input_iterator;
 typedef slog::filter_result::filter_iterator filter_iterator;
 

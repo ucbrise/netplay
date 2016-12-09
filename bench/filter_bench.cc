@@ -14,13 +14,6 @@
 #include <algorithm>
 #include <iostream>
 
-#include <execinfo.h>
-#include <signal.h>
-#include <string.h>
-#include <ucontext.h>
-#include <unistd.h>
-#include <cxxabi.h>
-
 #include <rte_config.h>
 #include <rte_malloc.h>
 #include <rte_ring.h>
@@ -38,6 +31,7 @@
 #include <rte_mbuf.h>
 
 #include "cpu_utilization.h"
+#include "critical_error_handler.h"
 #include "dpdk_utils.h"
 #include "query_planner.h"
 #include "query_parser.h"
@@ -47,6 +41,10 @@
 #include "pktgen.h"
 #include "netplay_utils.h"
 #include "rate_limiter.h"
+#include "cast_builder.h"
+#include "character_builder.h"
+#include "packet_attributes.h"
+#include "aggregates.h"
 
 #define PKT_LEN 54
 #define PKT_BURST 32
@@ -58,17 +56,10 @@ using namespace ::netplay::pktgen;
 using namespace ::slog;
 using namespace ::std::chrono;
 
-typedef struct _sig_ucontext {
-  unsigned long     uc_flags;
-  struct ucontext   *uc_link;
-  stack_t           uc_stack;
-  struct sigcontext uc_mcontext;
-  sigset_t          uc_sigmask;
-} sig_ucontext_t;
-
 class filter_benchmark {
  public:
   typedef unsigned long long int timestamp_t;
+  typedef aggregate::count<attribute::packet_header> packet_counter;
 
   static const uint64_t kThreadQueryCount = 1000;
 
@@ -80,12 +71,14 @@ class filter_benchmark {
     output_suffix_ = "_" + std::to_string(load_rate) + "_" +
                      std::to_string(num_pkts) + ".txt";
 
+    fprintf(stderr, "Loading filters...\n");
+    load_filters();
     fprintf(stderr, "Adding complex chars...\n");
     add_complex_chars();
     fprintf(stderr, "Loading data...\n");
     load_data(load_rate, num_pkts);
-    fprintf(stderr, "Loading cast queries...\n");
-    load_cast_queries();
+    fprintf(stderr, "Creating casts...\n");
+    create_casts();
     fprintf(stderr, "Initialization complete.\n");
   }
 
@@ -106,41 +99,16 @@ class filter_benchmark {
     delete vport;
   }
 
-  void load_cast_queries() {
-    cast_queries_.clear();
-
-    std::ifstream in(query_path_);
-    if (!in.is_open()) {
-      fprintf(stderr, "Could not open query file %s\n", query_path_.c_str());
-      exit(-1);
-    }
-    packet_store::handle* handle = store_->get_handle();
-    std::string exp;
-    while (std::getline(in, exp)) {
-      parser p(exp);
-      expression *e = p.parse();
-      query_plan qp = query_planner::plan(handle, e);
-      netplay::print_query_plan(qp);
-      cast_queries_.push_back(qp);
-      free_expression(e);
-    }
-    fprintf(stderr, "Loaded %zu cast queries.\n", cast_queries_.size());
-
-    delete handle;
-  }
-
   // Latency benchmarks
   void bench_cast_latency(size_t repeat_max = kThreadQueryCount) {
     std::ofstream out("latency_cast" + output_suffix_);
-    packet_store::handle* handle = store_->get_handle();
-
-    for (size_t i = 0; i < cast_queries_.size(); i++) {
+    for (size_t i = 0; i < casts_.size(); i++) {
       double avg = 0.0;
       size_t size = 0;
       for (size_t repeat = 0; repeat < repeat_max; repeat++) {
         std::unordered_set<uint64_t> results;
         timestamp_t start = get_timestamp();
-        handle->filter_pkts(results, cast_queries_[i]);
+        casts_[i].execute();
         timestamp_t end = get_timestamp();
         avg += (end - start);
         size += results.size();
@@ -151,8 +119,6 @@ class filter_benchmark {
       fprintf(stderr, "q%zu: Count=%zu, Latency=%lf\n", (i + 1), size, avg);
     }
     out.close();
-
-    delete handle;
   }
 
   template<typename container_type>
@@ -169,7 +135,7 @@ class filter_benchmark {
     std::ofstream out("latency_char" + output_suffix_);
     packet_store::handle* handle = store_->get_handle();
 
-    for (size_t i = 0; i < cast_queries_.size(); i++) {
+    for (size_t i = 0; i < char_ids_.size(); i++) {
       double avg = 0.0;
       size_t size = 0;
       for (size_t repeat = 0; repeat < repeat_max; repeat++) {
@@ -192,21 +158,18 @@ class filter_benchmark {
   // Throughput benchmarks
   void bench_cast_throughput(uint64_t query_rate, uint32_t num_threads, bool measure_cpu) {
     uint64_t worker_rate = query_rate / num_threads;
-    for (size_t qid = 0; qid < cast_queries_.size(); qid++) {
+    for (size_t qid = 0; qid < filters_.size(); qid++) {
       std::vector<std::thread> workers;
       std::vector<double> query_thputs(num_threads, 0.0);
       std::vector<double> pkt_thputs(num_threads, 0.0);
       for (uint32_t i = 0; i < num_threads; i++) {
         workers.push_back(std::thread([i, qid, worker_rate, &query_thputs, &pkt_thputs, this] {
-          packet_store::handle* handle = store_->get_handle();
           pacer<1> p(worker_rate);
-          uint64_t num_pkts = 0;
+          size_t num_pkts = 0;
           timestamp_t start = get_timestamp();
           for (size_t repeat = 0; repeat < kThreadQueryCount; repeat++) {
-            std::unordered_set<uint64_t> results;
-            handle->filter_pkts(results, cast_queries_[qid]);
+            num_pkts += casts_[i].execute();
             p.pace();
-            num_pkts += results.size();
           }
           timestamp_t end = get_timestamp();
           double totsecs = (double) (end - start) / (1000.0 * 1000.0);
@@ -268,7 +231,7 @@ class filter_benchmark {
 
   void bench_char_throughput(uint64_t query_rate, uint32_t num_threads, bool measure_cpu) {
     uint64_t worker_rate = query_rate / num_threads;
-    for (size_t qid = 0; qid < cast_queries_.size(); qid++) {
+    for (size_t qid = 0; qid < char_ids_.size(); qid++) {
       std::vector<std::thread> workers;
       std::vector<double> query_thputs(num_threads, 0.0);
       std::vector<double> pkt_thputs(num_threads, 0.0);
@@ -342,25 +305,35 @@ class filter_benchmark {
   }
 
  private:
-  void add_complex_chars() {
+  void load_filters() {
     std::ifstream in(query_path_);
     if (!in.is_open()) {
       fprintf(stderr, "Could not open query file %s\n", query_path_.c_str());
       exit(-1);
     }
-    packet_store::handle* handle = store_->get_handle();
+    
     std::string exp;
     while (std::getline(in, exp)) {
-      parser p(exp);
-      expression *e = p.parse();
-      filter_list list = netplay_utils::build_filter_list(handle, e);
+      filters_.push_back(exp);
+    }
+    fprintf(stderr, "Loaded %zu filters.\n", filters_.size());
+  }
+
+  void add_complex_chars() {
+    for (std::string& exp: filters_) {
+      filter_list list = character_builder(store_, exp).build();
       uint32_t id = store_->add_complex_character(list);
       char_ids_.push_back(id);
-      free_expression(e);
     }
-    fprintf(stderr, "Added %zu chars.\n", char_ids_.size());
+    fprintf(stderr, "Added %zu complex characters.\n", char_ids_.size());
+  }
 
-    delete handle;
+  void create_casts() {
+    casts_.clear();
+    for (std::string& exp: filters_) {
+      auto q = cast_builder(store_, exp).build<packet_counter>();
+      casts_.push_back(q);
+    }
   }
 
   static timestamp_t get_timestamp() {
@@ -374,7 +347,8 @@ class filter_benchmark {
   uint32_t end_time_;
 
   const std::string query_path_;
-  std::vector<query_plan> cast_queries_;
+  std::vector<std::string> filters_;
+  std::vector<cast<packet_counter>> casts_;
   std::vector<uint32_t> char_ids_;
 
   std::string output_suffix_;
@@ -383,81 +357,7 @@ class filter_benchmark {
   packet_store *store_;
 };
 
-void crit_err_hdlr(int sig_num, siginfo_t * info, void * ucontext) {
-  sig_ucontext_t * uc = (sig_ucontext_t *)ucontext;
 
-  /* Get the address at the time the signal was raised */
-#if defined(__i386__) // gcc specific
-  void *caller_address = (void *) uc->uc_mcontext.eip; // EIP: x86 specific
-#elif defined(__x86_64__) // gcc specific
-  void *caller_address = (void *) uc->uc_mcontext.rip; // RIP: x86_64 specific
-#else
-#error Unsupported architecture. // TODO: Add support for other arch.
-#endif
-
-  std::cerr << "Received signal " << sig_num
-            << " (" << strsignal(sig_num) << "), address is "
-            << info->si_addr << " from " << caller_address
-            << std::endl;
-
-  void * array[50];
-  int size = backtrace(array, 50);
-
-  array[1] = caller_address;
-
-  char ** messages = backtrace_symbols(array, size);
-
-  // skip first stack frame (points here)
-  for (int i = 1; i < size && messages != NULL; ++i) {
-    char *mangled_name = 0, *offset_begin = 0, *offset_end = 0;
-
-    // find parantheses and +address offset surrounding mangled name
-    for (char *p = messages[i]; *p; ++p) {
-      if (*p == '(') {
-        mangled_name = p;
-      } else if (*p == '+') {
-        offset_begin = p;
-      } else if (*p == ')') {
-        offset_end = p;
-        break;
-      }
-    }
-
-    // if the line could be processed, attempt to demangle the symbol
-    if (mangled_name && offset_begin && offset_end &&
-        mangled_name < offset_begin) {
-      *mangled_name++ = '\0';
-      *offset_begin++ = '\0';
-      *offset_end++ = '\0';
-
-      int status;
-      char * real_name = abi::__cxa_demangle(mangled_name, 0, 0, &status);
-
-      // if demangling is successful, output the demangled function name
-      if (status == 0) {
-        std::cerr << "[bt]: (" << i << ") " << messages[i] << ": "
-                  << real_name << "+" << offset_begin << offset_end
-                  << std::endl;
-
-      }
-      // otherwise, output the mangled function name
-      else {
-        std::cerr << "[bt]: (" << i << ") " << messages[i] << ": "
-                  << mangled_name << "+" << offset_begin << offset_end
-                  << std::endl;
-      }
-      free(real_name);
-    }
-    // otherwise, print the whole line
-    else {
-      std::cerr << "[bt]: (" << i << ") " << messages[i] << std::endl;
-    }
-  }
-
-  free(messages);
-
-  exit(EXIT_FAILURE);
-}
 
 const char* usage =
   "Usage: %s [-b bench-type] [-q query-rate] [-l load-rate] [-p num-packets] [-n num-threads] [-c measure-cpu] query-path\n";

@@ -23,6 +23,7 @@
 #include "complex_character.h"
 #include "packet_filter.h"
 #include "query_plan.h"
+#include "aggregates.h"
 
 #define MAX_FILTERS 65536
 
@@ -38,7 +39,6 @@ namespace netplay {
 class packet_store: public slog::log_store {
  public:
   typedef std::unordered_set<uint64_t> result_type;
-  typedef std::vector<packet_filter> filter_list;
   typedef complex_character_index::result filter_result;
 
   class handle : public slog::log_store::handle {
@@ -80,7 +80,7 @@ class packet_store: public slog::log_store {
         store_.olog_->set_without_alloc(id, off, pkt_size);
         off += store_.append_pkt(off, now, pkt, pkt_size);
         for (size_t i = 0; i < num_chars; i++) {
-          for (auto& filter: store_.filters_[i]) {
+          for (auto& filter : store_.filters_[i]) {
             if (filter.apply(pkt)) {
               char_index->get(i)->push_back(id);
               break;
@@ -101,8 +101,13 @@ class packet_store: public slog::log_store {
       store_.filter_pkts(results, plan);
     }
 
+    template<typename aggregate_type>
+    typename aggregate_type::result_type execute_cast(query_plan& plan) {
+      return store_.execute_cast<aggregate_type>(plan);
+    }
+
     filter_result complex_character_lookup(const id_t char_id,
-        const uint32_t ts_beg, const uint32_t ts_end) {
+                                           const uint32_t ts_beg, const uint32_t ts_end) {
       return store_.complex_character_lookup(char_id, ts_beg, ts_end);
     }
 
@@ -242,6 +247,13 @@ class packet_store: public slog::log_store {
         }
       }
     }
+  }
+
+  template<typename aggregate_type>
+  typename aggregate_type::result_type execute_cast(query_plan& plan) {
+    result_type result;
+    filter_pkts(result, plan);
+    return aggregate_type::aggregate(result);
   }
 
   filter_result complex_character_lookup(const uint32_t char_id,

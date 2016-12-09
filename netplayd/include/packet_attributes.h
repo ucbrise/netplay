@@ -11,9 +11,9 @@
 #include <rte_lpm.h>
 
 namespace netplay {
+namespace attribute {
 
 /* Entire packet header */
-
 struct packet_header {
   typedef void* value_type;
 
@@ -296,7 +296,7 @@ struct udp_dgram_checksum {
   }
 };
 
-
+}
 }
 
 #endif  // PACKET_ATTRIBUTES_H_

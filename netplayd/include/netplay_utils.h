@@ -25,8 +25,6 @@ static const uint32_t ip_prefix_mask[33] = {
   0xFFFFFFFCU, 0xFFFFFFFEU, 0xFFFFFFFFU
 };
 
-typedef std::vector<packet_filter> filter_list;
-
 class netplay_utils {
  public:
   typedef std::vector<index_filter> clause;
