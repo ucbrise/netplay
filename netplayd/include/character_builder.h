@@ -8,6 +8,27 @@
 
 namespace netplay {
 
+class complex_character {
+ public:
+  complex_character(packet_store* store, uint32_t id) {
+    id_ = id;
+    handle_ = store->get_handle();
+  }
+
+  ~complex_character() {
+    delete handle_;
+  }
+
+  template<typename aggregate_type>
+  typename aggregate_type::result_type execute(const uint64_t ts_beg, const uint64_t ts_end) {
+    return handle_->query_character<aggregate_type>(id_, ts_beg, ts_end);
+  }
+
+ private:
+  uint32_t id_;
+  packet_store::handle* handle_;
+};
+
 class character_builder {
  public:
   character_builder(packet_store* store, const std::string& exp) {
@@ -21,13 +42,16 @@ class character_builder {
     delete handle_;
   }
 
-  filter_list build() {
-    return netplay_utils::build_filter_list(handle_, exp_);
+  complex_character build() {
+    auto f = netplay_utils::build_filter_list(handle_, exp_);
+    uint32_t id = store_->add_complex_character(f);
+    return complex_character(store_, id);
   }
 
  private:
   expression* exp_;
   packet_store::handle* handle_;
+  packet_store* store_;
 };
 
 }

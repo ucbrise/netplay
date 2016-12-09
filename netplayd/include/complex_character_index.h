@@ -1,5 +1,5 @@
-#ifndef COMPLEX_CHARACTER_H_
-#define COMPLEX_CHARACTER_H_
+#ifndef COMPLEX_CHARACTER_INDEX_H_
+#define COMPLEX_CHARACTER_INDEX_H_
 
 #include <vector>
 #include <cstdint>
@@ -10,15 +10,10 @@
 
 namespace netplay {
 
+typedef std::pair<uint64_t, uint64_t> time_range;
+
 class complex_character_index {
  public:
-  typedef std::pair<uint64_t, uint64_t> time_range;
-  struct time_id {
-    uint64_t id;
-    uint64_t ts;
-  };
-  typedef slog::monolog_relaxed<time_id, 24> monolog_type;
-
   typedef slog::indexlet<slog::entry_list> char_index;
   typedef slog::__index_depth2<65536, 65536, char_index> time_char_index;
 
@@ -122,6 +117,13 @@ class complex_character_index {
       return iterator(0, range_.second + 1);
     }
 
+    size_t size() {
+      size_t cnt = 0;
+      for (iterator it = begin(); it != end(); it++)
+        cnt++;
+      return cnt;
+    }
+
    private:
     const uint64_t max_rid_;
     const uint32_t char_id_;
@@ -151,4 +153,4 @@ class complex_character_index {
 
 }
 
-#endif
+#endif  // COMPLEX_CHARACTER_INDEX_H_

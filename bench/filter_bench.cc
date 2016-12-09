@@ -106,12 +106,11 @@ class filter_benchmark {
       double avg = 0.0;
       size_t size = 0;
       for (size_t repeat = 0; repeat < repeat_max; repeat++) {
-        std::unordered_set<uint64_t> results;
         timestamp_t start = get_timestamp();
-        casts_[i].execute();
+        size_t cnt = casts_[i].execute<packet_counter>();
         timestamp_t end = get_timestamp();
         avg += (end - start);
-        size += results.size();
+        size += cnt;
       }
       avg /= repeat_max;
       size /= repeat_max;
@@ -133,17 +132,15 @@ class filter_benchmark {
 
   void bench_char_latency(size_t repeat_max = kThreadQueryCount) {
     std::ofstream out("latency_char" + output_suffix_);
-    packet_store::handle* handle = store_->get_handle();
-
-    for (size_t i = 0; i < char_ids_.size(); i++) {
+    for (size_t i = 0; i < characters_.size(); i++) {
       double avg = 0.0;
       size_t size = 0;
       for (size_t repeat = 0; repeat < repeat_max; repeat++) {
         timestamp_t start = get_timestamp();
-        auto res = handle->complex_character_lookup(char_ids_[i], end_time_ - 4, end_time_);
-        size += count_container(res);
+        size_t cnt = characters_[i].execute<packet_counter>(end_time_ - 4, end_time_);
         timestamp_t end = get_timestamp();
         avg += (end - start);
+        size += cnt;
       }
       avg /= repeat_max;
       size /= repeat_max;
@@ -151,8 +148,6 @@ class filter_benchmark {
       fprintf(stderr, "q%zu: Count=%zu, Latency=%lf\n", (i + 1), size, avg);
     }
     out.close();
-
-    delete handle;
   }
 
   // Throughput benchmarks
@@ -168,7 +163,7 @@ class filter_benchmark {
           size_t num_pkts = 0;
           timestamp_t start = get_timestamp();
           for (size_t repeat = 0; repeat < kThreadQueryCount; repeat++) {
-            num_pkts += casts_[i].execute();
+            num_pkts += casts_[qid].execute<packet_counter>();
             p.pace();
           }
           timestamp_t end = get_timestamp();
@@ -231,19 +226,17 @@ class filter_benchmark {
 
   void bench_char_throughput(uint64_t query_rate, uint32_t num_threads, bool measure_cpu) {
     uint64_t worker_rate = query_rate / num_threads;
-    for (size_t qid = 0; qid < char_ids_.size(); qid++) {
+    for (size_t qid = 0; qid < characters_.size(); qid++) {
       std::vector<std::thread> workers;
       std::vector<double> query_thputs(num_threads, 0.0);
       std::vector<double> pkt_thputs(num_threads, 0.0);
       for (uint32_t i = 0; i < num_threads; i++) {
         workers.push_back(std::thread([i, qid, worker_rate, &query_thputs, &pkt_thputs, this] {
-          packet_store::handle* handle = store_->get_handle();
           pacer<10> p(worker_rate);
           uint64_t num_pkts = 0;
           timestamp_t start = get_timestamp();
           for (size_t repeat = 0; repeat < kThreadQueryCount; repeat++) {
-            auto res = handle->complex_character_lookup(char_ids_[qid], end_time_ - 4, end_time_);
-            num_pkts += count_container(res);
+            num_pkts += characters_[qid].execute<packet_counter>(end_time_ - 4, end_time_);
             p.pace();
           }
           timestamp_t end = get_timestamp();
@@ -321,18 +314,17 @@ class filter_benchmark {
 
   void add_complex_chars() {
     for (std::string& exp: filters_) {
-      filter_list list = character_builder(store_, exp).build();
-      uint32_t id = store_->add_complex_character(list);
-      char_ids_.push_back(id);
+      auto c = character_builder(store_, exp).build();
+      characters_.push_back(c);
     }
-    fprintf(stderr, "Added %zu complex characters.\n", char_ids_.size());
+    fprintf(stderr, "Added %zu complex characters.\n", characters_.size());
   }
 
   void create_casts() {
     casts_.clear();
     for (std::string& exp: filters_) {
-      auto q = cast_builder(store_, exp).build<packet_counter>();
-      casts_.push_back(q);
+      auto c = cast_builder(store_, exp).build();
+      casts_.push_back(c);
     }
   }
 
@@ -348,8 +340,8 @@ class filter_benchmark {
 
   const std::string query_path_;
   std::vector<std::string> filters_;
-  std::vector<cast<packet_counter>> casts_;
-  std::vector<uint32_t> char_ids_;
+  std::vector<cast> casts_;
+  std::vector<complex_character> characters_;
 
   std::string output_suffix_;
 

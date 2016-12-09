@@ -20,7 +20,7 @@
 #include <rte_mbuf.h>
 
 #include "logstore.h"
-#include "complex_character.h"
+#include "complex_character_index.h"
 #include "packet_filter.h"
 #include "query_plan.h"
 #include "aggregates.h"
@@ -109,6 +109,13 @@ class packet_store: public slog::log_store {
     filter_result complex_character_lookup(const id_t char_id,
                                            const uint32_t ts_beg, const uint32_t ts_end) {
       return store_.complex_character_lookup(char_id, ts_beg, ts_end);
+    }
+
+    template<typename aggregate_type>
+    typename aggregate_type::result_type query_character(const uint32_t char_id,
+                                                         const uint32_t ts_beg,
+                                                         const uint32_t ts_end) {
+      return store_.query_character<aggregate_type>(char_id, ts_beg, ts_end);
     }
 
     id_t srcip_idx() const {
@@ -262,6 +269,14 @@ class packet_store: public slog::log_store {
     std::pair<uint64_t, uint64_t> time_range(ts_beg, ts_end);
     uint64_t max_rid = olog_->num_ids();
     return char_idx_->filter(max_rid, char_id, time_range);
+  }
+
+  template<typename aggregate_type>
+  typename aggregate_type::result_type query_character(const uint32_t char_id,
+                                                       const uint32_t ts_beg,
+                                                       const uint32_t ts_end) {
+    filter_result result = complex_character_lookup(char_id, ts_beg, ts_end);
+    return aggregate_type::aggregate(result);
   }
 
   /**

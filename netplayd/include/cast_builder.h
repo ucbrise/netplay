@@ -9,7 +9,6 @@
 
 namespace netplay {
 
-template<typename aggregate_type>
 class cast {
  public:
   cast(expression* exp, packet_store* store) {
@@ -21,6 +20,7 @@ class cast {
     delete handle_;
   }
 
+  template<typename aggregate_type>
   typename aggregate_type::result_type execute() {
     return handle_->execute_cast<aggregate_type>(plan_);
   }
@@ -44,9 +44,8 @@ class cast_builder {
     delete handle_;
   }
 
-  template<typename aggregate_type>
-  cast<aggregate_type> build() {
-    return cast<aggregate_type>(exp_, store_);
+  cast build() {
+    return cast(exp_, store_);
   }
 
  private:
