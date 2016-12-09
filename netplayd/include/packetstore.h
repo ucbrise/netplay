@@ -203,7 +203,7 @@ class packet_store: public slog::log_store {
       if (idx_id == srcip_idx_id_) {
         auto res = filter(srcip_idx_, tok_beg, tok_end, max_rid);
         if (cplan.perform_pkt_filter) {
-          auto pf_res = build_result(res, cplan.pkt_filter, dlog_, olog_);
+          auto pf_res = packet_filter_result(res, cplan.pkt_filter, dlog_, olog_);
           results.insert(pf_res.begin(), pf_res.end());
         } else {
           results.insert(res.begin(), res.end());
@@ -211,7 +211,7 @@ class packet_store: public slog::log_store {
       } else if (idx_id == dstip_idx_id_) {
         auto res = filter(dstip_idx_, tok_beg, tok_end, max_rid);
         if (cplan.perform_pkt_filter) {
-          auto pf_res = build_result(res, cplan.pkt_filter, dlog_, olog_);
+          auto pf_res = packet_filter_result(res, cplan.pkt_filter, dlog_, olog_);
           results.insert(pf_res.begin(), pf_res.end());
         } else {
           results.insert(res.begin(), res.end());
@@ -219,7 +219,7 @@ class packet_store: public slog::log_store {
       } else if (idx_id == srcport_idx_id_) {
         auto res = filter(srcport_idx_, tok_beg, tok_end, max_rid);
         if (cplan.perform_pkt_filter) {
-          auto pf_res = build_result(res, cplan.pkt_filter, dlog_, olog_);
+          auto pf_res = packet_filter_result(res, cplan.pkt_filter, dlog_, olog_);
           results.insert(pf_res.begin(), pf_res.end());
         } else {
           results.insert(res.begin(), res.end());
@@ -227,7 +227,7 @@ class packet_store: public slog::log_store {
       } else if (idx_id == dstport_idx_id_) {
         auto res = filter(dstport_idx_, tok_beg, tok_end, max_rid);
         if (cplan.perform_pkt_filter) {
-          auto pf_res = build_result(res, cplan.pkt_filter, dlog_, olog_);
+          auto pf_res = packet_filter_result(res, cplan.pkt_filter, dlog_, olog_);
           results.insert(pf_res.begin(), pf_res.end());
         } else {
           results.insert(res.begin(), res.end());
@@ -235,7 +235,7 @@ class packet_store: public slog::log_store {
       } else if (idx_id == timestamp_idx_id_) {
         auto res = filter(timestamp_idx_, tok_beg, tok_end, max_rid);
         if (cplan.perform_pkt_filter) {
-          auto pf_res = build_result(res, cplan.pkt_filter, dlog_, olog_);
+          auto pf_res = packet_filter_result(res, cplan.pkt_filter, dlog_, olog_);
           results.insert(pf_res.begin(), pf_res.end());
         } else {
           results.insert(res.begin(), res.end());

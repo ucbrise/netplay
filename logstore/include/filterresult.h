@@ -29,18 +29,12 @@ class filter_result {
       res_ = res;
 
       cur_tok_ = res_->tok_min_;
-      cur_entry_list_ = res_->index_->at(cur_tok_);
+      cur_entry_list_ = NULL;
+      if (res_->index_ != NULL)
+        cur_entry_list_ = res_->index_->at(cur_tok_);
       cur_idx_ = -1;
 
       advance();
-    }
-
-    filter_iterator(const filter_iterator& it) {
-      res_ = it.res_;
-
-      cur_tok_ = it.cur_tok_;
-      cur_entry_list_ = it.cur_entry_list_;
-      cur_idx_ = it.cur_idx_;
     }
 
     filter_iterator(uint64_t tok, int64_t idx) {
@@ -49,6 +43,14 @@ class filter_result {
 
       cur_tok_ = tok;
       cur_idx_ = idx;
+    }
+
+    filter_iterator(const filter_iterator& it) {
+      res_ = it.res_;
+
+      cur_tok_ = it.cur_tok_;
+      cur_entry_list_ = it.cur_entry_list_;
+      cur_idx_ = it.cur_idx_;
     }
 
     reference operator*() const {
@@ -98,6 +100,13 @@ class filter_result {
     int64_t cur_idx_;
     const filter_result *res_;
   };
+
+  filter_result() {
+    index_ = NULL;
+    tok_min_ = 1;
+    tok_max_ = 0;
+    max_rid_ = 0;
+  }
 
   filter_result(const tiered_index_base* index, const uint64_t tok_min,
                 const uint64_t tok_max, const uint64_t max_rid) {

@@ -24,6 +24,7 @@
 #include "tieredindex.h"
 #include "streamlog.h"
 #include "offsetlog.h"
+#include "datalog.h"
 #include "filterresult.h"
 #include "utils.h"
 
@@ -156,16 +157,16 @@ class log_store {
     }
 
     /**
-    * Filter index-entries based on query.
-    *
-    * @param results The results of the filter query.
-    * @param index_id The id for the index to query.
-    * @param tok_min The smallest token to consider.
-    * @param tok_max The largest token to consider.
-    */
-    void filter(result_type& results, const identifier_t index_id,
-                const uint64_t tok_min, const uint64_t tok_max) const {
-      base_.filter(results, index_id, tok_min, tok_max);
+     * Filter index-entries based on query.
+     *
+     * @param index_id The id for the index to query.
+     * @param tok_min The smallest token to consider.
+     * @param tok_max The largest token to consider.
+     * @return The filter results.
+     */
+    filter_result filter(const identifier_t index_id, const uint64_t tok_min,
+                const uint64_t tok_max) const {
+      return base_.filter(index_id, tok_min, tok_max);
     }
 
     /**
@@ -215,7 +216,7 @@ class log_store {
    */
   log_store() {
     /* Initialize data log and offset log */
-    dlog_ = new __monolog_linear_base <uint8_t>;
+    dlog_ = new datalog;
     olog_ = new offsetlog;
 
     /* Initialize data log tail to zero. */
@@ -377,15 +378,15 @@ class log_store {
   /**
    * Filter index-entries based on query.
    *
-   * @param results The results of the filter query.
    * @param index_id The id for the index to query.
    * @param tok_min The smallest token to consider.
    * @param tok_max The largest token to consider.
+   * @return The filter results.
    */
-  void filter(result_type& results, const identifier_t index_id, const uint64_t tok_min,
-              const uint64_t tok_max) const {
+  filter_result filter(const identifier_t index_id, const uint64_t tok_min,
+                       const uint64_t tok_max) const {
     uint64_t max_rid = olog_->num_ids();
-    return filter(results, index_id, tok_min, tok_max, max_rid);
+    return filter(index_id, tok_min, tok_max, max_rid);
   }
 
   /**
@@ -581,8 +582,10 @@ class log_store {
    * used for heuristic measures, rather than the actual count. For actual
    * count, use filter() operation.
    *
-   * @param index .
-   % @return The count of the filter query.
+   * @param index Index to query for filter.
+   * @param tok_min Smallest token to consider.
+   * @param tok_max Largest token to consider.
+   * @return The count of the filter query.
    */
   uint64_t filter_count(tiered_index_base* index, const uint64_t tok_min,
                         const uint64_t tok_max) const {
@@ -598,64 +601,39 @@ class log_store {
   /**
    * Atomically filter record ids for a given range of token values.
    *
-   * @param results The results set to be populated with matching records ids.
    * @param index_id The id of the index corresponding to the token.
    * @param tok_min The smallest token to consider.
    * @param tok_man The largest token to consider.
    * @param max_rid Largest record-id to consider.
    * @param superset The superset to which the results must belong.
+   * @return The filter results.
    */
-  void filter(result_type& results, const identifier_t index_id, const uint64_t tok_min,
-              const uint64_t tok_max, const uint64_t max_rid) const {
+  filter_result filter(const identifier_t index_id, const uint64_t tok_min,
+                       const uint64_t tok_max, const uint64_t max_rid) const {
 
     /* Identify which index the filter is on */
     identifier_t idx = index_id / OFFSETMIN;
     identifier_t off = index_id % OFFSETMIN;
 
     switch (idx) {
-    case 1: {
-      auto filter_res = filter(idx1_->at(off), tok_min, tok_max, max_rid);
-      populate_results(results, filter_res);
-      break;
-    }
-    case 2: {
-      auto filter_res = filter(idx2_->at(off), tok_min, tok_max, max_rid);
-      populate_results(results, filter_res);
-      break;
-    }
-    case 4: {
-      auto filter_res = filter(idx3_->at(off), tok_min, tok_max, max_rid);
-      populate_results(results, filter_res);
-      break;
-    }
-    case 8: {
-      auto filter_res = filter(idx4_->at(off), tok_min, tok_max, max_rid);
-      populate_results(results, filter_res);
-      break;
-    }
-    case 16: {
-      auto filter_res = filter(idx5_->at(off), tok_min, tok_max, max_rid);
-      populate_results(results, filter_res);
-      break;
-    }
-    case 32: {
-      auto filter_res = filter(idx6_->at(off), tok_min, tok_max, max_rid);
-      populate_results(results, filter_res);
-      break;
-    }
-    case 64: {
-      auto filter_res = filter(idx7_->at(off), tok_min, tok_max, max_rid);
-      populate_results(results, filter_res);
-      break;
-    }
-    case 128: {
-      auto filter_res = filter(idx8_->at(off), tok_min, tok_max, max_rid);
-      populate_results(results, filter_res);
-      break;
-    }
-    default: {
-      // Do nothing
-    }
+    case 1:
+      return filter(idx1_->at(off), tok_min, tok_max, max_rid);
+    case 2:
+      return filter(idx2_->at(off), tok_min, tok_max, max_rid);
+    case 4:
+      return filter(idx3_->at(off), tok_min, tok_max, max_rid);
+    case 8:
+      return filter(idx4_->at(off), tok_min, tok_max, max_rid);
+    case 16:
+      return filter(idx5_->at(off), tok_min, tok_max, max_rid);
+    case 32:
+      return filter(idx6_->at(off), tok_min, tok_max, max_rid);
+    case 64:
+      return filter(idx7_->at(off), tok_min, tok_max, max_rid);
+    case 128:
+      return filter(idx8_->at(off), tok_min, tok_max, max_rid);
+    default:
+      return filter_result();
     }
   }
 
@@ -722,7 +700,7 @@ class log_store {
   }
 
   /* Data log and offset log */
-  __monolog_linear_base <uint8_t>* dlog_;
+  datalog* dlog_;
   offsetlog* olog_;
 
   /* Tail for preserving atomicity */
