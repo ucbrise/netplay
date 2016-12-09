@@ -61,7 +61,8 @@ class filter_benchmark {
   typedef unsigned long long int timestamp_t;
   typedef aggregate::count<attribute::packet_header> packet_counter;
 
-  static const uint64_t kThreadQueryCount = 1000;
+  static const uint64_t CHAR_COUNT = 100000;
+  static const uint64_t CAST_COUNT = 100;
 
   filter_benchmark(const uint64_t load_rate, uint64_t num_pkts,
                    const std::string& query_path): query_path_(query_path) {
@@ -108,7 +109,7 @@ class filter_benchmark {
   }
 
   // Latency benchmarks
-  void bench_cast_latency(size_t repeat_max = kThreadQueryCount) {
+  void bench_cast_latency(size_t repeat_max = CAST_COUNT) {
     std::ofstream out("latency_cast" + output_suffix_);
     for (size_t i = 0; i < casts_.size(); i++) {
       double avg = 0.0;
@@ -138,7 +139,7 @@ class filter_benchmark {
     return count;
   }
 
-  void bench_char_latency(size_t repeat_max = kThreadQueryCount) {
+  void bench_char_latency(size_t repeat_max = CHAR_COUNT) {
     std::ofstream out("latency_char" + output_suffix_);
     for (size_t i = 0; i < characters_.size(); i++) {
       double avg = 0.0;
@@ -170,13 +171,13 @@ class filter_benchmark {
           pacer<1> p(worker_rate);
           size_t num_pkts = 0;
           timestamp_t start = get_timestamp();
-          for (size_t repeat = 0; repeat < kThreadQueryCount; repeat++) {
+          for (size_t repeat = 0; repeat < CAST_COUNT; repeat++) {
             num_pkts += casts_[qid].execute<packet_counter>();
             p.pace();
           }
           timestamp_t end = get_timestamp();
           double totsecs = (double) (end - start) / (1000.0 * 1000.0);
-          query_thputs[i] = ((double) kThreadQueryCount / totsecs);
+          query_thputs[i] = ((double) CAST_COUNT / totsecs);
           pkt_thputs[i] = ((double) num_pkts / totsecs);
           fprintf(stderr, "Thread #%u(%lfs): Throughput: %lf.\n", i, totsecs, query_thputs[i]);
         }));
@@ -243,13 +244,13 @@ class filter_benchmark {
           pacer<10> p(worker_rate);
           uint64_t num_pkts = 0;
           timestamp_t start = get_timestamp();
-          for (size_t repeat = 0; repeat < kThreadQueryCount; repeat++) {
+          for (size_t repeat = 0; repeat < CHAR_COUNT; repeat++) {
             num_pkts += characters_[qid].execute<packet_counter>(end_time_ - 4, end_time_);
             p.pace();
           }
           timestamp_t end = get_timestamp();
           double totsecs = (double) (end - start) / (1000.0 * 1000.0);
-          query_thputs[i] = ((double) kThreadQueryCount / totsecs);
+          query_thputs[i] = ((double) CHAR_COUNT / totsecs);
           pkt_thputs[i] = ((double) num_pkts / totsecs);
           fprintf(stderr, "Thread #%u(%lfs): Throughput: %lf.\n", i, totsecs, query_thputs[i]);
         }));
