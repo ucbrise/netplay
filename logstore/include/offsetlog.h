@@ -55,7 +55,7 @@ class offsetlog {
 
   void lookup(uint64_t record_id, uint64_t& offset, uint16_t& length) {
     uint64_t ol = offlens_.get(record_id);
-    offset = ol & 0xFFFFFFFF;
+    offset = ol & 0xFFFFFFFFFFFF;
     length = ol >> 48;
   }
 
