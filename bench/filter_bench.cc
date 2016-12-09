@@ -411,28 +411,15 @@ int main(int argc, char** argv) {
 
   std::string query_path = std::string(argv[optind]);
   filter_benchmark ls_bench(load_rate, query_path);
-  if (bench_type.find("latency-cast") == 0) {
+  if (bench_type == "latency-cast") {
     fprintf(stderr, "Latency cast benchmark\n");
     ls_bench.load_data(num_pkts);
     ls_bench.bench_cast_latency();
-  } else if (bench_type == "throughput-cast") {
-    fprintf(stderr, "Throughput cast benchmark\n");
-    ls_bench.load_data(num_pkts);
-    ls_bench.bench_cast_throughput(query_rate, num_threads, measure_cpu);
-  } else if (bench_type.find("latency-char") == 0) {
+  } else if (bench_type == "latency-char") {
     fprintf(stderr, "Latency char benchmark\n");
     ls_bench.load_data(num_pkts);
     ls_bench.bench_char_latency();
-  } else if (bench_type == "throughput-char") {
-    fprintf(stderr, "Throughput char benchmark\n");
-    ls_bench.load_data(num_pkts);
-    ls_bench.bench_char_throughput(query_rate, num_threads, measure_cpu);
-  } else if (bench_type.find("latency") == 0) {
-    fprintf(stderr, "Latency benchmark\n");
-    ls_bench.load_data(num_pkts);
-    ls_bench.bench_cast_latency();
-    ls_bench.bench_char_latency();
-  } else if (bench_type.find("latency-trend") == 0) {
+  } else if (bench_type == "latency-trend") {
     fprintf(stderr, "Latency trend benchmark\n");
     for (uint64_t p = 10000000; p <= num_pkts; p += 10000000) {
       fprintf(stderr, "Number of packets to be loaded: %" PRIu64 "\n", p);
@@ -441,6 +428,19 @@ int main(int argc, char** argv) {
       ls_bench.bench_cast_latency();
       ls_bench.bench_char_latency();
     }
+  } else if (bench_type == "latency") {
+    fprintf(stderr, "Latency benchmark\n");
+    ls_bench.load_data(num_pkts);
+    ls_bench.bench_cast_latency();
+    ls_bench.bench_char_latency();
+  } else if (bench_type == "throughput-char") {
+    fprintf(stderr, "Throughput char benchmark\n");
+    ls_bench.load_data(num_pkts);
+    ls_bench.bench_char_throughput(query_rate, num_threads, measure_cpu);
+  } else if (bench_type == "throughput-cast") {
+    fprintf(stderr, "Throughput cast benchmark\n");
+    ls_bench.load_data(num_pkts);
+    ls_bench.bench_cast_throughput(query_rate, num_threads, measure_cpu);
   } else if (bench_type == "throughput") {
     fprintf(stderr, "Throughput benchmark\n");
     ls_bench.load_data(num_pkts);
