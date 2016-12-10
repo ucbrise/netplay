@@ -15,9 +15,9 @@ We plan on providing scripts for other operating systems quite soon.
 NetPlay has the following major dependencies:
 
 * DPDK
-* A virtual switch implementation (OVS by default, BESS is also supported.\*)
+* A virtual switch implementation (OVS by default, BESS is also supported.<sup>\*</sup>)
   
-\* Contact us if you want to use NetPlay with other virtual switch 
+<sup>\*</sup>Contact us if you want to use NetPlay with other virtual switch 
 implementations.
 
 Install all (major and minor) dependencies on Ubuntu 14.04 or later as follows:
