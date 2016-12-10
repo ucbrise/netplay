@@ -39,6 +39,7 @@
 #include <rte_lpm.h>
 #include <rte_mbuf.h>
 
+#include "rand_generators.h"
 #include "critical_error_handler.h"
 #include "packetstore.h"
 #include "bench_vport.h"
@@ -150,12 +151,14 @@ class packet_loader {
     }
 
     // Generate packets
+    zipf_generator gen1(1, 256);
+    zipf_generator gen2(1, 10);
     for (uint64_t i = 0; i < num_threads * num_pkts; i++) {
       pkt_attrs attrs;
-      attrs.sip = rand() % 256;
-      attrs.dip = rand() % 256;
-      attrs.sport = rand() % 10;
-      attrs.dport = rand() % 10;
+      attrs.sip = gen1.next<uint32_t>();
+      attrs.dip = gen1.next<uint32_t>();
+      attrs.sport = gen2.next<uint16_t>();
+      attrs.dport = gen2.next<uint16_t>();
       pkt_data_.push_back(attrs);
     }
 
