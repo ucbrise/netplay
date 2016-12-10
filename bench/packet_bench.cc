@@ -151,8 +151,8 @@ class packet_loader {
     }
 
     // Generate packets
-    zipf_generator gen1(0, 256);
-    zipf_generator gen2(0, 10);
+    zipf_generator gen1(1, 256);
+    zipf_generator gen2(1, 10);
     for (uint64_t i = 0; i < num_threads * num_pkts; i++) {
       pkt_attrs attrs;
       attrs.sip = gen1.next<uint32_t>();
