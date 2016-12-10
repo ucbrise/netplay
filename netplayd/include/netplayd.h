@@ -36,30 +36,27 @@ void* writer_thread(void* arg) {
 template<typename vport_init>
 class netplay_daemon {
  public:
-  netplay_daemon(const char* iface, struct rte_mempool* mempool,
-                 uint64_t writer_core_mask, int query_server_port) {
-
-    writer_core_mask_ = writer_core_mask;
-
+  typedef std::map<int, std::string> writer_map;
+  netplay_daemon(const writer_map& mapping, struct rte_mempool* mempool,
+                 int query_server_port): writer_interface_mapping_(mapping) {
     query_server_port_ = query_server_port;
-
     mempool_ = mempool;
     pkt_store_ = new packet_store();
-    vport_ = new dpdk::virtual_port<vport_init>(iface, mempool);
   }
 
   void start() {
     typedef netplay_writer<vport_init> writer_t;
-    for (uint64_t i = 0; i < MAX_WRITERS; i++) {
-      if (CORE_SET(writer_core_mask_, i)) {
-        fprintf(stderr, "Starting writer on core %" PRIu64 "\n", i);
-        pthread_t writer_thread_id;
-        packet_store::handle* handle = pkt_store_->get_handle();
-        writer_t* writer = new writer_t(i, vport_, handle);
-        pthread_create(&writer_thread_id, NULL, &writer_thread<vport_init>,
-                       (void*) writer);
-        pthread_detach(writer_thread_id);
-      }
+    for (auto& entry : writer_interface_mapping_) {
+      fprintf(stderr, "Starting writer on core %d polling interface %s...\n",
+              entry.first, entry.second.c_str());
+      pthread_t writer_thread_id;
+      packet_store::handle* handle = pkt_store_->get_handle();
+      dpdk::virtual_port<vport_init>* vport =
+        new dpdk::virtual_port<vport_init>(entry.second.c_str(), mempool_);
+      writer_t* writer = new writer_t(entry.first, vport, handle);
+      pthread_create(&writer_thread_id, NULL, &writer_thread<vport_init>,
+                     (void*) writer);
+      pthread_detach(writer_thread_id);
     }
   }
 
@@ -93,14 +90,10 @@ class netplay_daemon {
     return pkt_store_->num_pkts();
   }
 
-  uint64_t writer_core_mask_;
-
   int query_server_port_;
-
+  writer_map writer_interface_mapping_;
   struct rte_mempool* mempool_;
-
   packet_store *pkt_store_;
-  dpdk::virtual_port<vport_init> *vport_;
 };
 
 }

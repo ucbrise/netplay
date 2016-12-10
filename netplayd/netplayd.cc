@@ -8,6 +8,7 @@
 
 #include <exception>
 #include <new>
+#include <map>
 
 #include <rte_config.h>
 #include <rte_malloc.h>
@@ -33,38 +34,12 @@
 #define DEFAULT_RUN_DIR  "/var/run"
 #define DEFAULT_LOG_DIR  "/var/log"
 
-// Override new and delete operators
-// inline void* operator new(size_t size) { 
-//   void* ret = rte_malloc(NULL, size, 0); 
-//   if (ret == NULL)
-//     throw std::bad_alloc();
-//   return ret;
-// }
-
-// inline void* operator new[](size_t size) { 
-//   void* ret = rte_malloc(NULL, size, 0); 
-//   if (ret == NULL)
-//     throw std::bad_alloc();
-//   return ret;
-// }
-
-// inline void operator delete(void* ptr) { 
-//   rte_free(ptr);  
-// }
-
-// inline void operator delete[](void* ptr) { 
-//   rte_free(ptr);
-// }
-
 const char* exec = "netplayd";
 const char* desc = "%s: Open NetPlay daemon\n";
 const char* usage =
-  "usage: %s [OPTIONS] [INTERFACE]\n"
-  "where INTERFACE is the ring interface on which NetPlay is listening\n"
-  "\nINTERFACE has the following format: <vswitch>:<interface>\n"
-  "  <vswitch>                      virtual switch\n"
-  "  <interface>                    DPDK ring interface\n"
-  "Examples: ovs:dpdkr0, bess:rte_ring0, etc.\n";
+  "usage: %s [OPTIONS] [VIRTUAL-SWITCH]\n"
+  "where VIRTUAL-SWITCH is the virtual switch which NetPlay should connect to.\n"
+  "Examples: ovs, bess, etc.\n";
 const char* daemon_opts =
   "\nDaemon options:\n"
   "  --detach                       run in background as daemon\n"
@@ -74,7 +49,10 @@ const char* daemon_opts =
 const char* netplay_opts =
   "\nNetPlay options:\n"
   "  -m, --master-core=CORE         CORE on which master should run (default: 0)\n"
-  "  -w, --writer-core-mask=MASK    core MASK for NetPlay writers (default: 0x0)\n"
+  "  -w, --writer-mappings=MAPPINGS comma separated MAPPINGS between NetPlay writer\n"
+  "                                 core and DPDK ring buffer interface it should\n"
+  "                                 poll; each mapping is of the form:\n"
+  "                                 <core>:<interface> (default: empty)\n"
   "  -q, --query-server-port=PORT   PORT mask for NetPlay writers (default: 11001)\n";
 const char* other_opts =
   "\nOther options:\n"
@@ -196,6 +174,17 @@ void redirect_output(char* logprefix) {
   }
 }
 
+void parse_writer_mapping(std::map<int, std::string>& writer_mapping,
+                          char* mapping_str) {
+  char* cur_mapping = strtok(mapping_str, ",");
+  while (cur_mapping != NULL) {
+    int core = atoi(strsep(&cur_mapping, ":"));
+    std::string iface = strsep(&cur_mapping, ":");
+    writer_mapping[core] = iface;
+    cur_mapping = strtok(mapping_str, ",");
+  }
+}
+
 int main(int argc, char** argv) {
   int detach = 0;
   int nochdir = 0;
@@ -206,7 +195,7 @@ int main(int argc, char** argv) {
     {"pidfile", optional_argument, NULL, 'p'},
     {"log-dir", optional_argument, NULL, 'l'},
     {"master-core", required_argument, NULL, 'm'},
-    {"writer-core-mask", required_argument, NULL, 'w'},
+    {"writer-mappings", required_argument, NULL, 'w'},
     {"query-server-port", required_argument, NULL, 'q'},
     {"help", no_argument, NULL, 'h'},
     {NULL, 0, NULL, 0}
@@ -216,7 +205,7 @@ int main(int argc, char** argv) {
   int option_index = 0;
   int master_core = 0;
   int query_server_port = 11001;
-  uint64_t writer_core_mask = 0x0;
+  std::map<int, std::string> writer_mapping;
   char* pidfile = NULL;
   char* logprefix = NULL;
   while ((c = getopt_long(argc, argv, "m:w:q:hp::l::", long_options, &option_index)) != -1) {
@@ -240,7 +229,7 @@ int main(int argc, char** argv) {
       master_core = atoi(optarg);
       break;
     case 'w':
-      writer_core_mask = (uint64_t) strtol(optarg, NULL, 0);
+      parse_writer_mapping(writer_mapping, optarg);
       break;
     case 'q':
       query_server_port = atoi(optarg);
@@ -265,15 +254,7 @@ int main(int argc, char** argv) {
     return -1;
   }
 
-  char *vswitch;
-  char *iface;
-  vswitch = strsep(&argv[optind], ":");
-  iface = strsep(&argv[optind], ":");
-  if (vswitch == NULL || iface == NULL) {
-    fprintf(stderr, "%s: Invalid INTERFACE\n", exec);
-    prompt_help();
-    return -1;
-  }
+  char *vswitch = argv[optind];
 
   check_user();
 
@@ -294,13 +275,13 @@ int main(int argc, char** argv) {
 
   struct rte_mempool* mempool = netplay::dpdk::init_dpdk(vswitch, master_core, 1);
   if (!strcmp("ovs", vswitch)) {
-    netplay::netplay_daemon<netplay::dpdk::ovs_ring_init> netplayd(iface,
-        mempool, writer_core_mask, query_server_port);
+    typedef netplay::netplay_daemon<netplay::dpdk::ovs_ring_init> daemon_t;
+    daemon_t netplayd(writer_mapping, mempool, query_server_port);
     netplayd.start();
     netplayd.monitor();
   } else if (!strcmp("bess", vswitch)) {
-    netplay::netplay_daemon<netplay::dpdk::bess_ring_init> netplayd(iface,
-        mempool, writer_core_mask, query_server_port);
+    typedef netplay::netplay_daemon<netplay::dpdk::bess_ring_init> daemon_t;
+    daemon_t netplayd(writer_mapping, mempool, query_server_port);
     netplayd.start();
     netplayd.monitor();
   } else {
