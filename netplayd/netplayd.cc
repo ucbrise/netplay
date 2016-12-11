@@ -178,6 +178,8 @@ void redirect_output(char* logprefix) {
 
 void parse_writer_mapping(std::map<int, std::string>& writer_mapping,
                           char* mapping_str) {
+
+  fprintf(stderr, "Using writer mappings: %s\n");
   char* cur_mapping = strtok(mapping_str, ",");
   while (cur_mapping != NULL) {
     char* core_str = strsep(&cur_mapping, ":");
@@ -185,16 +187,16 @@ void parse_writer_mapping(std::map<int, std::string>& writer_mapping,
 
     if (core_str == NULL) {
       fprintf(stderr, "Could not parse writer mapping (invalid core): %s\n",
-              mapping_str);
+              cur_mapping);
       exit(EXIT_FAILURE);
     }
 
     if (iface_str == NULL) {
       fprintf(stderr, "Could not parse writer mapping (invalid iface): %s\n",
-              mapping_str);
+              cur_mapping);
       exit(EXIT_FAILURE);
     }
-    
+
     int core = atoi(core_str);
     std::string iface = std::string(iface_str);
     writer_mapping[core] = iface;
