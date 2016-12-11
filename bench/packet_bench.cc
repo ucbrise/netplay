@@ -53,7 +53,7 @@ using namespace ::slog;
 using namespace ::std::chrono;
 
 const char* usage =
-  "Usage: %s -n [num-threads] -r [rate-limit]\n";
+  "Usage: %s [-n num-threads] [-r rate-limit] [-f] [-c]\n";
 
 typedef uint64_t timestamp_t;
 
@@ -140,7 +140,7 @@ class packet_loader {
 
   // Throughput benchmarks
   void load_packets(const uint32_t num_threads, const uint64_t rate_limit,
-                    const bool measure_cpu) {
+                    const bool measure_cpu, const bool flush_cache) {
 
     typedef rate_limiter<pktstore_vport, static_rand_generator> pktgen_type;
     std::vector<std::thread> workers;
@@ -224,6 +224,30 @@ class packet_loader {
       cpu_measure_thread.join();
     }
 
+    if (flush_cache) {
+      std::thread cpu_measure_thread([num_threads, rate_limit, &done, this] {
+        const int size = 20 * 1024 * 1024; // Allocate 20M. Set much larger then L2
+        char *c = (char *)malloc(size);
+        while (done.load() != num_threads) {
+          for (int i = 0; i < 0xffff; i++)
+            for (int j = 0; j < size; j++)
+              c[j] = i * j;
+        }
+      });
+
+      // Create a cpu_set_t object representing a set of CPUs. Clear it and mark
+      // only CPU i as set.
+      cpu_set_t cpuset;
+      CPU_ZERO(&cpuset);
+      CPU_SET(num_threads, &cpuset);
+      int rc = pthread_setaffinity_np(cpu_measure_thread.native_handle(),
+                                      sizeof(cpu_set_t), &cpuset);
+      if (rc != 0)
+        fprintf(stderr, "Error calling pthread_setaffinity_np: %d\n", rc);
+
+      cpu_measure_thread.join();
+    }
+
     for (auto& th : workers)
       th.join();
 
@@ -262,7 +286,8 @@ int main(int argc, char** argv) {
   int num_threads = 1;
   uint64_t rate_limit = 0;
   bool measure_cpu = false;
-  while ((c = getopt(argc, argv, "n:r:c")) != -1) {
+  bool flush_cache = false;
+  while ((c = getopt(argc, argv, "n:r:cf")) != -1) {
     switch (c) {
     case 'n':
       num_threads = atoi(optarg);
@@ -273,6 +298,9 @@ int main(int argc, char** argv) {
     case 'c':
       measure_cpu = true;
       break;
+    case 'f':
+      flush_cache = true;
+      break;
     default:
       fprintf(stderr, "Could not parse command line arguments.\n");
       print_usage(argv[0]);
@@ -280,7 +308,7 @@ int main(int argc, char** argv) {
   }
 
   packet_loader loader;
-  loader.load_packets(num_threads, rate_limit, measure_cpu);
+  loader.load_packets(num_threads, rate_limit, measure_cpu, flush_cache);
 
   return 0;
 }
