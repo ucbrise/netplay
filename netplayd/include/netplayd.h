@@ -16,13 +16,8 @@
 
 namespace netplay {
 
-#define MAX_WRITERS  64
-#define MAX_READERS  64
-
-#define SLEEP_INTERVAL   10000000
-
-#define CORE_MASK(i)    (1L << (i))
-#define CORE_SET(m, i)  (m & CORE_MASK(i))
+#define SLEEP_INTERVAL        10000000
+#define BENCH_SLEEP_INTERVAL  20000000
 
 template<typename vport_init>
 void* writer_thread(void* arg) {
@@ -77,6 +72,17 @@ class netplay_daemon {
       epoch = now;
       epoch_pkts = pkts;
     }
+  }
+
+  void bench() {
+    uint64_t start = curusec();
+    uint64_t start_pkts = processed_pkts();
+
+    usleep(BENCH_SLEEP_INTERVAL);
+    uint64_t pkts = processed_pkts();
+    uint64_t now = curusec();
+    double tot_rate = (double) (pkts - start_pkts) * 1000000.0 / (double) (now - start);
+    fprintf(stderr, "%" PRIu64 "\t%lf\n", (now - start), tot_rate);
   }
 
  private:

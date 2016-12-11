@@ -178,7 +178,7 @@ void redirect_output(char* logprefix) {
 
 void parse_writer_mapping(std::map<int, std::string>& writer_mapping,
                           char* mapping_str) {
-  
+
   char* cur_mapping = strsep(&mapping_str, ",");
   while (cur_mapping != NULL) {
     char* core_str = strsep(&cur_mapping, ":");
@@ -207,6 +207,7 @@ void parse_writer_mapping(std::map<int, std::string>& writer_mapping,
 int main(int argc, char** argv) {
   int detach = 0;
   int nochdir = 0;
+  int bench = 0;
 
   static struct option long_options[] = {
     {"detach", no_argument, &detach, 1},
@@ -216,7 +217,8 @@ int main(int argc, char** argv) {
     {"master-core", required_argument, NULL, 'm'},
     {"writer-mappings", required_argument, NULL, 'w'},
     {"query-server-port", required_argument, NULL, 'q'},
-    {"help", no_argument, NULL, 'h'},
+    {"bench", no_argument, NULL, 'b'},
+    {"help", no_argument, &bench, 1},
     {NULL, 0, NULL, 0}
   };
 
@@ -297,12 +299,20 @@ int main(int argc, char** argv) {
     typedef netplay::netplay_daemon<netplay::dpdk::ovs_ring_init> daemon_t;
     daemon_t netplayd(writer_mapping, mempool, query_server_port);
     netplayd.start();
-    netplayd.monitor();
+    if (bench) {
+      netplad.bench();
+    } else {
+      netplayd.monitor();
+    }
   } else if (!strcmp("bess", vswitch)) {
     typedef netplay::netplay_daemon<netplay::dpdk::bess_ring_init> daemon_t;
     daemon_t netplayd(writer_mapping, mempool, query_server_port);
     netplayd.start();
-    netplayd.monitor();
+    if (bench) {
+      netplad.bench();
+    } else {
+      netplayd.monitor();
+    }
   } else {
     fprintf(stderr, "Virtual Switch interface %s is not yet supported.\n", vswitch);
     return -1;
