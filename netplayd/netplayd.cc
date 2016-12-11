@@ -53,7 +53,8 @@ const char* netplay_opts =
   "                                 core and DPDK ring buffer interface it should\n"
   "                                 poll; each mapping is of the form:\n"
   "                                 <core>:<interface> (default: empty)\n"
-  "  -q, --query-server-port=PORT   PORT mask for NetPlay writers (default: 11001)\n";
+  "  -q, --query-server-port=PORT   PORT mask for NetPlay writers (default: 11001)\n"
+  "  --bench                        Run benchmark (Measures throughput and dies)\n";
 const char* other_opts =
   "\nOther options:\n"
   "  -h, --help                     display this help message\n";
@@ -300,7 +301,7 @@ int main(int argc, char** argv) {
     daemon_t netplayd(writer_mapping, mempool, query_server_port);
     netplayd.start();
     if (bench) {
-      netplad.bench();
+      netplayd.bench();
     } else {
       netplayd.monitor();
     }
@@ -309,7 +310,7 @@ int main(int argc, char** argv) {
     daemon_t netplayd(writer_mapping, mempool, query_server_port);
     netplayd.start();
     if (bench) {
-      netplad.bench();
+      netplayd.bench();
     } else {
       netplayd.monitor();
     }
