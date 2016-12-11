@@ -218,8 +218,8 @@ int main(int argc, char** argv) {
     {"master-core", required_argument, NULL, 'm'},
     {"writer-mappings", required_argument, NULL, 'w'},
     {"query-server-port", required_argument, NULL, 'q'},
-    {"bench", no_argument, NULL, 'b'},
-    {"help", no_argument, &bench, 1},
+    {"bench", no_argument, &bench, 1},
+    {"help", no_argument, NULL, 'h'},
     {NULL, 0, NULL, 0}
   };
 
