@@ -42,8 +42,8 @@ class netplay_daemon {
   void start() {
     typedef netplay_writer<vport_init> writer_t;
     for (auto& entry : writer_interface_mapping_) {
-      fprintf(stderr, "Starting writer on core %d polling interface %s...\n",
-              entry.first, entry.second.c_str());
+      printf("Starting writer on core %d polling interface %s...\n",
+             entry.first, entry.second.c_str());
       pthread_t writer_thread_id;
       packet_store::handle* handle = pkt_store_->get_handle();
       dpdk::virtual_port<vport_init>* vport =
@@ -67,8 +67,8 @@ class netplay_daemon {
 
       double epoch_rate = (double) (pkts - epoch_pkts) * 1000000.0 / (double) (now - epoch);
       double tot_rate = (double) (pkts - start_pkts) * 1000000.0 / (double) (now - start);
-      fprintf(stderr, "[%" PRIu64 "] Packet rate: %lf pkts/s (since last epoch), "
-              "%lf pkts/s (since start)\n", (now - start), epoch_rate, tot_rate);
+      printf("[%" PRIu64 "] Packet rate: %lf pkts/s (since last epoch), "
+             "%lf pkts/s (since start)\n", (now - start), epoch_rate, tot_rate);
       epoch = now;
       epoch_pkts = pkts;
     }
@@ -82,7 +82,7 @@ class netplay_daemon {
     uint64_t pkts = processed_pkts();
     uint64_t now = curusec();
     double tot_rate = (double) (pkts - start_pkts) * 1000000.0 / (double) (now - start);
-    fprintf(stderr, "%" PRIu64 "\t%lf\n", (now - start), tot_rate);
+    fprintf(stderr, "%zu\t%lf\n", writer_interface_mapping_.size(), tot_rate);
   }
 
  private:
