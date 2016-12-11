@@ -31,9 +31,10 @@ void* writer_thread(void* arg) {
 template<typename vport_init>
 class netplay_daemon {
  public:
-  typedef std::map<int, std::string> writer_map;
-  netplay_daemon(const writer_map& mapping, struct rte_mempool* mempool,
-                 int query_server_port): writer_interface_mapping_(mapping) {
+  typedef std::map<int, std::string> interface_map;
+  typedef std::map<std::string, dpdk::virtual_port<vport_init>*> port_map;
+  netplay_daemon(const interface_map& mapping, struct rte_mempool* mempool,
+                 int query_server_port): core_interface_mapping_(mapping) {
     query_server_port_ = query_server_port;
     mempool_ = mempool;
     pkt_store_ = new packet_store();
@@ -41,13 +42,15 @@ class netplay_daemon {
 
   void start() {
     typedef netplay_writer<vport_init> writer_t;
-    for (auto& entry : writer_interface_mapping_) {
+    for (auto& entry : core_interface_mapping_) {
       printf("Starting writer on core %d polling interface %s...\n",
              entry.first, entry.second.c_str());
       pthread_t writer_thread_id;
       packet_store::handle* handle = pkt_store_->get_handle();
-      dpdk::virtual_port<vport_init>* vport =
-        new dpdk::virtual_port<vport_init>(entry.second.c_str(), mempool_);
+      if (interface_port_mapping_.find(entry.second) == interface_port_mapping_.end())
+        interface_port_mapping_[entry.second] =
+          new dpdk::virtual_port<vport_init>(entry.second.c_str(), mempool_);
+      dpdk::virtual_port<vport_init>* vport = interface_port_mapping_[entry.second];
       writer_t* writer = new writer_t(entry.first, vport, handle);
       pthread_create(&writer_thread_id, NULL, &writer_thread<vport_init>,
                      (void*) writer);
@@ -82,7 +85,7 @@ class netplay_daemon {
     uint64_t pkts = processed_pkts();
     uint64_t now = curusec();
     double tot_rate = (double) (pkts - start_pkts) * 1000000.0 / (double) (now - start);
-    fprintf(stderr, "%zu\t%lf\n", writer_interface_mapping_.size(), tot_rate);
+    fprintf(stderr, "%zu\t%lf\n", core_interface_mapping_.size(), tot_rate);
   }
 
  private:
@@ -97,7 +100,8 @@ class netplay_daemon {
   }
 
   int query_server_port_;
-  writer_map writer_interface_mapping_;
+  interface_map core_interface_mapping_;
+  port_map interface_port_mapping_;
   struct rte_mempool* mempool_;
   packet_store *pkt_store_;
 };
