@@ -180,7 +180,7 @@ void parse_writer_mapping(std::map<int, std::string>& writer_mapping,
                           char* mapping_str) {
 
   fprintf(stderr, "Using writer mappings: %s\n", mapping_str);
-  char* cur_mapping = strtok(mapping_str, ",");
+  char* cur_mapping = strsep(&mapping_str, ",");
   while (cur_mapping != NULL) {
     fprintf(stderr, "Current mapping: %s\n", cur_mapping);
     char* core_str = strsep(&cur_mapping, ":");
@@ -203,7 +203,7 @@ void parse_writer_mapping(std::map<int, std::string>& writer_mapping,
     writer_mapping[core] = iface;
 
     fprintf(stderr, "Mappings now: %s\n", mapping_str);
-    cur_mapping = strtok(mapping_str, ",");
+    cur_mapping = strsep(&mapping_str, ",");
   }
 }
 
