@@ -102,6 +102,7 @@ class packet_generator {
 
   void generate() {
     uint64_t start = curusec();
+    uint64_t epoch = start;
     while ((time_limit_ == 0 || curusec() - start < time_limit_) && tot_sent_pkts_ < pkt_limit_) {
       if (rate_ == 0 || bucket_.consume(RTE_BURST_SIZE)) {
         struct rte_mbuf** pkts = generator_->generate_batch(RTE_BURST_SIZE);
@@ -112,10 +113,11 @@ class packet_generator {
 
       if (sent_pkts_ >= REPORT_INTERVAL) {
         uint64_t now = curusec();
-        double pkt_rate = (double) (tot_sent_pkts_ * 1e6) / (double) (now - start);
-        fprintf(stderr, "[PKTGEN] Packet rate = %lf\n", pkt_rate);
-        fflush(stderr);
+        double pkt_rate = (double) (sent_pkts_ * 1e6) / (double) (now - epoch);
+        epoch = now;
         sent_pkts_ = 0;
+
+        fprintf(stderr, "[PKTGEN] Packet rate = %lf\n", pkt_rate);
       }
     }
   }
