@@ -165,12 +165,14 @@ void redirect_output(char* logprefix) {
   fp = freopen(stderr_file, "w", stderr);
   if (fp == NULL) {
     fprintf(stderr, "Could not redirect output to logfile: %s\n", stderr_file);
+    exit(EXIT_FAILURE);
   }
 
   char* stdout_file = log_file_stdout(logprefix);
   fp = freopen(stdout_file, "w", stdout);
   if (fp == NULL) {
     fprintf(stderr, "Could not redirect output to logfile: %s\n", stdout_file);
+    exit(EXIT_FAILURE);
   }
 }
 
@@ -178,8 +180,23 @@ void parse_writer_mapping(std::map<int, std::string>& writer_mapping,
                           char* mapping_str) {
   char* cur_mapping = strtok(mapping_str, ",");
   while (cur_mapping != NULL) {
-    int core = atoi(strsep(&cur_mapping, ":"));
-    std::string iface = strsep(&cur_mapping, ":");
+    char* core_str = strsep(&cur_mapping, ":");
+    char* iface_str = strsep(&cur_mapping, ":");
+
+    if (core_str == NULL) {
+      fprintf(stderr, "Could not parse writer mapping (invalid core): %s\n",
+              mapping_str);
+      exit(EXIT_FAILURE);
+    }
+
+    if (iface_str == NULL) {
+      fprintf(stderr, "Could not parse writer mapping (invalid iface): %s\n",
+              mapping_str);
+      exit(EXIT_FAILURE);
+    }
+    
+    int core = atoi(core_str);
+    std::string iface = std::string(iface_str);
     writer_mapping[core] = iface;
     cur_mapping = strtok(mapping_str, ",");
   }
