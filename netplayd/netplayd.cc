@@ -201,6 +201,8 @@ void parse_writer_mapping(std::map<int, std::string>& writer_mapping,
     int core = atoi(core_str);
     std::string iface = std::string(iface_str);
     writer_mapping[core] = iface;
+
+    fprintf(stderr, "Mappings now: %s\n", mapping_str);
     cur_mapping = strtok(mapping_str, ",");
   }
 }
