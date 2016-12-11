@@ -179,7 +179,7 @@ void redirect_output(char* logprefix) {
 void parse_writer_mapping(std::map<int, std::string>& writer_mapping,
                           char* mapping_str) {
 
-  fprintf(stderr, "Using writer mappings: %s\n");
+  fprintf(stderr, "Using writer mappings: %s\n", mapping_str);
   char* cur_mapping = strtok(mapping_str, ",");
   while (cur_mapping != NULL) {
     char* core_str = strsep(&cur_mapping, ":");
