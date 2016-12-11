@@ -182,6 +182,7 @@ void parse_writer_mapping(std::map<int, std::string>& writer_mapping,
   fprintf(stderr, "Using writer mappings: %s\n", mapping_str);
   char* cur_mapping = strtok(mapping_str, ",");
   while (cur_mapping != NULL) {
+    fprintf(stderr, "Current mapping: %s\n", cur_mapping);
     char* core_str = strsep(&cur_mapping, ":");
     char* iface_str = strsep(&cur_mapping, ":");
 
