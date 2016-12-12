@@ -44,6 +44,7 @@
 #include "packetstore.h"
 #include "bench_vport.h"
 #include "dpdk_utils.h"
+#include "pkt_attrs.h"
 #include "cpu_utilization.h"
 #include "rate_limiter.h"
 
@@ -67,13 +68,6 @@ static timestamp_t get_timestamp() {
 #define HEADER_SIZE             54
 #define RTE_BURST_SIZE          32
 #define PKTS_PER_THREAD         60000000
-
-struct pkt_attrs {
-  uint32_t sip;
-  uint32_t dip;
-  uint16_t sport;
-  uint16_t dport;
-};
 
 class static_rand_generator {
  public:

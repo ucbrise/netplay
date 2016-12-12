@@ -45,6 +45,8 @@
 #include "character_builder.h"
 #include "packet_attributes.h"
 #include "aggregates.h"
+#include "pkt_attrs.h"
+#include "rand_generators.h"
 
 #define PKT_LEN 54
 #define PKT_BURST 32
@@ -56,8 +58,64 @@ using namespace ::netplay::pktgen;
 using namespace ::slog;
 using namespace ::std::chrono;
 
+class static_rand_generator {
+ public:
+  static_rand_generator(struct rte_mempool* mempool, pkt_attrs* pkt_data) {
+    cur_pos_ = 0;
+    pkt_data_ = pkt_data;
+
+    int ret = netplay::dpdk::mempool::mbuf_alloc_bulk(pkts_, HEADER_SIZE,
+              RTE_BURST_SIZE, mempool);
+    if (ret != 0) {
+      fprintf(stderr, "Error allocating packets %d\n", ret);
+      exit(-1);
+    }
+
+    for (int i = 0; i < RTE_BURST_SIZE; i++) {
+      struct ether_hdr* eth = rte_pktmbuf_mtod(pkts_[i], struct ether_hdr*);
+      eth->d_addr.addr_bytes[5] = 0;
+      eth->s_addr.addr_bytes[5] = 1;
+      eth->ether_type = rte_cpu_to_be_16(0x0800);
+
+      struct ipv4_hdr *ip = (struct ipv4_hdr *) (eth + 1);
+      ip->src_addr = 0;
+      ip->dst_addr = 0;
+      ip->next_proto_id = IPPROTO_TCP;
+
+      struct tcp_hdr *tcp = (struct tcp_hdr *) (ip + 1);
+      tcp->src_port = 0;
+      tcp->dst_port = 0;
+    }
+  }
+
+  struct rte_mbuf** generate_batch(size_t size) {
+    // Get next batch
+    for (size_t i = 0; i < size; i++) {
+      struct ether_hdr* eth = rte_pktmbuf_mtod(pkts_[i], struct ether_hdr*);
+
+      struct ipv4_hdr *ip = (struct ipv4_hdr *) (eth + 1);
+      ip->src_addr = pkt_data_[cur_pos_ + i].sip;
+      ip->dst_addr = pkt_data_[cur_pos_ + i].dip;
+
+      struct tcp_hdr *tcp = (struct tcp_hdr *) (ip + 1);
+      tcp->src_port = pkt_data_[cur_pos_ + i].sport;
+      tcp->dst_port = pkt_data_[cur_pos_ + i].dport;
+    }
+    cur_pos_ += size;
+
+    return pkts_;
+  }
+
+ private:
+  uint64_t cur_pos_;
+  pkt_attrs* pkt_data_;
+
+  struct rte_mbuf* pkts_[RTE_BURST_SIZE];
+};
+
 class filter_benchmark {
  public:
+  typedef packet_generator<pktstore_vport, static_rand_generator> pktgen_t;
   typedef unsigned long long int timestamp_t;
   typedef aggregate::count<attribute::packet_header> packet_counter;
 
@@ -72,31 +130,47 @@ class filter_benchmark {
     mempool_ = init_dpdk("filter", 0, 0);
     output_suffix_ = ".txt";
 
-    gen_ = new rand_generator(mempool_);
-
     load_filters();
     add_complex_chars();
   }
 
   ~filter_benchmark() {
-    delete gen_;
   }
 
   void load_data(uint64_t num_pkts) {
+    fprintf(stderr, "Generating packets...\n");
+    // Generate packets
+    pkt_attrs* pkt_data = new pkt_attrs[num_pkts];
+    zipf_generator gen1(1, 256);
+    zipf_generator gen2(1, 10);
+    for (uint64_t i = 0; i < num_pkts; i++) {
+      pkt_data[i].sip = gen1.next<uint32_t>();
+      pkt_data[i].dip = gen1.next<uint32_t>();
+      pkt_data[i].sport = gen2.next<uint16_t>();
+      pkt_data[i].dport = gen2.next<uint16_t>();
+    }
+
     fprintf(stderr, "Loading packets...\n");
+    std::ofstream load_out("packet_load.txt", std::ios_base::app);
     packet_store::handle* handle = store_->get_handle();
     pktstore_vport* vport = new pktstore_vport(handle);
-    packet_generator<pktstore_vport> pktgen(vport, gen_, load_rate_, 0, num_pkts);
+    static_rand_generator* gen = new static_rand_generator(mempool_, pkt_data);
+    pktgen_t pktgen(vport, gen, load_rate_, 0, num_pkts);
     start_time_ = std::time(NULL);
+    auto start = get_timestamp();
     pktgen.generate();
+    auto end = get_timestamp();
     end_time_ = std::time(NULL);
-    uint32_t totsecs = end_time_ - start_time_;
-    double pkt_rate = (double) pktgen.total_sent() / (double) totsecs;
-    fprintf(stderr, "Loaded %zu packets in %" PRIu32 "s (%lf packets/s).\n",
+    double totsecs = (double) (end - start) / 1000000.0;
+    double pkt_rate = (double) pktgen.total_sent() / totsecs;
+    fprintf(stderr, "Loaded %zu packets in %lfs (%lf packets/s).\n",
             pktgen.total_sent(), totsecs, pkt_rate);
+    load_out << pkt_rate << "\n";
+    load_out.close();
     build_casts();
     delete handle;
     delete vport;
+    delete[] pkt_data;
     output_suffix_ = "_" + std::to_string(load_rate_) + "_" +
                      std::to_string(handle->num_pkts()) + ".txt";
   }
@@ -345,8 +419,6 @@ class filter_benchmark {
   uint32_t start_time_;
   uint32_t end_time_;
 
-  rand_generator* gen_;
-
   const std::string query_path_;
   std::vector<std::string> filters_;
   std::vector<cast> casts_;
@@ -462,6 +534,9 @@ int main(int argc, char** argv) {
     for (uint32_t i = 1; i < 8; i++) {
       ls_bench.bench_char_throughput(query_rate, i, measure_cpu);
     }
+  } else if (bench_type == "load") {
+    fprintf(stderr, "Latency char benchmark\n");
+    ls_bench.load_data(num_pkts);
   } else {
     fprintf(stderr, "Unknown benchmark type: %s; must be one of: "
             "{latency, throughput}\n", bench_type.c_str());

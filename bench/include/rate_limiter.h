@@ -8,8 +8,6 @@
 #define BURST_SIZE          32
 #define BATCH_SIZE          8192
 
-#define MEASURE_LATENCY     1
-
 using namespace ::std::chrono;
 
 template<size_t batch_size>
