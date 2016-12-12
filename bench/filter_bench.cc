@@ -151,7 +151,7 @@ class filter_benchmark {
     }
 
     fprintf(stderr, "Loading packets...\n");
-    std::ofstream load_out("packet_load.txt", std::ios_base::app);
+    std::ofstream load_out("packet_load_" + std::to_string(filters_.size()) + ".txt", std::ios_base::app);
     packet_store::handle* handle = store_->get_handle();
     pktstore_vport* vport = new pktstore_vport(handle);
     static_rand_generator* gen = new static_rand_generator(mempool_, pkt_data);
@@ -168,11 +168,13 @@ class filter_benchmark {
     load_out << pkt_rate << "\n";
     load_out.close();
     build_casts();
+
+    output_suffix_ = "_" + std::to_string(load_rate_) + "_" +
+                     std::to_string(handle->num_pkts()) + ".txt";
+
     delete handle;
     delete vport;
     delete[] pkt_data;
-    output_suffix_ = "_" + std::to_string(load_rate_) + "_" +
-                     std::to_string(handle->num_pkts()) + ".txt";
   }
 
   // Latency benchmarks
