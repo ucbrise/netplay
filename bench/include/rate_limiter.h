@@ -2,9 +2,13 @@
 #define RATE_LIMITER_H_
 
 #include <chrono>
+#include <iostream>
+#include <fstream>
 
 #define BURST_SIZE          32
 #define BATCH_SIZE          8192
+
+#define MEASURE_LATENCY     1
 
 using namespace ::std::chrono;
 
@@ -76,11 +80,23 @@ class rate_limiter {
     struct timespec tspec;
     tspec.tv_sec = 0;
 
+#if MEASURE_LATENCY
+    std::ofstream out("write_batch_latency.txt");
+#endif
+
     auto start = high_resolution_clock::now();
     auto epoch = start;
     while (tot_sent_pkts_ < pkt_limit_) {
       auto pkts = generator_->generate_batch(burst_size);
+#if MEASURE_LATENCY
+      auto start = high_resolution_clock::now();
+#endif
       uint16_t sent = vport_->send_pkts(pkts, burst_size);
+#if MEASURE_LATENCY
+      auto end = high_resolution_clock::now();
+      uint64_t batch_ns = duration_cast<nanoseconds>(end - start).count();
+      out << batch_ns << "\n";
+#endif
       tot_sent_pkts_ += sent;
       if (rate_ != 0 && tot_sent_pkts_ % batch_size == 0) {
         auto now = high_resolution_clock::now();
