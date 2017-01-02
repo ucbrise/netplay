@@ -155,6 +155,7 @@ class packet_loader {
       attrs.dport = gen2.next<uint16_t>();
       pkt_data_.push_back(attrs);
     }
+    fprintf(stderr, "Generated %zu packets.\n", pkt_data_.size());
 
     std::atomic<uint32_t> done;
     done.store(0);
@@ -162,7 +163,7 @@ class packet_loader {
     struct rte_mempool* mempool = init_dpdk("pktbench", 0, 0);
     for (uint32_t i = 0; i < num_threads; i++) {
       workers.push_back(std::thread([i, worker_rate, num_pkts, &thputs, &done, &mempool, this] {
-        pkt_attrs* buf = &pkt_data_[i * PKTS_PER_THREAD];
+        pkt_attrs* buf = &pkt_data_[i * num_pkts];
         packet_store::handle* handle = store_->get_handle();
         pktstore_vport* vport = new pktstore_vport(handle);
         static_rand_generator* gen = new static_rand_generator(mempool, buf);
