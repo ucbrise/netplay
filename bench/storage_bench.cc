@@ -46,10 +46,9 @@
 #include "dpdk_utils.h"
 #include "pkt_attrs.h"
 #include "cpu_utilization.h"
-#include "pktgen.h"
+#include "rate_limiter.h"
 
 using namespace ::netplay::dpdk;
-using namespace ::netplay::pktgen;
 using namespace ::netplay;
 using namespace ::slog;
 using namespace ::std::chrono;
@@ -133,7 +132,7 @@ class storage_bench {
   // Storage footprint benchmark
   void load_packets(const uint64_t num_pkts, const uint64_t interval) {
 
-    typedef packet_generator<pktstore_vport, static_rand_generator> pktgen_type;
+    typedef rate_limiter<pktstore_vport, static_rand_generator> pktgen_type;
 
     // Generate packets
     zipf_generator gen1(1, 256);
@@ -159,7 +158,7 @@ class storage_bench {
       packet_store::handle* handle = store_->get_handle();
       pktstore_vport* vport = new pktstore_vport(handle);
       static_rand_generator* gen = new static_rand_generator(mempool, buf);
-      pktgen_type pktgen(vport, gen, 0, 0, interval);
+      pktgen_type pktgen(vport, gen, 0, interval);
 
       fprintf(stderr, "Starting benchmark.\n");
       timestamp_t start = get_timestamp();

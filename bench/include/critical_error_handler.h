@@ -85,6 +85,22 @@ void crit_err_hdlr(int sig_num, siginfo_t * info, void * ucontext) {
     else {
       std::cerr << "[bt]: (" << i << ") " << messages[i] << std::endl;
     }
+
+    /* find first occurence of '(' or ' ' in message[i] and assume
+     * everything before that is the file name. (Don't go beyond 0 though
+     * (string terminator)*/
+    int p = 0;
+    while (messages[i][p] != '(' && messages[i][p] != ' '
+           && messages[i][p] != 0)
+      ++p;
+    char syscom[256];
+    sprintf(syscom, "addr2line %p -e %.*s", array[i], p, messages[i]);
+    //last parameter is the file name of the symbol
+    int ret = system(syscom);
+
+    if (ret == -1) {
+      fprintf(stderr, "Command %s failed\n", syscom);
+    }
   }
 
   free(messages);
