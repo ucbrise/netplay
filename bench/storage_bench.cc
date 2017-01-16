@@ -149,7 +149,7 @@ class storage_bench {
     }
     fprintf(stderr, "Generated %zu packets.\n", pkt_data.size());
 
-    struct rte_mempool* mempool = init_dpdk("sbench", 0, 0);
+    struct rte_mempool* mempool = init_dpdk("pktbench", 0, 0);
 
     std::ofstream ofs("storage_footprint_" + std::to_string(num_pkts) + "_"
                       + std::to_string(interval) + ".txt", std::ios_base::app);
