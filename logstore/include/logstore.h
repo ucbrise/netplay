@@ -45,6 +45,15 @@ struct logstore_storage {
   size_t olog_size;
   std::vector<size_t> idx_sizes;
   std::vector<size_t> stream_sizes;
+
+  size_t total() {
+    size_t tot = dlog_size + olog_size;
+    for (auto size : idx_sizes)
+      tot += size;
+    for (auto size : stream_sizes)
+      tot += size;
+    return tot;
+  }
 };
 
 class log_store {
