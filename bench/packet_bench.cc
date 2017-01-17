@@ -145,7 +145,7 @@ class packet_loader {
     uint64_t worker_rate = rate_limit / num_threads;
     uint64_t num_pkts = PKTS_PER_THREAD;
     if (worker_rate != 0) {
-      num_pkts = worker_rate * 60;
+      num_pkts = worker_rate * 10;
     }
     size_t num_filters = characters_.size();
 
