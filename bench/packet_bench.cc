@@ -147,6 +147,7 @@ class packet_loader {
     if (worker_rate != 0) {
       num_pkts = worker_rate * 60;
     }
+    size_t num_filters = characters_.size();
 
     // Generate packets
     zipf_generator gen1(1, 256);
@@ -199,8 +200,8 @@ class packet_loader {
     }
 
     if (measure_cpu) {
-      std::thread cpu_measure_thread([num_threads, rate_limit, &done, this] {
-        std::ofstream util_stream("write_cpu_utilization_" + std::to_string(NUM_INDEXES) + "_" + std::to_string(num_threads) + "_" + std::to_string(rate_limit) + ".txt");
+      std::thread cpu_measure_thread([num_filters, num_threads, rate_limit, &done, this] {
+        std::ofstream util_stream("write_cpu_utilization_" + std::to_string(NUM_INDEXES) + "_" + std::to_string(num_filters) + "_" + std::to_string(num_threads) + "_" + std::to_string(rate_limit) + ".txt");
         cpu_utilization util;
         while (done.load() != num_threads) {
           util_stream << util.current() << "\n";
@@ -230,7 +231,7 @@ class packet_loader {
     for (double thput : thputs)
       tot += thput;
 
-    std::ofstream ofs("write_throughput_" + std::to_string(NUM_INDEXES) + "_" + std::to_string(num_threads) + "_" + std::to_string(rate_limit) + ".txt", std::ios_base::app);
+    std::ofstream ofs("write_throughput_" + std::to_string(NUM_INDEXES) + "_" + std::to_string(num_filters) + "_" + std::to_string(num_threads) + "_" + std::to_string(rate_limit) + ".txt", std::ios_base::app);
     ofs << tot << "\n";
     ofs.close();
 
