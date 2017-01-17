@@ -47,6 +47,10 @@
 #define INDEX_TS 1
 #endif
 
+#ifndef NUM_INDEXES
+#define NUM_INDEXES (INDEX_SRC_IP + INDEX_DST_IP + INDEX_SRC_PORT + INDEX_DST_PORT + INDEX_TS)
+#endif
+
 namespace netplay {
 
 /**

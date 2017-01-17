@@ -196,7 +196,7 @@ class packet_loader {
 
     if (measure_cpu) {
       std::thread cpu_measure_thread([num_threads, rate_limit, &done, this] {
-        std::ofstream util_stream("write_cpu_utilization_" +  std::to_string(num_threads) + "_" + std::to_string(rate_limit) + ".txt");
+        std::ofstream util_stream("write_cpu_utilization_" + std::to_string(NUM_INDEXES) + "_" + std::to_string(num_threads) + "_" + std::to_string(rate_limit) + ".txt");
         cpu_utilization util;
         while (done.load() != num_threads) {
           util_stream << util.current() << "\n";
@@ -250,8 +250,8 @@ class packet_loader {
     for (double thput : thputs)
       tot += thput;
 
-    std::ofstream ofs("write_throughput_" + std::to_string(num_threads) + "_" + std::to_string(rate_limit) + ".txt", std::ios_base::app);
-    ofs << num_threads << "\t" << tot << "\n";
+    std::ofstream ofs("write_throughput_" + std::to_string(NUM_INDEXES) + "_" + std::to_string(num_threads) + "_" + std::to_string(rate_limit) + ".txt", std::ios_base::app);
+    ofs << tot << "\n";
     ofs.close();
   }
 
