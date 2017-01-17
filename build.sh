@@ -7,7 +7,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
   echo "FATAL: Operating system not supported."
   exit -1
 else
-  cmake ..
+  cmake .. $@
 fi
 
 START=$(date +%s)

@@ -27,6 +27,26 @@
 
 #define MAX_FILTERS 65536
 
+#ifndef INDEX_SRC_IP
+#define INDEX_SRC_IP 1
+#endif
+
+#ifndef INDEX_DST_IP
+#define INDEX_DST_IP 1
+#endif
+
+#ifndef INDEX_SRC_PORT
+#define INDEX_SRC_PORT 1
+#endif
+
+#ifndef INDEX_DST_PORT
+#define INDEX_DST_PORT 1
+#endif
+
+#ifndef INDEX_TS
+#define INDEX_TS 1
+#endif
+
 namespace netplay {
 
 /**
@@ -66,16 +86,29 @@ class packet_store: public slog::log_store {
         uint16_t pkt_size = rte_pktmbuf_pkt_len(pkts[i]);
         struct ether_hdr *eth = (struct ether_hdr *) pkt;
         struct ipv4_hdr *ip = (struct ipv4_hdr *) (eth + 1);
+
+#if INDEX_SRC_IP == 1
         store_.srcip_idx_->add_entry(ip->src_addr, id);
+#endif
+#if INDEX_DST_IP == 1
         store_.dstip_idx_->add_entry(ip->dst_addr, id);
+#endif
         if (ip->next_proto_id == IPPROTO_TCP) {
           struct tcp_hdr *tcp = (struct tcp_hdr *) (ip + 1);
+#if INDEX_SRC_PORT == 1
           store_.srcport_idx_->add_entry(tcp->src_port, id);
+#endif
+#if INDEX_DST_PORT == 1
           store_.dstport_idx_->add_entry(tcp->dst_port, id);
+#endif
         } else if (ip->next_proto_id == IPPROTO_UDP) {
           struct udp_hdr *udp = (struct udp_hdr *) (ip + 1);
+#if INDEX_SRC_PORT == 1
           store_.srcport_idx_->add_entry(udp->src_port, id);
+#endif
+#if INDEX_DST_PORT == 1
           store_.dstport_idx_->add_entry(udp->dst_port, id);
+#endif
         }
         store_.olog_->set_without_alloc(id, off, pkt_size);
         off += store_.append_pkt(off, now, pkt, pkt_size);
