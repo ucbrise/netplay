@@ -42,6 +42,7 @@
 #include "rand_generators.h"
 #include "critical_error_handler.h"
 #include "packetstore.h"
+#include "character_builder.h"
 #include "bench_vport.h"
 #include "dpdk_utils.h"
 #include "pkt_attrs.h"
@@ -128,8 +129,11 @@ class packet_loader {
  public:
   static const uint64_t kMaxPktsPerThread = 60 * 1e6;
 
-  packet_loader() {
+  packet_loader(bool add_filters, std::string& filters_file) {
     store_ = new packet_store();
+    if (add_filters) {
+      load_filters(filters_file);
+    }
   }
 
   // Throughput benchmarks
@@ -234,7 +238,25 @@ class packet_loader {
   }
 
  private:
+  void load_filters(std::string& filters_file) {
+    std::vector<std::string> filters;
+    fprintf(stderr, "Loading filters...\n");
+    std::ifstream in(filters_file);
+    if (!in.is_open()) {
+      fprintf(stderr, "Could not open filters file %s\n", filters_file.c_str());
+      exit(-1);
+    }
+
+    std::string exp;
+    while (std::getline(in, exp)) {
+      auto c = character_builder(store_, exp).build();
+      characters_.push_back(c);
+    }
+    fprintf(stderr, "Loaded %zu filters.\n", characters_.size());
+  }
+
   packet_store *store_;
+  std::vector<complex_character> characters_;
   std::vector<pkt_attrs> pkt_data_;
 };
 
@@ -258,14 +280,20 @@ int main(int argc, char** argv) {
   int c;
   int num_threads = 1;
   uint64_t rate_limit = 0;
+  bool add_filters = false;
+  std::string filters_file = "";
   bool measure_cpu = false;
-  while ((c = getopt(argc, argv, "n:r:c")) != -1) {
+  while ((c = getopt(argc, argv, "n:r:f:c")) != -1) {
     switch (c) {
     case 'n':
       num_threads = atoi(optarg);
       break;
     case 'r':
       rate_limit = atoll(optarg);
+      break;
+    case 'f':
+      add_filters = true;
+      filters_file = std::string(optarg);
       break;
     case 'c':
       measure_cpu = true;
@@ -276,7 +304,7 @@ int main(int argc, char** argv) {
     }
   }
 
-  packet_loader loader;
+  packet_loader loader(add_filters, filters_file);
   loader.load_packets(num_threads, rate_limit, measure_cpu);
 
   return 0;
