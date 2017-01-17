@@ -82,14 +82,17 @@ class packet_store: public slog::log_store {
 
       size_t num_chars = store_.num_filters_.load(std::memory_order_acquire);
       auto char_index = store_.char_idx_->get(now);
+
+#if INDEX_TS == 1
       auto time_list = store_.timestamp_idx_->get(now);
       time_list->push_back_range(id, id + cnt - 1);
+#endif
 
       for (int i = 0; i < cnt; i++) {
         unsigned char* pkt = rte_pktmbuf_mtod(pkts[i], unsigned char*);
         uint16_t pkt_size = rte_pktmbuf_pkt_len(pkts[i]);
 
-#if NUM_INDEXES > 0
+#if INDEX_SRC_IP == 1 || INDEX_DST_IP == 1 || INDEX_SRC_PORT == 1 || INDEX_DST_PORT == 1
         struct ether_hdr *eth = (struct ether_hdr *) pkt;
         struct ipv4_hdr *ip = (struct ipv4_hdr *) (eth + 1);
 
@@ -119,7 +122,7 @@ class packet_store: public slog::log_store {
 #endif // INDEX_DST_PORT == 1
         }
 #endif // INDEX_SRC_PORT == 1 || INDEX_DST_PORT == 1
-#endif // NUM_INDEXES > 0
+#endif // INDEX_SRC_IP == 1 || INDEX_DST_IP == 1 || INDEX_SRC_PORT == 1 || INDEX_DST_PORT == 1
 
         store_.olog_->set_without_alloc(id, off, pkt_size);
         off += store_.append_pkt(off, now, pkt, pkt_size);
