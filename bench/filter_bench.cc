@@ -529,11 +529,11 @@ int main(int argc, char** argv) {
     fprintf(stderr, "All benchmark\n");
     ls_bench.load_data(num_pkts);
     ls_bench.bench_cast_latency();
-    for (uint32_t i = 1; i < 8; i++) {
+    for (uint32_t i = 1; i <= 8; i++) {
       ls_bench.bench_cast_throughput(query_rate, i, measure_cpu);
     }
     ls_bench.bench_char_latency();
-    for (uint32_t i = 1; i < 8; i++) {
+    for (uint32_t i = 1; i <= 8; i++) {
       ls_bench.bench_char_throughput(query_rate, i, measure_cpu);
     }
   } else if (bench_type == "load") {
