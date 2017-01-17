@@ -143,10 +143,10 @@ class packet_loader {
     typedef rate_limiter<pktstore_vport, static_rand_generator> pktgen_type;
     std::vector<std::thread> workers;
     uint64_t worker_rate = rate_limit / num_threads;
+    const uint64_t max_worker_rate = 4000000ULL;
     uint64_t num_pkts = PKTS_PER_THREAD;
-    if (worker_rate != 0) {
-      num_pkts = worker_rate * 10;
-    }
+    if (worker_rate != 0)
+      num_pkts = std::min(max_worker_rate, worker_rate) * 10;
     size_t num_filters = characters_.size();
 
     // Generate packets
