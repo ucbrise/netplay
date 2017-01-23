@@ -16,6 +16,7 @@ OPTION(INDEX_DST_IP "Enable indexing of destination IPs" ON)
 OPTION(INDEX_SRC_PORT "Enable indexing of source ports" ON)
 OPTION(INDEX_DST_PORT "Enable indexing of destination ports" ON)
 OPTION(INDEX_TS "Enable indexing of timestamps" ON)
+OPTION(MEASURE_LATENCY "Enable measuring of packet capture latency" OFF)
 
 # Set 3rd party includes/libs
 if(EXISTS ${PROJECT_SOURCE_DIR}/3rdparty/dpdk-16.07)
@@ -64,6 +65,13 @@ else(INDEX_TS)
   message(STATUS "Indexing disabled for timestamps")
   add_definitions(-DINDEX_TS=0)
 endif(INDEX_TS)
+
+if(MEASURE_LATENCY)
+  message(STATUS "Latency measurement enabled")
+  add_definitions(-DMEASURE_LATENCY)
+else(MEASURE_LATENCY)
+  message(STATUS "Latency measurement disabled")
+endif(MEASURE_LATENCY)
 
 add_subdirectory(netplayd)
 add_subdirectory(pktgen)
