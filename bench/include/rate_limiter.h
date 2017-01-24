@@ -10,15 +10,11 @@
 
 using namespace ::std::chrono;
 
-template<size_t batch_size>
 class pacer {
  public:
-  pacer(uint64_t rate) {
-    rate_ = rate;
+  pacer(size_t batch_size, uint64_t batch_ms) {
     batch_size_ = batch_size;
-    min_batch_ns_ = 0;
-    if (rate_ != 0)
-      min_batch_ns_ = (1e9 * batch_size) / rate_;
+    min_batch_ns_ = batch_ms * 1000000ULL;
     tspec_.tv_sec = 0;
     num_ops_ = 0;
 
@@ -27,7 +23,7 @@ class pacer {
 
   void pace() {
     num_ops_++;
-    if (rate_ != 0 && num_ops_ % batch_size == 0) {
+    if (batch_size_ > 0 && num_ops_ % batch_size_ == 0) {
       auto now = high_resolution_clock::now();
       uint64_t batch_ns = duration_cast<nanoseconds>(now - epoch_).count();
       if (batch_ns < min_batch_ns_) {
@@ -44,12 +40,10 @@ class pacer {
 
  private:
   uint64_t num_ops_;
-  uint64_t rate_;
   uint64_t batch_size_;
   uint64_t min_batch_ns_;
 
   time_point<high_resolution_clock> epoch_;
-
   struct timespec tspec_;
 };
 

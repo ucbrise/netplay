@@ -229,21 +229,17 @@ class filter_benchmark {
   }
 
   // Throughput benchmarks
-  void bench_cast_throughput(uint64_t query_rate, uint32_t num_threads, bool measure_cpu) {
-    uint64_t worker_rate = query_rate / num_threads;
+  void bench_cast_throughput(uint32_t num_threads, bool measure_cpu) {
     for (size_t qid = 0; qid < filters_.size(); qid++) {
       std::vector<std::thread> workers;
       std::vector<double> query_thputs(num_threads, 0.0);
       std::vector<double> pkt_thputs(num_threads, 0.0);
       for (uint32_t i = 0; i < num_threads; i++) {
-        workers.push_back(std::thread([i, qid, worker_rate, &query_thputs, &pkt_thputs, this] {
-          pacer<1> p(worker_rate);
+        workers.push_back(std::thread([i, qid, &query_thputs, &pkt_thputs, this] {
           size_t num_pkts = 0;
           timestamp_t start = get_timestamp();
-          for (size_t repeat = 0; repeat < CAST_COUNT; repeat++) {
+          for (size_t repeat = 0; repeat < CAST_COUNT; repeat++)
             num_pkts += casts_[qid].execute<packet_counter>();
-            p.pace();
-          }
           timestamp_t end = get_timestamp();
           double totsecs = (double) (end - start) / (1000.0 * 1000.0);
           query_thputs[i] = ((double) CAST_COUNT / totsecs);
@@ -302,15 +298,14 @@ class filter_benchmark {
     }
   }
 
-  void bench_char_throughput(uint64_t query_rate, uint32_t num_threads, bool measure_cpu) {
-    uint64_t worker_rate = query_rate / num_threads;
+  void bench_char_throughput(size_t batch_size, uint64_t batch_ms, uint32_t num_threads, bool measure_cpu) {
     for (size_t qid = 0; qid < characters_.size(); qid++) {
       std::vector<std::thread> workers;
       std::vector<double> query_thputs(num_threads, 0.0);
       std::vector<double> pkt_thputs(num_threads, 0.0);
       for (uint32_t i = 0; i < num_threads; i++) {
-        workers.push_back(std::thread([i, qid, worker_rate, &query_thputs, &pkt_thputs, this] {
-          pacer<10> p(worker_rate);
+        workers.push_back(std::thread([i, qid, batch_size, batch_ms, &query_thputs, &pkt_thputs, this] {
+          pacer p(batch_size, batch_ms);
           uint64_t num_pkts = 0;
           timestamp_t start = get_timestamp();
           for (size_t repeat = 0; repeat < CHAR_COUNT; repeat++) {
@@ -456,10 +451,11 @@ int main(int argc, char** argv) {
   std::string bench_type = "latency-get";
   uint64_t num_pkts = 60 * 1e6;
   uint64_t load_rate = 1e6;
-  uint64_t query_rate = 0;
+  uint64_t batch_size = 0;
+  uint64_t batch_ms = 0;
   uint32_t num_threads = 1;
   bool measure_cpu = false;
-  while ((c = getopt(argc, argv, "b:p:q:l:n:c")) != -1) {
+  while ((c = getopt(argc, argv, "b:p:s:m:l:n:c")) != -1) {
     switch (c) {
     case 'b':
       bench_type = std::string(optarg);
@@ -467,8 +463,11 @@ int main(int argc, char** argv) {
     case 'p':
       num_pkts = atoll(optarg);
       break;
-    case 'q':
-      query_rate = atoll(optarg);
+    case 's':
+      batch_size = atoll(optarg);
+      break;
+    case 'm':
+      batch_ms = atoll(optarg);
       break;
     case 'l':
       load_rate = atoll(optarg);
@@ -515,26 +514,26 @@ int main(int argc, char** argv) {
   } else if (bench_type == "throughput-char") {
     fprintf(stderr, "Throughput char benchmark\n");
     ls_bench.load_data(num_pkts);
-    ls_bench.bench_char_throughput(query_rate, num_threads, measure_cpu);
+    ls_bench.bench_char_throughput(batch_size, batch_ms, num_threads, measure_cpu);
   } else if (bench_type == "throughput-cast") {
     fprintf(stderr, "Throughput cast benchmark\n");
     ls_bench.load_data(num_pkts);
-    ls_bench.bench_cast_throughput(query_rate, num_threads, measure_cpu);
+    ls_bench.bench_cast_throughput(num_threads, measure_cpu);
   } else if (bench_type == "throughput") {
     fprintf(stderr, "Throughput benchmark\n");
     ls_bench.load_data(num_pkts);
-    ls_bench.bench_cast_throughput(query_rate, num_threads, measure_cpu);
-    ls_bench.bench_char_throughput(query_rate, num_threads, measure_cpu);
+    ls_bench.bench_cast_throughput(num_threads, measure_cpu);
+    ls_bench.bench_char_throughput(batch_size, batch_ms, num_threads, measure_cpu);
   } else if (bench_type == "all") {
     fprintf(stderr, "All benchmark\n");
     ls_bench.load_data(num_pkts);
     ls_bench.bench_cast_latency();
     for (uint32_t i = 1; i <= 8; i++) {
-      ls_bench.bench_cast_throughput(query_rate, i, measure_cpu);
+      ls_bench.bench_cast_throughput(i, measure_cpu);
     }
     ls_bench.bench_char_latency();
     for (uint32_t i = 1; i <= 8; i++) {
-      ls_bench.bench_char_throughput(query_rate, i, measure_cpu);
+      ls_bench.bench_char_throughput(batch_size, batch_ms, i, measure_cpu);
     }
   } else if (bench_type == "load") {
     fprintf(stderr, "Latency char benchmark\n");
