@@ -23,6 +23,8 @@
 #include "offsetlog.h"
 #include "datalog.h"
 
+#define MAX_PATH_LEN  6
+
 namespace netplay {
 
 struct index_filter {
@@ -75,12 +77,43 @@ struct packet_filter {
            && (ip->dst_addr >= dst_addr.first && ip->dst_addr <= dst_addr.second);
   }
 
+  typedef int32_t node_t;
+  typedef std::pair<node_t, node_t> link_t;
+
+  inline bool path_contains_link(node_t* path) {
+    for (size_t i = 0; i < MAX_PATH_LEN - 1; i++)
+      if (path[i] == link.first && path[i + 1] == link.second)
+        return true;
+    return false;
+  }
+
+  inline bool path_contains_node(node_t* path) {
+    for (size_t i = 0; i < MAX_PATH_LEN; i++)
+      if (path[i] == node)
+        return true;
+    return false;
+  }
+
+  inline bool path_check(node_t* path) {
+    if (check_path_contains_node)
+      return path_contains_node(path);
+    if (check_path_contains_link)
+      return path_contains_link(path);
+    
+    return true;
+  }
+
   typedef std::pair<uint64_t, uint64_t> range;
   range src_addr;
   range dst_addr;
   range src_port;
   range dst_port;
   range timestamp;
+
+  bool check_path_contains_node;
+  bool check_path_contains_link;
+  link_t link;
+  node_t node;
 };
 
 typedef std::vector<packet_filter> filter_list;

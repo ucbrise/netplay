@@ -344,9 +344,11 @@ class filter_benchmark {
           std::ofstream util_stream("char_cpu_utilization_" + output_mid + output_suffix_);
           cpu_utilization util;
           while (done.load() != num_threads) {
+            fprintf(stderr, "Sleeping\n");
             sleep(1);
             util_stream << util.current() << "\n";
           }
+          fprintf(stderr, "Done\n");
           util_stream.close();
         });
 
