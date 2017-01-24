@@ -309,7 +309,7 @@ class filter_benchmark {
                                std::to_string(batch_ms) + "_" +
                                std::to_string(qid) + "_" +
                                std::to_string(num_threads);
-      std::atomic<uint32_t> done;
+      std::atomic<uint32_t> done(0);
       for (uint32_t i = 0; i < num_threads; i++) {
         workers.push_back(std::thread([i, qid, batch_size, batch_ms, &query_thputs, &done, &pkt_thputs, this] {
           pacer p(batch_size, batch_ms);
