@@ -292,7 +292,7 @@ class filter_benchmark {
       for (double thput : pkt_thputs)
         ptot += thput;
 
-      std::ofstream ofs("throughput_cast_" + std::to_string(num_threads) + output_suffix_, std::ios_base::app);
+      std::ofstream ofs("throughput_cast_" + std::to_string(qid) + "_" + std::to_string(num_threads) + output_suffix_);
       ofs << (qid + 1) << "\t" << num_threads << "\t" << qtot << "\t" << ptot << "\n";
       ofs.close();
     }
@@ -303,6 +303,10 @@ class filter_benchmark {
       std::vector<std::thread> workers;
       std::vector<double> query_thputs(num_threads, 0.0);
       std::vector<double> pkt_thputs(num_threads, 0.0);
+      std::string output_mid = std::to_string(batch_size) + "_" +
+                               std::to_string(batch_ms) + "_" +
+                               std::to_string(qid) + "_" +
+                               std::to_string(num_threads);
       for (uint32_t i = 0; i < num_threads; i++) {
         workers.push_back(std::thread([i, qid, batch_size, batch_ms, &query_thputs, &pkt_thputs, this] {
           pacer p(batch_size, batch_ms);
@@ -332,7 +336,7 @@ class filter_benchmark {
 
       if (measure_cpu) {
         std::thread cpu_measure_thread([&] {
-          std::ofstream util_stream("char_cpu_utilization_" + std::to_string(qid) + "_" + std::to_string(num_threads) + output_suffix_);
+          std::ofstream util_stream("char_cpu_utilization_" + output_mid + output_suffix_);
           cpu_utilization util;
           while (true) {
             sleep(1);
@@ -364,7 +368,7 @@ class filter_benchmark {
       for (double thput : pkt_thputs)
         ptot += thput;
 
-      std::ofstream ofs("throughput_char_" + std::to_string(num_threads) + output_suffix_, std::ios_base::app);
+      std::ofstream ofs("throughput_char_" + output_mid + output_suffix_);
       ofs << (qid + 1) << "\t" << num_threads << "\t" << qtot << "\t" << ptot << "\n";
       ofs.close();
     }
