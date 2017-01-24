@@ -299,6 +299,8 @@ class filter_benchmark {
   }
 
   void bench_char_throughput(size_t batch_size, uint64_t batch_ms, uint32_t num_threads, bool measure_cpu) {
+    fprintf(stderr, "Running for batch_size=%zu, batch_ms=%" PRIu64 ",num_threads=%" PRIu32 "\n",
+            batch_size, batch_ms, num_threads);
     for (size_t qid = 0; qid < characters_.size(); qid++) {
       std::vector<std::thread> workers;
       std::vector<double> query_thputs(num_threads, 0.0);
@@ -307,18 +309,21 @@ class filter_benchmark {
                                std::to_string(batch_ms) + "_" +
                                std::to_string(qid) + "_" +
                                std::to_string(num_threads);
+      std::atomic<uint32_t> done;
       for (uint32_t i = 0; i < num_threads; i++) {
-        workers.push_back(std::thread([i, qid, batch_size, batch_ms, &query_thputs, &pkt_thputs, this] {
+        workers.push_back(std::thread([i, qid, batch_size, batch_ms, &query_thputs, &done, &pkt_thputs, this] {
           pacer p(batch_size, batch_ms);
           uint64_t num_pkts = 0;
+          uint64_t qcount = batch_size * (5000 / batch_ms);
           timestamp_t start = get_timestamp();
-          for (size_t repeat = 0; repeat < CHAR_COUNT; repeat++) {
+          for (size_t repeat = 0; repeat < qcount; repeat++) {
             num_pkts += characters_[qid].execute<packet_counter>(end_time_, end_time_);
             p.pace();
           }
+          done.fetch_add(1);
           timestamp_t end = get_timestamp();
           double totsecs = (double) (end - start) / (1000.0 * 1000.0);
-          query_thputs[i] = ((double) CHAR_COUNT / totsecs);
+          query_thputs[i] = ((double) qcount / totsecs);
           pkt_thputs[i] = ((double) num_pkts / totsecs);
           fprintf(stderr, "Thread #%u(%lfs): Throughput: %lf.\n", i, totsecs, query_thputs[i]);
         }));
@@ -335,10 +340,10 @@ class filter_benchmark {
       }
 
       if (measure_cpu) {
-        std::thread cpu_measure_thread([&] {
+        std::thread cpu_measure_thread([num_threads, output_mid, &done, this] {
           std::ofstream util_stream("char_cpu_utilization_" + output_mid + output_suffix_);
           cpu_utilization util;
-          while (true) {
+          while (done.load() != num_threads) {
             sleep(1);
             util_stream << util.current() << "\n";
           }
