@@ -215,7 +215,7 @@ class filter_benchmark {
       size_t size = 0;
       for (size_t repeat = 0; repeat < repeat_max; repeat++) {
         timestamp_t start = get_timestamp();
-        size_t cnt = characters_[i].execute<packet_counter>(end_time_ - 4, end_time_);
+        size_t cnt = characters_[i].execute<packet_counter>(end_time_, end_time_);
         timestamp_t end = get_timestamp();
         avg += (end - start);
         size += cnt;
@@ -314,7 +314,7 @@ class filter_benchmark {
           uint64_t num_pkts = 0;
           timestamp_t start = get_timestamp();
           for (size_t repeat = 0; repeat < CHAR_COUNT; repeat++) {
-            num_pkts += characters_[qid].execute<packet_counter>(end_time_ - 4, end_time_);
+            num_pkts += characters_[qid].execute<packet_counter>(end_time_, end_time_);
             p.pace();
           }
           timestamp_t end = get_timestamp();
