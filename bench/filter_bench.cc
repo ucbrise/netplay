@@ -345,8 +345,8 @@ class filter_benchmark {
           cpu_utilization util;
           while (done.load() != num_threads) {
             sleep(1);
-            fprintf(stderr, "Slept: %lf\n", util.current());
             util_stream << util.current() << "\n";
+            util_stream.flush();
           }
           fprintf(stderr, "Done\n");
           util_stream.close();
