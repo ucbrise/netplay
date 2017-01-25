@@ -345,7 +345,6 @@ template<> packet_store::packet_counter::result_type packet_store::query_charact
   const uint32_t char_id,
   const uint32_t ts_beg,
   const uint32_t ts_end) {
-  fprintf(stderr, "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!CALLED!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
   packet_counter::result_type res = 0;
   for (uint32_t ts = ts_beg; ts <= ts_end; ts++)
     res += char_idx_->get(ts)->get(char_id)->size();
