@@ -24,6 +24,7 @@
 #include "packet_filter.h"
 #include "query_plan.h"
 #include "aggregates.h"
+#include "packet_attributes.h"
 
 #define MAX_FILTERS 65536
 
@@ -64,6 +65,7 @@ class packet_store: public slog::log_store {
  public:
   typedef std::unordered_set<uint64_t> result_type;
   typedef complex_character_index::result filter_result;
+  typedef aggregate::count<attribute::packet_header> packet_counter;
 
   class handle : public slog::log_store::handle {
    public:
@@ -338,6 +340,17 @@ class packet_store: public slog::log_store {
   std::atomic<uint32_t> num_filters_;
   complex_character_index* char_idx_;
 };
+
+template<> packet_store::packet_counter::result_type packet_store::query_character<packet_store::packet_counter>(
+  const uint32_t char_id,
+  const uint32_t ts_beg,
+  const uint32_t ts_end) {
+  fprintf(stderr, "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!CALLED!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+  packet_counter::result_type res = 0;
+  for (uint32_t ts = ts_beg; ts <= ts_end; ts++)
+    res += char_idx_->get(ts)->get(char_id)->size();
+  return res;
+}
 
 }
 
