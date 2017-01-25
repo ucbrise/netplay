@@ -314,7 +314,7 @@ class filter_benchmark {
         workers.push_back(std::thread([i, qid, batch_size, batch_ms, &query_thputs, &done, &pkt_thputs, this] {
           pacer p(batch_size, batch_ms);
           uint64_t num_pkts = 0;
-          uint64_t qcount = batch_size * (5000 / batch_ms);
+          uint64_t qcount = batch_size * (2000 / batch_ms);
           timestamp_t start = get_timestamp();
           for (size_t repeat = 0; repeat < qcount; repeat++) {
             num_pkts += characters_[qid].execute<packet_counter>(end_time_, end_time_);
@@ -343,8 +343,11 @@ class filter_benchmark {
         std::thread cpu_measure_thread([num_threads, output_mid, &done, this] {
           std::ofstream util_stream("char_cpu_utilization_" + output_mid + output_suffix_);
           cpu_utilization util;
+          struct timespec tspec;
+          tspec.tv_sec = 1;
+          tspec.tv_nsec = 0;
           while (done.load() != num_threads) {
-            sleep(1);
+            nanosleep(&tspec, NULL);
             util_stream << util.current() << "\n";
             util_stream.flush();
           }
@@ -549,6 +552,15 @@ int main(int argc, char** argv) {
   } else if (bench_type == "load") {
     fprintf(stderr, "Latency char benchmark\n");
     ls_bench.load_data(num_pkts);
+  } else if (bench_type == "char-utilization") {
+    fprintf(stderr, "Char utilization benchmark\n");
+    ls_bench.load_data(num_pkts);
+    for (size_t s = 1; s <= 10000; s *= 10) {
+      ls_bench.bench_char_throughput(s, 1, 1, measure_cpu);
+      ls_bench.bench_char_throughput(s, 5, 1, measure_cpu);
+      ls_bench.bench_char_throughput(s, 10, 1, measure_cpu);
+      ls_bench.bench_char_throughput(s, 20, 1, measure_cpu);
+    }
   } else {
     fprintf(stderr, "Unknown benchmark type: %s; must be one of: "
             "{latency, throughput}\n", bench_type.c_str());
