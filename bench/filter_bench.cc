@@ -351,7 +351,6 @@ class filter_benchmark {
             util_stream << util.current() << "\n";
             util_stream.flush();
           }
-          fprintf(stderr, "Done\n");
           util_stream.close();
         });
 
@@ -364,7 +363,7 @@ class filter_benchmark {
                                         sizeof(cpu_set_t), &cpuset);
         if (rc != 0)
           fprintf(stderr, "Error calling pthread_setaffinity_np: %d\n", rc);
-        cpu_measure_thread.detach();
+        cpu_measure_thread.join();
       }
 
       for (auto& th : workers)
