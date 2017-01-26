@@ -6,7 +6,7 @@
 #include <fstream>
 
 #define BURST_SIZE          32
-#define BATCH_SIZE          32
+#define BATCH_SIZE          1024
 
 using namespace ::std::chrono;
 
