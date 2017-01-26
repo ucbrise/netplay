@@ -74,13 +74,16 @@ struct flow_stats {
 
 struct loss_info {
   std::atomic<size_t> retransmissions;
+  slog::entry_list* list;
 
   loss_info() {
     retransmissions.store(0);
+    list = new slog::entry_list;
   }
 
-  void increment() {
+  void increment(uint64_t pkt_id) {
     retransmissions.fetch_add(1);
+    list->push_back(pkt_id);
   }
 
   size_t get() {
@@ -165,7 +168,7 @@ class packet_store: public slog::log_store {
           stats->cur_seq = tcp->sent_seq;
           stats->cur_ts = pkt_ts;
         } else if (pkt_ts - stats->cur_ts > 3000) {
-          retr->increment();
+          retr->increment(id);
         }
 
         store_.olog_->set_without_alloc(id, off, pkt_size);
@@ -367,6 +370,31 @@ class packet_store: public slog::log_store {
   void diagnose_outcast_1(uint32_t ts, std::map<uint32_t, size_t>& src_dist,
                           std::map<int32_t, size_t>& switch_dist) {
     auto pkt_ids = timestamp_idx_->get(ts);
+    size_t size = pkt_ids->size();
+    for (size_t i = 0; i < size; i++) {
+      uint64_t pkt_id = pkt_ids->at(i);
+      uint64_t off;
+      uint16_t len;
+      olog_->lookup(pkt_id, off, len);
+      unsigned char *ptr = (unsigned char*) dlog_->ptr(off);
+      unsigned char *pkt = ptr + sizeof(uint64_t);
+      struct ether_hdr *eth = (struct ether_hdr *) pkt;
+      struct ipv4_hdr *ip = (struct ipv4_hdr *) (eth + 1);
+      src_dist[ip->src_addr]++;
+      struct tcp_hdr *tcp = (struct tcp_hdr *) (ip + 1);
+      int32_t *path = (int32_t *)  (tcp + 1);
+
+      uint32_t pos = 0;
+      while (pos < 5 && path[pos + 1] != -1) pos++;
+      if (path[pos] == -1) continue;
+
+      switch_dist[path[pos]]++;
+    }
+  }
+
+  void diagnose_outcast_2(uint32_t ts, std::map<uint32_t, size_t>& src_dist,
+                          std::map<int32_t, size_t>& switch_dist) {
+    auto pkt_ids = loss_idx_->get(ts)->list;
     size_t size = pkt_ids->size();
     for (size_t i = 0; i < size; i++) {
       uint64_t pkt_id = pkt_ids->at(i);

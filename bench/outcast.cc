@@ -179,7 +179,7 @@ class outcast {
           fprintf(stderr, "[%" PRIu32 "] Number of retransmissions = %zu\n", retr.first, retr.second);
           if (retr.second > RETR_THRESHOLD) {
             timestamp_t t0 = get_timestamp();
-            handle->diagnose_outcast_1(retr.first, src_dist, switch_dist);
+            handle->diagnose_outcast_2(retr.first, src_dist, switch_dist);
             timestamp_t t1 = get_timestamp();
             timestamp_t tdiff = t1 - t0;
 
