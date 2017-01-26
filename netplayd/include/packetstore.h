@@ -395,9 +395,9 @@ class packet_store: public slog::log_store {
       size_t tot_num_pkts = stats->list->size();
       if (tot_num_pkts == 0 || tot_num_pkts < off[i]) {
         fprintf(stderr, "Continuing for src_ip: ");
-        print_ip(sips[i]);
         continue;
       }
+      print_ip(sips[i]);
       size_t size = (tot_num_pkts - off[i]);
       off[i] = tot_num_pkts;
       src_dist[sips[i]] += size;
