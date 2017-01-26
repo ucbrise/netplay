@@ -57,12 +57,10 @@ namespace netplay {
 struct flow_stats {
   uint32_t cur_seq;
   uint64_t cur_ts;
-  uint64_t num_pkts;
 
   flow_stats() {
     cur_seq = 0;
     cur_ts = 0;
-    num_pkts = 0;
   }
 
   void push_back(uint64_t val) {
@@ -128,19 +126,19 @@ class packet_store: public slog::log_store {
     }
 
     void insert_pktburst(struct rte_mbuf** pkts, uint16_t cnt) {
-      uint64_t now = curusec();
-      uint32_t now_s = now / 1e6;
+      // uint64_t now = curusec();
+      // uint32_t now_s = now / 1e6;
       uint64_t id = store_.olog_->request_id_block(cnt);
       uint64_t nbytes = cnt * sizeof(uint64_t);
       for (int i = 0; i < cnt; i++)
         nbytes += rte_pktmbuf_pkt_len(pkts[i]);
       uint64_t off = store_.request_bytes(nbytes);
 
-      size_t num_chars = store_.num_filters_.load(std::memory_order_acquire);
-      auto char_index = store_.char_idx_->get(now_s);
+      // size_t num_chars = store_.num_filters_.load(std::memory_order_acquire);
+      // auto char_index = store_.char_idx_->get(now_s);
 
-      auto time_list = store_.timestamp_idx_->get(now_s);
-      time_list->push_back_range(id, id + cnt - 1);
+      // auto time_list = store_.timestamp_idx_->get(now_s);
+      // time_list->push_back_range(id, id + cnt - 1);
 
       for (int i = 0; i < cnt; i++) {
         unsigned char* pkt = rte_pktmbuf_mtod(pkts[i], unsigned char*);
@@ -156,11 +154,13 @@ class packet_store: public slog::log_store {
         uint64_t pkt_ts = *((uint64_t *) (path + 6));
         store_.cur_ts = pkt_ts;
 
+        uint32_t pkt_s = pkt_ts / 1e6;
+        store_.timestamp_idx_->add_entry(pkt_s, id);
+
         // store_.srcport_idx_->add_entry(tcp->src_port, id);
         // store_.dstport_idx_->add_entry(tcp->dst_port, id);
         flow_stats* stats = store_.flow_idx_->get(tcp->src_port);
-        loss_info* retr = store_.loss_idx_->get(pkt_ts / 1e6);
-        stats->num_pkts++;
+        loss_info* retr = store_.loss_idx_->get(pkt_s);
         if (tcp->sent_seq > stats->cur_seq) {
           stats->cur_seq = tcp->sent_seq;
           stats->cur_ts = pkt_ts;
@@ -169,15 +169,15 @@ class packet_store: public slog::log_store {
         }
 
         store_.olog_->set_without_alloc(id, off, pkt_size);
-        off += store_.append_pkt(off, now, pkt, pkt_size);
-        for (size_t i = 0; i < num_chars; i++) {
-          for (auto& filter : store_.filters_[i]) {
-            if (filter.apply(pkt)) {
-              char_index->get(i)->push_back(id);
-              break;
-            }
-          }
-        }
+        off += store_.append_pkt(off, 0, pkt, pkt_size);
+        // for (size_t i = 0; i < num_chars; i++) {
+        //   for (auto& filter : store_.filters_[i]) {
+        //     if (filter.apply(pkt)) {
+        //       char_index->get(i)->push_back(id);
+        //       break;
+        //     }
+        //   }
+        // }
         id++;
       }
       store_.olog_->end(id, cnt);
@@ -235,6 +235,11 @@ class packet_store: public slog::log_store {
 
     std::pair<uint32_t, size_t> get_retransmissions() {
       return store_.get_retransmissions();
+    }
+
+    void diagnose_outcast_1(uint32_t ts, std::map<uint32_t, size_t>& src_dist,
+                            std::map<int32_t, size_t>& switch_dist) {
+      return store_.diagnose_outcast_1(ts, src_dist, switch_dist);
     }
 
    private:
@@ -359,23 +364,30 @@ class packet_store: public slog::log_store {
     return std::pair<uint32_t, size_t>(cur_s, loss_idx_->at(cur_s)->get());
   }
 
-  // void diagnose_outcast_1(uint32_t ts) {
-  //   auto pkt_ids = timestamp_idx_->get(ts);
-  //   size_t size = pkt_ids->size();
-  //   for (size_t i = 0; i < size; i++) {
-  //     uint64_t pkt_id = pkt_ids->at(i);
-  //     uint64_t off;
-  //     uint16_t len;
-  //     olog_->lookup(pkt_id, off, len);
-  //     unsigned char *ptr = (unsigned char*) dlog_->ptr(offset);
-  //     unsigned char *pkt = ptr + sizeof(uint64_t);
-  //     struct ether_hdr *eth = (struct ether_hdr *) pkt;
-  //     struct ipv4_hdr *ip = (struct ipv4_hdr *) (eth + 1);
-  //     struct tcp_hdr *tcp = (struct tcp_hdr *) (ip + 1);
-  //     int32_t *path = (int32_t *)  (tcp + 1);
-  //     while (i < 6 && path[i + 1] != -1) i++;
-  //   }
-  // }
+  void diagnose_outcast_1(uint32_t ts, std::map<uint32_t, size_t>& src_dist,
+                          std::map<int32_t, size_t>& switch_dist) {
+    auto pkt_ids = timestamp_idx_->get(ts);
+    size_t size = pkt_ids->size();
+    for (size_t i = 0; i < size; i++) {
+      uint64_t pkt_id = pkt_ids->at(i);
+      uint64_t off;
+      uint16_t len;
+      olog_->lookup(pkt_id, off, len);
+      unsigned char *ptr = (unsigned char*) dlog_->ptr(off);
+      unsigned char *pkt = ptr + sizeof(uint64_t);
+      struct ether_hdr *eth = (struct ether_hdr *) pkt;
+      struct ipv4_hdr *ip = (struct ipv4_hdr *) (eth + 1);
+      struct tcp_hdr *tcp = (struct tcp_hdr *) (ip + 1);
+      int32_t *path = (int32_t *)  (tcp + 1);
+
+      uint32_t pos = 0;
+      while (pos < 5 && path[pos + 1] != -1) i++;
+      if (path[pos] == -1) continue;
+
+      src_dist[ip->src_addr]++;
+      switch_dist[path[pos]]++;
+    }
+  }
 
  private:
   /**

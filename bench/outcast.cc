@@ -66,6 +66,7 @@ static timestamp_t get_timestamp() {
 
 #define PACKET_SIZE             86
 #define RTE_BURST_SIZE          32
+#define RETR_THRESHOLD          100
 
 class array_generator {
  public:
@@ -163,11 +164,37 @@ class outcast {
         struct timespec tspec;
         tspec.tv_sec = 0;
         tspec.tv_nsec = 1e8;
+
+        std::map<uint32_t, size_t> src_dist;
+        std::map<int32_t, size_t> switch_dist;
+
+        typedef std::map<uint32_t, size_t>::iterator src_iter;
+        typedef std::map<int32_t, size_t>::iterator switch_iter;
+
         while (!done.load()) {
           nanosleep(&tspec, NULL);
           
           std::pair<uint32_t, size_t> retr = handle->get_retransmissions();
-          fprintf(stderr, "[%" PRIu32 "] Number of retransmissions = %zu\n", retr.first, retr.second);
+          if (retr.second > RETR_THRESHOLD) {
+            timestamp_t t0 = get_timestamp();
+            handle->diagnose_outcast_1(retr.first, src_dist, switch_dist);
+            timestamp_t t1 = get_timestamp();
+            timestamp_t tdiff = t1 - t0;
+
+            fprintf(stderr, "Time taken = %lu us\n", tdiff);
+            fprintf(stderr, "Diagnosis:\n");
+            fprintf(stderr, "Src Dist:\n");
+            for (src_iter s = src_dist.begin(); s != src_dist.end(); s++)
+              fprintf(stderr, "%" PRIu32 ": %zu\n", s->first, s->second);
+            
+            fprintf(stderr, "Switch Dist:\n");
+            for (switch_iter s = switch_dist.begin(); s != switch_dist.end(); s++)
+              fprintf(stderr, "%" PRId32 ": %zu\n", s->first, s->second);
+
+            break;
+          }
+
+          // fprintf(stderr, "[%" PRIu32 "] Number of retransmissions = %zu\n", retr.first, retr.second);
         }
         delete handle;
       }));
