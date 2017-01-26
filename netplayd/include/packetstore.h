@@ -415,12 +415,13 @@ class packet_store: public slog::log_store {
       if (tot_num_pkts == 0 || tot_num_pkts < off[i])
         continue;
       size_t size = (tot_num_pkts - off[i]);
+      off[i] = tot_num_pkts;
       src_dist[sips[i]] += size;
       uint64_t pkt_id = stats->list->at(0);
-      uint64_t off;
-      uint16_t len;
-      olog_->lookup(pkt_id, off, len);
-      unsigned char *ptr = (unsigned char*) dlog_->ptr(off);
+      uint64_t offset;
+      uint16_t length;
+      olog_->lookup(pkt_id, offset, length);
+      unsigned char *ptr = (unsigned char*) dlog_->ptr(offset);
       unsigned char *pkt = ptr + sizeof(uint64_t);
       struct ether_hdr *eth = (struct ether_hdr *) pkt;
       struct ipv4_hdr *ip = (struct ipv4_hdr *) (eth + 1);
