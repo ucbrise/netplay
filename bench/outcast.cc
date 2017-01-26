@@ -113,8 +113,8 @@ class outcast {
     size_t count = size / PACKET_SIZE;
     for (size_t i = 0; i < count; i++) {
       unsigned char* pkt = new unsigned char[PACKET_SIZE];
-      size_t bytes = fread(pkt, PACKET_SIZE, 1, f);
-      assert(bytes == PACKET_SIZE);
+      size_t items = fread(pkt, PACKET_SIZE, 1, f);
+      assert(items == 1);
       pkt_data_.push_back(pkt);
     }
     fprintf(stderr, "Loaded %zu packets.\n", pkt_data_.size());
