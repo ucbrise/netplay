@@ -175,10 +175,10 @@ class outcast {
 
         // sleep(5);
         bool enable = false;
+        size_t prev_retr = 0;
         while (!done.load()) {
           nanosleep(&tspec, NULL);
 
-          size_t prev_retr = 0;
           size_t retr = handle->get_retransmissions();
 
           if (retr - prev_retr > RETR_THRESHOLD)
