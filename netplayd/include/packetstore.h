@@ -361,8 +361,8 @@ class packet_store: public slog::log_store {
   }
 
   void init_pkt_offs(std::vector<size_t>& off) {
-    uint32_t sips[15] = {
-      33620490, 50397450, 33686026, 50397962, 33686538,
+    uint32_t sips[16] = {
+      0, 33620490, 50397450, 33686026, 50397962, 33686538,
       33686282, 50463498, 33621002, 33685770, 50463242,
       33620746, 50398218, 50462986, 50397706, 50463754
     };
@@ -372,8 +372,8 @@ class packet_store: public slog::log_store {
   }
 
   void init_retr_offs(std::vector<size_t>& off) {
-    uint32_t sips[15] = {
-      33620490, 50397450, 33686026, 50397962, 33686538,
+    uint32_t sips[16] = {
+      0, 33620490, 50397450, 33686026, 50397962, 33686538,
       33686282, 50463498, 33621002, 33685770, 50463242,
       33620746, 50398218, 50462986, 50397706, 50463754
     };
@@ -384,13 +384,13 @@ class packet_store: public slog::log_store {
 
   void diagnose_outcast(std::vector<size_t>& off, std::unordered_map<uint32_t, size_t>& src_dist,
                         std::unordered_map<int32_t, size_t>& switch_dist) {
-    uint32_t sips[15] = {
-      33620490, 50397450, 33686026, 50397962, 33686538,
+    uint32_t sips[16] = {
+      0, 33620490, 50397450, 33686026, 50397962, 33686538,
       33686282, 50463498, 33621002, 33685770, 50463242,
       33620746, 50398218, 50462986, 50397706, 50463754
     };
 
-    for (size_t i = 0; i < 15; i++) {
+    for (size_t i = 0; i < 16; i++) {
       flow_stats *stats = flow_idx_->at(sips[i]);
       size_t tot_num_pkts = stats->list->size();
       if (tot_num_pkts == 0 || tot_num_pkts < off[i])
@@ -434,10 +434,10 @@ class packet_store: public slog::log_store {
       off1[i] = num_pkts;
       size_t num_retr = (tot_num_retrs - off2[i]);
       off2[i] = num_retr;
-      
+
       if (pkt_dist.find(sips[i]) == pkt_dist.end())
         pkt_dist[sips[i]] = std::pair<size_t, size_t>(0, 0);
-      
+
       std::pair<size_t, size_t> entry = pkt_dist.at(sips[i]);
       entry.first += num_retr;
       entry.second += num_pkts;
