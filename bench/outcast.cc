@@ -112,10 +112,6 @@ class outcast {
     fclose(f);
     pkt_count_ = size_ / PACKET_SIZE;
 
-    for (size_t i = 0; i < pkt_count_; i++) {
-      print_bytes(pkt_data_ + i * PACKET_SIZE);
-    }
-
     fprintf(stderr, "Loaded %zu packets; Item count = %zu.\n", pkt_count_, item_count);
   }
 
