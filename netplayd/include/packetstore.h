@@ -429,15 +429,12 @@ class packet_store: public slog::log_store {
       size_t tot_num_pkts = stats->list->size();
       size_t tot_num_retrs = stats->retr->size();
       if (tot_num_pkts == 0 || tot_num_pkts < off1[i]) {
-        fprintf(stderr, "tot_num_pkts=%zu, off1=%zu", tot_num_pkts, off1[i]);
-        fprintf(stderr, "; Continuing for src_ip: ");
-        print_ip(sips[i]);
         continue;
       }
       size_t num_pkts = (tot_num_pkts - off1[i]);
-      off1[i] = num_pkts;
+      off1[i] = tot_num_pkts;
       size_t num_retr = (tot_num_retrs - off2[i]);
-      off2[i] = num_retr;
+      off2[i] = tot_num_retrs;
 
       if (pkt_dist.find(sips[i]) == pkt_dist.end())
         pkt_dist[sips[i]] = std::pair<size_t, size_t>(0, 0);

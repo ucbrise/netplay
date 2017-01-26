@@ -188,7 +188,7 @@ class priority {
             fprintf(stderr, "Source IP: Retransmissions, Recvd. Packets:\n");
             for (iter s = pkt_dist.begin(); s != pkt_dist.end(); s++) {
               print_ip(s->first);
-              fprintf(stderr, ": %zu, %zu\n", s->second.first, s->second.second);
+              fprintf(stderr, ": %zu\t%zu\n", s->second.first, s->second.second);
             }
           }
 
