@@ -381,7 +381,7 @@ class packet_store: public slog::log_store {
       int32_t *path = (int32_t *)  (tcp + 1);
 
       uint32_t pos = 0;
-      while (pos < 5 && path[pos + 1] != -1) i++;
+      while (pos < 5 && path[pos + 1] != -1) pos++;
       if (path[pos] == -1) continue;
 
       src_dist[ip->src_addr]++;
