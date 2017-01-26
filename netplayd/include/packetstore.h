@@ -377,6 +377,7 @@ class packet_store: public slog::log_store {
       unsigned char *pkt = ptr + sizeof(uint64_t);
       struct ether_hdr *eth = (struct ether_hdr *) pkt;
       struct ipv4_hdr *ip = (struct ipv4_hdr *) (eth + 1);
+      src_dist[ip->src_addr]++;
       struct tcp_hdr *tcp = (struct tcp_hdr *) (ip + 1);
       int32_t *path = (int32_t *)  (tcp + 1);
 
@@ -384,12 +385,21 @@ class packet_store: public slog::log_store {
       while (pos < 5 && path[pos + 1] != -1) pos++;
       if (path[pos] == -1) continue;
 
-      src_dist[ip->src_addr]++;
       switch_dist[path[pos]]++;
     }
   }
 
  private:
+
+  void print_ip(uint32_t ip) {
+    unsigned char bytes[4];
+    bytes[0] = ip & 0xFF;
+    bytes[1] = (ip >> 8) & 0xFF;
+    bytes[2] = (ip >> 16) & 0xFF;
+    bytes[3] = (ip >> 24) & 0xFF;
+    fprintf(stderr, "%u.%u.%u.%u", bytes[0], bytes[1], bytes[2], bytes[3]);
+  }
+
   /**
    * Append a packet to the packet store.
    *
