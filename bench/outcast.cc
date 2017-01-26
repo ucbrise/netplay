@@ -165,10 +165,9 @@ class outcast {
         tspec.tv_nsec = 1e8;
         while (!done.load()) {
           nanosleep(&tspec, NULL);
-          uint64_t now = curusec();
-          uint32_t now_s = now / 1e6;
-          size_t num_retransmissions = handle->get_retransmissions(now_s);
-          fprintf(stderr, "[%" PRIu32 "] Number of retransmissions = %zu\n", now_s, num_retransmissions);
+          
+          std::pair<uint32_t, size_t> retr = handle->get_retransmissions();
+          fprintf(stderr, "[%" PRIu32 "] Number of retransmissions = %zu\n", retr.first, retr.second);
         }
         delete handle;
       }));

@@ -154,17 +154,17 @@ class packet_store: public slog::log_store {
         struct tcp_hdr *tcp = (struct tcp_hdr *) (ip + 1);
         int32_t *path = (int32_t *) (tcp + 1);
         uint64_t pkt_ts = *((uint64_t *) (path + 6));
+        store_.cur_ts = pkt_ts;
 
         // store_.srcport_idx_->add_entry(tcp->src_port, id);
         // store_.dstport_idx_->add_entry(tcp->dst_port, id);
         flow_stats* stats = store_.flow_idx_->get(tcp->src_port);
-        loss_info* retr = store_.loss_idx_->get(now_s);
+        loss_info* retr = store_.loss_idx_->get(pkt_ts / 1e6);
         stats->num_pkts++;
         if (tcp->sent_seq > stats->cur_seq) {
           stats->cur_seq = tcp->sent_seq;
           stats->cur_ts = pkt_ts;
         } else if (pkt_ts - stats->cur_ts > 3000) {
-          fprintf(stderr, "Packet ts = %" PRIu64 ", flow ts = %" PRIu64 "\n", pkt_ts, stats->cur_ts);
           retr->increment();
         }
 
@@ -233,8 +233,8 @@ class packet_store: public slog::log_store {
       return store_.num_pkts();
     }
 
-    size_t get_retransmissions(uint32_t ts) {
-      return store_.get_retransmissions(ts);
+    std::pair<uint32_t, size_t> get_retransmissions() {
+      return store_.get_retransmissions();
     }
 
    private:
@@ -248,6 +248,8 @@ class packet_store: public slog::log_store {
    * Source IP, Destination IP, Source Port, Destination Port and Timestamp.
    */
   packet_store() {
+    cur_ts = 0;
+
     srcip_idx_id_ = add_index(4);
     dstip_idx_id_ = add_index(4);
     srcport_idx_id_ = add_index(2);
@@ -352,8 +354,9 @@ class packet_store: public slog::log_store {
     return num_records();
   }
 
-  size_t get_retransmissions(uint32_t ts) {
-    return loss_idx_->get(ts)->get();
+  std::pair<uint32_t, size_t> get_retransmissions() {
+    uint32_t cur_s = cur_ts / 1e6;
+    return std::pair<uint32_t, size_t>(cur_s, loss_idx_->at(cur_s)->get());
   }
 
   // void diagnose_outcast_1(uint32_t ts) {
@@ -407,6 +410,8 @@ class packet_store: public slog::log_store {
 
   flow_idx* flow_idx_;
   loss_idx* loss_idx_;
+
+  uint64_t cur_ts;
 
   /* Complex characters */
   /* Packet filters */
