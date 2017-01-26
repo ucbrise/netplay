@@ -127,20 +127,20 @@ class outcast {
     struct rte_mempool* mempool = init_dpdk("pktbench", 0, 0);
 
     {
+      fprintf(stderr, "Starting outcast thread.\n");
       workers.push_back(std::thread([rate_limit, &thput, &done, &mempool, this] {
         packet_store::handle* handle = store_->get_handle();
         pktstore_vport* vport = new pktstore_vport(handle);
         array_generator* gen = new array_generator(mempool, pkt_data_);
         pktgen_type pktgen(vport, gen, rate_limit, pkt_count_);
 
-        fprintf(stderr, "Starting outcast.\n");
+        
         timestamp_t start = get_timestamp();
         pktgen.generate();
         done.store(true);
         timestamp_t end = get_timestamp();
         double totsecs = (double) (end - start) / (1000.0 * 1000.0);
         thput = ((double) pktgen.total_sent() / totsecs);
-        fprintf(stderr, "Packet Capture Throughput: %lf; Time taken %lf.\n", thput, totsecs);
 
         delete vport;
         delete gen;
@@ -159,6 +159,7 @@ class outcast {
     }
 
     {
+      fprintf(stderr, "Starting monitor thread.\n");
       workers.push_back(std::thread([&done, this] {
         packet_store::handle* handle = store_->get_handle();
         struct timespec tspec;
@@ -210,6 +211,7 @@ class outcast {
     }
 
     if (measure_cpu) {
+      fprintf(stderr, "Starting CPU measure thread.\n");
       std::thread cpu_measure_thread([rate_limit, &done, this] {
         std::ofstream util_stream("outcast_util_" + std::to_string(rate_limit) + ".txt");
         cpu_utilization util;
@@ -241,6 +243,7 @@ class outcast {
     ofs << thput << "\n";
     ofs.close();
 
+    fprintf(stderr, "Packet Capture Throughput: %lf; Time taken %lf.\n", thput, totsecs);
     fprintf(stderr, "Completed outcast experiment.\n");
   }
 
