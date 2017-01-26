@@ -111,14 +111,13 @@ class outcast {
     size_t size = ftell(f);
 
     size_t count = size / PACKET_SIZE;
+    size_t item_count = 0;
     for (size_t i = 0; i < count; i++) {
       unsigned char* pkt = new unsigned char[PACKET_SIZE];
-      size_t items = fread(pkt, PACKET_SIZE, 1, f);
-      fprintf(stderr, "Items: %zu\n", items);
-      assert(items == 1);
+      item_count += fread(pkt, PACKET_SIZE, 1, f);
       pkt_data_.push_back(pkt);
     }
-    fprintf(stderr, "Loaded %zu packets.\n", pkt_data_.size());
+    fprintf(stderr, "Loaded %zu packets; Item count = %zu.\n", pkt_data_.size(), item_count);
   }
 
   void run_outcast(const uint64_t rate_limit, const bool measure_cpu) {
