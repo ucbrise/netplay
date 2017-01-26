@@ -162,14 +162,14 @@ class outcast {
       workers.push_back(std::thread([&done, this] {
         packet_store::handle* handle = store_->get_handle();
         struct timespec tspec;
-        tspec.tv_sec = 1;
-        tspec.tv_nsec = 0;
+        tspec.tv_sec = 0;
+        tspec.tv_nsec = 1e8;
 
-        std::map<uint32_t, size_t> src_dist;
-        std::map<int32_t, size_t> switch_dist;
+        std::unordered_map<uint32_t, size_t> src_dist;
+        std::unordered_map<int32_t, size_t> switch_dist;
 
-        typedef std::map<uint32_t, size_t>::iterator src_iter;
-        typedef std::map<int32_t, size_t>::iterator switch_iter;
+        typedef std::unordered_map<uint32_t, size_t>::iterator src_iter;
+        typedef std::unordered_map<int32_t, size_t>::iterator switch_iter;
 
         // sleep(5);
         while (!done.load()) {
@@ -179,7 +179,7 @@ class outcast {
           fprintf(stderr, "[%" PRIu32 "] Number of retransmissions = %zu\n", retr.first, retr.second);
           if (retr.second > RETR_THRESHOLD) {
             timestamp_t t0 = get_timestamp();
-            handle->diagnose_outcast_2(retr.first, src_dist, switch_dist);
+            handle->diagnose_outcast_3(retr.first, src_dist, switch_dist);
             timestamp_t t1 = get_timestamp();
             timestamp_t tdiff = t1 - t0;
 

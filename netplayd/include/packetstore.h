@@ -57,10 +57,12 @@ namespace netplay {
 struct flow_stats {
   uint32_t cur_seq;
   uint64_t cur_ts;
+  uint64_t pkt_count;
 
   flow_stats() {
     cur_seq = 0;
     cur_ts = 0;
+    pkt_count = 0;
   }
 
   void push_back(uint64_t val) {
@@ -164,12 +166,13 @@ class packet_store: public slog::log_store {
         // store_.dstport_idx_->add_entry(tcp->dst_port, id);
         flow_stats* stats = store_.flow_idx_->get(ip->src_addr);
         loss_info* retr = store_.loss_idx_->get(pkt_s);
+        stats->pkt_count++;
         if (tcp->sent_seq > stats->cur_seq) {
           stats->cur_seq = tcp->sent_seq;
           stats->cur_ts = pkt_ts;
         } else if (pkt_ts - stats->cur_ts > 3000) {
           retr->increment(id);
-        } 
+        }
 
         store_.olog_->set_without_alloc(id, off, pkt_size);
         off += store_.append_pkt(off, 0, pkt, pkt_size);
@@ -240,14 +243,19 @@ class packet_store: public slog::log_store {
       return store_.get_retransmissions();
     }
 
-    void diagnose_outcast_1(uint32_t ts, std::map<uint32_t, size_t>& src_dist,
-                            std::map<int32_t, size_t>& switch_dist) {
-      return store_.diagnose_outcast_1(ts, src_dist, switch_dist);
+    void diagnose_outcast_1(uint32_t ts, std::unordered_map<uint32_t, size_t>& src_dist,
+                            std::unordered_map<int32_t, size_t>& switch_dist) {
+      store_.diagnose_outcast_1(ts, src_dist, switch_dist);
     }
 
-    void diagnose_outcast_2(uint32_t ts, std::map<uint32_t, size_t>& src_dist,
-                            std::map<int32_t, size_t>& switch_dist) {
-      return store_.diagnose_outcast_2(ts, src_dist, switch_dist);
+    void diagnose_outcast_2(uint32_t ts, std::unordered_map<uint32_t, size_t>& src_dist,
+                            std::unordered_map<int32_t, size_t>& switch_dist) {
+      store_.diagnose_outcast_2(ts, src_dist, switch_dist);
+    }
+
+    void diagnose_outcast_3(uint32_t ts, std::unordered_map<uint32_t, size_t>& src_dist,
+                            std::unordered_map<int32_t, size_t>& switch_dist) {
+      store_.diagnose_outcast_3(ts, src_dist, switch_dist);
     }
 
    private:
@@ -372,8 +380,8 @@ class packet_store: public slog::log_store {
     return std::pair<uint32_t, size_t>(cur_s, loss_idx_->at(cur_s)->get());
   }
 
-  void diagnose_outcast_1(uint32_t ts, std::map<uint32_t, size_t>& src_dist,
-                          std::map<int32_t, size_t>& switch_dist) {
+  void diagnose_outcast_1(uint32_t ts, std::unordered_map<uint32_t, size_t>& src_dist,
+                          std::unordered_map<int32_t, size_t>& switch_dist) {
     auto pkt_ids = timestamp_idx_->get(ts);
     size_t size = pkt_ids->size();
     for (size_t i = 0; i < size; i++) {
@@ -397,8 +405,8 @@ class packet_store: public slog::log_store {
     }
   }
 
-  void diagnose_outcast_2(uint32_t ts, std::map<uint32_t, size_t>& src_dist,
-                          std::map<int32_t, size_t>& switch_dist) {
+  void diagnose_outcast_2(uint32_t ts, std::unordered_map<uint32_t, size_t>& src_dist,
+                          std::unordered_map<int32_t, size_t>& switch_dist) {
     auto pkt_ids = loss_idx_->get(ts)->list;
     size_t size = pkt_ids->size();
     for (size_t i = 0; i < size; i++) {
@@ -420,6 +428,33 @@ class packet_store: public slog::log_store {
 
       switch_dist[path[pos]]++;
     }
+  }
+
+  void diagnose_outcast_3(uint32_t ts, std::unordered_map<uint32_t, size_t>& src_dist,
+                          std::unordered_map<int32_t, size_t>& switch_dist) {
+
+    auto pkt_ids = loss_idx_->get(ts)->list;
+    size_t size = pkt_ids->size();
+    for (size_t i = 0; i < size; i++) {
+      uint64_t pkt_id = pkt_ids->at(i);
+      uint64_t off;
+      uint16_t len;
+      olog_->lookup(pkt_id, off, len);
+      unsigned char *ptr = (unsigned char*) dlog_->ptr(off);
+      unsigned char *pkt = ptr + sizeof(uint64_t);
+      struct ether_hdr *eth = (struct ether_hdr *) pkt;
+      struct ipv4_hdr *ip = (struct ipv4_hdr *) (eth + 1);
+      src_dist[ip->src_addr]++;
+      struct tcp_hdr *tcp = (struct tcp_hdr *) (ip + 1);
+      int32_t *path = (int32_t *)  (tcp + 1);
+
+      uint32_t pos = 0;
+      while (pos < 6 && path[pos] != -1) {
+        switch_dist[path[pos]]++;
+        pos++;
+      }
+    }
+
   }
 
  private:
