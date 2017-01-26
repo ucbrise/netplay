@@ -78,30 +78,6 @@ struct flow_stats {
   }
 };
 
-struct loss_info {
-  slog::entry_list* list;
-
-  loss_info() {
-    list = new slog::entry_list;
-  }
-
-  void add(uint64_t pkt_id) {
-    list->push_back(pkt_id);
-  }
-
-  size_t get() {
-    return list->size();
-  }
-
-  void push_back(uint64_t val) {
-    assert(val > 0);
-  }
-
-  size_t storage_size() {
-    return list->storage_size();
-  }
-};
-
 typedef slog::__index_depth2<65536, 65536, flow_stats> flow_idx;
 
 /**
@@ -169,7 +145,7 @@ class packet_store: public slog::log_store {
           stats->cur_seq = tcp->sent_seq;
           stats->cur_ts = pkt_ts;
         } else if (pkt_ts - stats->cur_ts > 3000) {
-          store_.retr_.add(id);
+          store_.retr_->push_back(id);
         }
 
         store_.olog_->set_without_alloc(id, off, pkt_size);
@@ -280,6 +256,7 @@ class packet_store: public slog::log_store {
     timestamp_idx_ = idx4_->at(2);
 
     flow_idx_ = new flow_idx;
+    retr_ = new slog::entry_list;
 
     char_idx_ = new complex_character_index();
     num_filters_.store(0U, std::memory_order_release);
@@ -371,7 +348,7 @@ class packet_store: public slog::log_store {
   }
 
   size_t get_retransmissions() {
-    return retr_.get();
+    return retr_->size();
   }
 
   void diagnose_outcast_1(uint32_t ts, std::unordered_map<uint32_t, size_t>& src_dist,
@@ -496,7 +473,7 @@ class packet_store: public slog::log_store {
   slog::__index4* timestamp_idx_;
 
   flow_idx* flow_idx_;
-  loss_info retr_;
+  slog::entry_list* retr_;
 
   /* Complex characters */
   /* Packet filters */

@@ -158,57 +158,57 @@ class outcast {
         fprintf(stderr, "Error calling pthread_setaffinity_np: %d\n", rc);
     }
 
-    {
-      fprintf(stderr, "Starting monitor thread.\n");
-      workers.push_back(std::thread([&done, this] {
-        packet_store::handle* handle = store_->get_handle();
-        struct timespec tspec;
-        tspec.tv_sec = 0;
-        tspec.tv_nsec = 1e8;
+    // {
+    //   fprintf(stderr, "Starting monitor thread.\n");
+    //   workers.push_back(std::thread([&done, this] {
+    //     packet_store::handle* handle = store_->get_handle();
+    //     struct timespec tspec;
+    //     tspec.tv_sec = 0;
+    //     tspec.tv_nsec = 1e8;
 
-        std::unordered_map<uint32_t, size_t> src_dist;
-        std::unordered_map<int32_t, size_t> switch_dist;
-        std::vector<size_t> off(15, 0);
+    //     std::unordered_map<uint32_t, size_t> src_dist;
+    //     std::unordered_map<int32_t, size_t> switch_dist;
+    //     std::vector<size_t> off(15, 0);
 
-        typedef std::unordered_map<uint32_t, size_t>::iterator src_iter;
-        typedef std::unordered_map<int32_t, size_t>::iterator switch_iter;
+    //     typedef std::unordered_map<uint32_t, size_t>::iterator src_iter;
+    //     typedef std::unordered_map<int32_t, size_t>::iterator switch_iter;
 
-        // sleep(5);
-        while (!done.load()) {
-          nanosleep(&tspec, NULL);
+    //     // sleep(5);
+    //     while (!done.load()) {
+    //       nanosleep(&tspec, NULL);
 
-          size_t retr = handle->get_retransmissions();
-          timestamp_t t0 = get_timestamp();
-          handle->diagnose_outcast_3(off, src_dist, switch_dist);
-          timestamp_t t1 = get_timestamp();
-          timestamp_t tdiff = t1 - t0;
+    //       size_t retr = handle->get_retransmissions();
+    //       timestamp_t t0 = get_timestamp();
+    //       handle->diagnose_outcast_3(off, src_dist, switch_dist);
+    //       timestamp_t t1 = get_timestamp();
+    //       timestamp_t tdiff = t1 - t0;
 
-          fprintf(stderr, "Number of retransmissions = %zu\n", retr);
-          fprintf(stderr, "Time taken = %lu us\n", tdiff);
-          fprintf(stderr, "Diagnosis:\n");
-          fprintf(stderr, "Src Dist:\n");
-          for (src_iter s = src_dist.begin(); s != src_dist.end(); s++) {
-            print_ip(s->first);
-            fprintf(stderr, ": %zu\n", s->second);
-          }
-          fprintf(stderr, "Switch Dist:\n");
-          for (switch_iter s = switch_dist.begin(); s != switch_dist.end(); s++)
-            fprintf(stderr, "%" PRId32 ": %zu\n", s->first, s->second);
+    //       fprintf(stderr, "Number of retransmissions = %zu\n", retr);
+    //       fprintf(stderr, "Time taken = %lu us\n", tdiff);
+    //       fprintf(stderr, "Diagnosis:\n");
+    //       fprintf(stderr, "Src Dist:\n");
+    //       for (src_iter s = src_dist.begin(); s != src_dist.end(); s++) {
+    //         print_ip(s->first);
+    //         fprintf(stderr, ": %zu\n", s->second);
+    //       }
+    //       fprintf(stderr, "Switch Dist:\n");
+    //       for (switch_iter s = switch_dist.begin(); s != switch_dist.end(); s++)
+    //         fprintf(stderr, "%" PRId32 ": %zu\n", s->first, s->second);
 
-        }
-        delete handle;
-      }));
+    //     }
+    //     delete handle;
+    //   }));
 
-      // Create a cpu_set_t object representing a set of CPUs. Clear it and mark
-      // only CPU 0 as set.
-      cpu_set_t cpuset;
-      CPU_ZERO(&cpuset);
-      CPU_SET(1, &cpuset);
-      int rc = pthread_setaffinity_np(workers.back().native_handle(),
-                                      sizeof(cpu_set_t), &cpuset);
-      if (rc != 0)
-        fprintf(stderr, "Error calling pthread_setaffinity_np: %d\n", rc);
-    }
+    //   // Create a cpu_set_t object representing a set of CPUs. Clear it and mark
+    //   // only CPU 0 as set.
+    //   cpu_set_t cpuset;
+    //   CPU_ZERO(&cpuset);
+    //   CPU_SET(1, &cpuset);
+    //   int rc = pthread_setaffinity_np(workers.back().native_handle(),
+    //                                   sizeof(cpu_set_t), &cpuset);
+    //   if (rc != 0)
+    //     fprintf(stderr, "Error calling pthread_setaffinity_np: %d\n", rc);
+    // }
 
     if (measure_cpu) {
       fprintf(stderr, "Starting CPU measure thread.\n");
