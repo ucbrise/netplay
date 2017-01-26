@@ -57,12 +57,16 @@ namespace netplay {
 struct flow_stats {
   uint32_t cur_seq;
   uint64_t cur_ts;
-  uint64_t pkt_count;
+  slog::entry_list* list;
 
   flow_stats() {
     cur_seq = 0;
     cur_ts = 0;
-    pkt_count = 0;
+    list = new slog::entry_list;
+  }
+
+  void add(uint64_t pkt_id) {
+    list->push_back(pkt_id);
   }
 
   void push_back(uint64_t val) {
@@ -166,7 +170,7 @@ class packet_store: public slog::log_store {
         // store_.dstport_idx_->add_entry(tcp->dst_port, id);
         flow_stats* stats = store_.flow_idx_->get(ip->src_addr);
         loss_info* retr = store_.loss_idx_->get(pkt_s);
-        stats->pkt_count++;
+        stats->add(id);
         if (tcp->sent_seq > stats->cur_seq) {
           stats->cur_seq = tcp->sent_seq;
           stats->cur_ts = pkt_ts;
@@ -253,9 +257,9 @@ class packet_store: public slog::log_store {
       store_.diagnose_outcast_2(ts, src_dist, switch_dist);
     }
 
-    void diagnose_outcast_3(uint32_t ts, std::unordered_map<uint32_t, size_t>& src_dist,
+    size_t diagnose_outcast_3(size_t off, std::unordered_map<uint32_t, size_t>& src_dist,
                             std::unordered_map<int32_t, size_t>& switch_dist) {
-      store_.diagnose_outcast_3(ts, src_dist, switch_dist);
+      return store_.diagnose_outcast_3(off, src_dist, switch_dist);
     }
 
    private:
@@ -430,10 +434,10 @@ class packet_store: public slog::log_store {
     }
   }
 
-  void diagnose_outcast_3(uint32_t ts, std::unordered_map<uint32_t, size_t>& src_dist,
+  size_t diagnose_outcast_3(size_t off, std::unordered_map<uint32_t, size_t>& src_dist,
                           std::unordered_map<int32_t, size_t>& switch_dist) {
 
-    auto pkt_ids = loss_idx_->get(ts)->list;
+    auto pkt_ids = loss_idx_->get((uint32_t)off)->list;
     size_t size = pkt_ids->size();
     for (size_t i = 0; i < size; i++) {
       uint64_t pkt_id = pkt_ids->at(i);
@@ -455,6 +459,7 @@ class packet_store: public slog::log_store {
       }
     }
 
+    return 0;
   }
 
  private:
