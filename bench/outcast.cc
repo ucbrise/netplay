@@ -101,7 +101,7 @@ class outcast {
  public:
   outcast(const std::string& trace_file) {
     store_ = new packet_store();
-    FILE *f = fopen(trace_file.c_str(), "rb");
+    FILE *f = fopen(trace_file.c_str(), "r");
     if (!f) {
       fprintf(stderr, "Could not open file %s\n", trace_file.c_str());
       exit(-1);
