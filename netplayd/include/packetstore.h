@@ -393,11 +393,8 @@ class packet_store: public slog::log_store {
     for (size_t i = 0; i < 16; i++) {
       flow_stats *stats = flow_idx_->at(sips[i]);
       size_t tot_num_pkts = stats->list->size();
-      if (tot_num_pkts == 0 || tot_num_pkts < off[i]) {
-        fprintf(stderr, "Continuing for src_ip: ");
+      if (tot_num_pkts == 0 || tot_num_pkts < off[i])
         continue;
-      }
-      print_ip(sips[i]);
       size_t size = (tot_num_pkts - off[i]);
       off[i] = tot_num_pkts;
       src_dist[sips[i]] += size;
@@ -431,8 +428,11 @@ class packet_store: public slog::log_store {
       flow_stats *stats = flow_idx_->at(sips[i]);
       size_t tot_num_pkts = stats->list->size();
       size_t tot_num_retrs = stats->retr->size();
-      if (tot_num_pkts == 0 || tot_num_pkts < off1[i])
+      if (tot_num_pkts == 0 || tot_num_pkts < off1[i]) {
+        fprintf(stderr, "Continuing for src_ip: ");
+        print_ip(sips[i]);
         continue;
+      }
       size_t num_pkts = (tot_num_pkts - off1[i]);
       off1[i] = num_pkts;
       size_t num_retr = (tot_num_retrs - off2[i]);
