@@ -64,7 +64,7 @@ static timestamp_t get_timestamp() {
   return now.tv_usec + (timestamp_t) now.tv_sec * 1000000;
 }
 
-#define PACKET_SIZE             86
+#define PACKET_SIZE             90
 #define RTE_BURST_SIZE          32
 #define RETR_THRESHOLD          100
 
@@ -99,9 +99,9 @@ class array_generator {
   struct rte_mbuf* pkts_[RTE_BURST_SIZE];
 };
 
-class outcast {
+class priority {
  public:
-  outcast(const std::string& trace_file) {
+  priority(const std::string& trace_file) {
     store_ = new packet_store();
     FILE *f = fopen(trace_file.c_str(), "rb");
     fseek(f, 0, SEEK_END);
@@ -116,7 +116,7 @@ class outcast {
     fprintf(stderr, "Loaded %zu packets; Item count = %zu.\n", pkt_count_, item_count);
   }
 
-  void run_outcast(const uint64_t rate_limit, const bool measure_cpu) {
+  void run_priority(const uint64_t rate_limit, const bool measure_cpu) {
 
     typedef rate_limiter<pktstore_vport, array_generator> pktgen_type;
     std::vector<std::thread> workers;
@@ -127,7 +127,7 @@ class outcast {
     struct rte_mempool* mempool = init_dpdk("pktbench", 0, 0);
 
     {
-      fprintf(stderr, "Starting outcast thread.\n");
+      fprintf(stderr, "Starting priority thread.\n");
       workers.push_back(std::thread([rate_limit, &thput, &done, &mempool, this] {
         packet_store::handle* handle = store_->get_handle();
         pktstore_vport* vport = new pktstore_vport(handle);
@@ -166,12 +166,11 @@ class outcast {
         tspec.tv_sec = 0;
         tspec.tv_nsec = 1e8;
 
-        std::unordered_map<uint32_t, size_t> src_dist;
-        std::unordered_map<int32_t, size_t> switch_dist;
-        std::vector<size_t> off(15, 0);
+        std::unordered_map<uint32_t, std::pair<size_t, size_t>> pkt_dist;
+        std::vector<size_t> off1(15, 0);
+        std::vector<size_t> off2(15, 0);
 
-        typedef std::unordered_map<uint32_t, size_t>::iterator src_iter;
-        typedef std::unordered_map<int32_t, size_t>::iterator switch_iter;
+        typedef std::unordered_map<uint32_t, std::pair<size_t, size_t>>::iterator iter;
 
         // sleep(5);
         bool enable = false;
@@ -180,29 +179,27 @@ class outcast {
           nanosleep(&tspec, NULL);
           if (enable) {
             timestamp_t t0 = get_timestamp();
-            handle->diagnose_outcast(off, src_dist, switch_dist);
+            handle->diagnose_priority(off1, off2, pkt_dist);
             timestamp_t t1 = get_timestamp();
             timestamp_t tdiff = t1 - t0;
 
             fprintf(stderr, "Time taken = %lu us\n", tdiff);
             fprintf(stderr, "Diagnosis:\n");
-            fprintf(stderr, "Src Dist:\n");
-            for (src_iter s = src_dist.begin(); s != src_dist.end(); s++) {
+            fprintf(stderr, "Source IP: Retransmissions, Recvd. Packets:\n");
+            for (iter s = pkt_dist.begin(); s != pkt_dist.end(); s++) {
               print_ip(s->first);
-              fprintf(stderr, ": %zu\n", s->second);
+              fprintf(stderr, ": %zu, %zu\n", s->second.first, s->second.second);
             }
-            fprintf(stderr, "Switch Dist:\n");
-            for (switch_iter s = switch_dist.begin(); s != switch_dist.end(); s++)
-              fprintf(stderr, "%" PRId32 ": %zu\n", s->first, s->second);
           }
 
           size_t retr = handle->get_retransmissions();
           if (!enable && retr - prev_retr > RETR_THRESHOLD) {
-            handle->init_pkt_offs(off);
+            handle->init_pkt_offs(off1);
+            handle->init_retr_offs(off2);
+
             enable = true;
             fprintf(stderr, "Number of retransmissions = %zu\n", retr - prev_retr);
           }
-          fprintf(stderr, "Number of retransmissions = %zu\n", retr - prev_retr);
           prev_retr = retr;
         }
         delete handle;
@@ -222,7 +219,7 @@ class outcast {
     if (measure_cpu) {
       fprintf(stderr, "Starting CPU measure thread.\n");
       std::thread cpu_measure_thread([rate_limit, &done, this] {
-        std::ofstream util_stream("outcast_util_" + std::to_string(rate_limit) + ".txt");
+        std::ofstream util_stream("priority_util_" + std::to_string(rate_limit) + ".txt");
         cpu_utilization util;
         while (!done.load()) {
           sleep(1);
@@ -248,12 +245,12 @@ class outcast {
     for (auto& th : workers)
       th.join();
 
-    std::ofstream ofs("outcast_thput_" + std::to_string(rate_limit) + ".txt");
+    std::ofstream ofs("priority_thput_" + std::to_string(rate_limit) + ".txt");
     ofs << thput << "\n";
     ofs.close();
 
     fprintf(stderr, "Packet Capture Throughput: %lf.\n", thput);
-    fprintf(stderr, "Completed outcast experiment.\n");
+    fprintf(stderr, "Completed priority experiment.\n");
   }
 
  private:
@@ -269,7 +266,6 @@ class outcast {
     bytes[1] = (ip >> 8) & 0xFF;
     bytes[2] = (ip >> 16) & 0xFF;
     bytes[3] = (ip >> 24) & 0xFF;
-    fprintf(stderr, "%" PRIu32 ": ", ip);
     fprintf(stderr, "%u.%u.%u.%u", bytes[0], bytes[1], bytes[2], bytes[3]);
   }
 
@@ -325,8 +321,8 @@ int main(int argc, char** argv) {
     }
   }
 
-  outcast expt(trace_file);
-  expt.run_outcast(rate_limit, measure_cpu);
+  priority expt(trace_file);
+  expt.run_priority(rate_limit, measure_cpu);
 
   return 0;
 }

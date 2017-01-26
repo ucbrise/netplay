@@ -57,18 +57,22 @@ namespace netplay {
 struct flow_stats {
   uint32_t cur_seq;
   uint64_t cur_ts;
+  int32_t prio;
   slog::entry_list* list;
   slog::entry_list* retr;
 
   flow_stats() {
     cur_seq = 0;
     cur_ts = 0;
+    prio = -1;
     list = new slog::entry_list;
     retr = new slog::entry_list;
   }
 
-  void add(uint64_t pkt_id) {
+  void add(uint64_t pkt_id, uint32_t priority) {
     list->push_back(pkt_id);
+    if (prio == -1)
+      prio = priority;
   }
 
   void push_back(uint64_t val) {
@@ -134,15 +138,14 @@ class packet_store: public slog::log_store {
 
         struct tcp_hdr *tcp = (struct tcp_hdr *) (ip + 1);
         int32_t *path = (int32_t *) (tcp + 1);
-        uint64_t pkt_ts = *((uint64_t *) (path + 6));
-
-        uint32_t pkt_s = pkt_ts / 1e6;
-        store_.timestamp_idx_->add_entry(pkt_s, id);
+        uint64_t *ts_ptr = (uint64_t *) (path + 6);
+        uint64_t pkt_ts = *ts_ptr;
+        uint32_t priority = *((uint32_t *) (ts_ptr + 1));
 
         // store_.srcport_idx_->add_entry(tcp->src_port, id);
         // store_.dstport_idx_->add_entry(tcp->dst_port, id);
         flow_stats* stats = store_.flow_idx_->get(ip->src_addr);
-        stats->add(id);
+        stats->add(id, priority);
         if (tcp->sent_seq > stats->cur_seq || stats->cur_seq - tcp->sent_seq > (UINT32_MAX / 2)) {
           stats->cur_seq = tcp->sent_seq;
           stats->cur_ts = pkt_ts;
@@ -220,23 +223,22 @@ class packet_store: public slog::log_store {
       return store_.get_retransmissions();
     }
 
-    void diagnose_outcast_1(uint32_t ts, std::unordered_map<uint32_t, size_t>& src_dist,
-                            std::unordered_map<int32_t, size_t>& switch_dist) {
-      store_.diagnose_outcast_1(ts, src_dist, switch_dist);
+    void init_pkt_offs(std::vector<size_t>& off) {
+      store_.init_pkt_offs(off);
     }
 
-    void diagnose_outcast_2(uint32_t ts, std::unordered_map<uint32_t, size_t>& src_dist,
-                            std::unordered_map<int32_t, size_t>& switch_dist) {
-      store_.diagnose_outcast_2(ts, src_dist, switch_dist);
+    void init_retr_offs(std::vector<size_t>& off) {
+      store_.init_retr_offs(off);
     }
 
-    void diagnose_outcast_3(std::vector<size_t>& off, std::unordered_map<uint32_t, size_t>& src_dist,
-                            std::unordered_map<int32_t, size_t>& switch_dist) {
-      store_.diagnose_outcast_3(off, src_dist, switch_dist);
+    void diagnose_outcast(std::vector<size_t>& off, std::unordered_map<uint32_t, size_t>& src_dist,
+                          std::unordered_map<int32_t, size_t>& switch_dist) {
+      store_.diagnose_outcast(off, src_dist, switch_dist);
     }
 
-    void init_offs(std::vector<size_t>& off) {
-      store_.init_offs(off);
+    void diagnose_priority(std::vector<size_t>& off1, std::vector<size_t>& off2,
+                           std::unordered_map<uint32_t, std::pair<size_t, size_t>>& pkt_dist) {
+      store_.diagnose_priority(off1, off2, pkt_dist);
     }
 
    private:
@@ -358,72 +360,30 @@ class packet_store: public slog::log_store {
     return retr_->size();
   }
 
-  void diagnose_outcast_1(uint32_t ts, std::unordered_map<uint32_t, size_t>& src_dist,
-                          std::unordered_map<int32_t, size_t>& switch_dist) {
-    auto pkt_ids = timestamp_idx_->get(ts);
-    size_t size = pkt_ids->size();
-    for (size_t i = 0; i < size; i++) {
-      uint64_t pkt_id = pkt_ids->at(i);
-      uint64_t off;
-      uint16_t len;
-      olog_->lookup(pkt_id, off, len);
-      unsigned char *ptr = (unsigned char*) dlog_->ptr(off);
-      unsigned char *pkt = ptr + sizeof(uint64_t);
-      struct ether_hdr *eth = (struct ether_hdr *) pkt;
-      struct ipv4_hdr *ip = (struct ipv4_hdr *) (eth + 1);
-      src_dist[ip->src_addr]++;
-      struct tcp_hdr *tcp = (struct tcp_hdr *) (ip + 1);
-      int32_t *path = (int32_t *)  (tcp + 1);
-
-      uint32_t pos = 0;
-      while (pos < 5 && path[pos + 1] != -1) pos++;
-      if (path[pos] == -1) continue;
-
-      switch_dist[path[pos]]++;
-    }
-  }
-
-  void diagnose_outcast_2(uint32_t ts, std::unordered_map<uint32_t, size_t>& src_dist,
-                          std::unordered_map<int32_t, size_t>& switch_dist) {
-    auto pkt_ids = timestamp_idx_->get(ts);
-    size_t size = pkt_ids->size();
-    for (size_t i = 0; i < size; i++) {
-      uint64_t pkt_id = pkt_ids->at(i);
-      uint64_t off;
-      uint16_t len;
-      olog_->lookup(pkt_id, off, len);
-      unsigned char *ptr = (unsigned char*) dlog_->ptr(off);
-      unsigned char *pkt = ptr + sizeof(uint64_t);
-      struct ether_hdr *eth = (struct ether_hdr *) pkt;
-      struct ipv4_hdr *ip = (struct ipv4_hdr *) (eth + 1);
-      src_dist[ip->src_addr]++;
-      struct tcp_hdr *tcp = (struct tcp_hdr *) (ip + 1);
-      int32_t *path = (int32_t *)  (tcp + 1);
-
-      uint32_t pos = 0;
-      while (pos < 5 && path[pos + 1] != -1) pos++;
-      if (path[pos] == -1) continue;
-
-      switch_dist[path[pos]]++;
-    }
-  }
-
-  void init_offs(std::vector<size_t>& off) {
+  void init_pkt_offs(std::vector<size_t>& off) {
     uint32_t sips[15] = {
       33620490, 50397450, 33686026, 50397962, 33686538,
       33686282, 50463498, 33621002, 33685770, 50463242,
       33620746, 50398218, 50462986, 50397706, 50463754
     };
 
-    for (size_t i = 0; i < 15; i++) {
-      flow_stats *stats = flow_idx_->at(sips[i]);
-      size_t tot_num_pkts = stats->list->size();
-      off[i] = tot_num_pkts;
-    }
+    for (size_t i = 0; i < 15; i++)
+      off[i] = flow_idx_->at(sips[i])->list->size();
   }
 
-  void diagnose_outcast_3(std::vector<size_t>& off, std::unordered_map<uint32_t, size_t>& src_dist,
-                          std::unordered_map<int32_t, size_t>& switch_dist) {
+  void init_retr_offs(std::vector<size_t>& off) {
+    uint32_t sips[15] = {
+      33620490, 50397450, 33686026, 50397962, 33686538,
+      33686282, 50463498, 33621002, 33685770, 50463242,
+      33620746, 50398218, 50462986, 50397706, 50463754
+    };
+
+    for (size_t i = 0; i < 15; i++)
+      off[i] = flow_idx_->at(sips[i])->retr->size();
+  }
+
+  void diagnose_outcast(std::vector<size_t>& off, std::unordered_map<uint32_t, size_t>& src_dist,
+                        std::unordered_map<int32_t, size_t>& switch_dist) {
     uint32_t sips[15] = {
       33620490, 50397450, 33686026, 50397962, 33686538,
       33686282, 50463498, 33621002, 33685770, 50463242,
@@ -453,6 +413,35 @@ class packet_store: public slog::log_store {
         switch_dist[path[pos]] += size;
         pos++;
       }
+    }
+  }
+
+  void diagnose_priority(std::vector<size_t>& off1, std::vector<size_t>& off2,
+                         std::unordered_map<uint32_t, std::pair<size_t, size_t>>& pkt_dist) {
+    uint32_t sips[15] = {
+      33620490, 50397450, 33686026, 50397962, 33686538,
+      33686282, 50463498, 33621002, 33685770, 50463242,
+      33620746, 50398218, 50462986, 50397706, 50463754
+    };
+
+    for (size_t i = 0; i < 15; i++) {
+      flow_stats *stats = flow_idx_->at(sips[i]);
+      size_t tot_num_pkts = stats->list->size();
+      size_t tot_num_retrs = stats->retr->size();
+      if (tot_num_pkts == 0 || tot_num_pkts < off1[i])
+        continue;
+      size_t num_pkts = (tot_num_pkts - off1[i]);
+      off1[i] = num_pkts;
+      size_t num_retr = (tot_num_retrs - off2[i]);
+      off2[i] = num_retr;
+      
+      if (pkt_dist.find(sips[i]) == pkt_dist.end())
+        pkt_dist[sips[i]] = std::pair<size_t, size_t>(0, 0);
+      
+      std::pair<size_t, size_t> entry = pkt_dist.at(sips[i]);
+      entry.first += num_retr;
+      entry.second += num_pkts;
+      pkt_dist[sips[i]] = entry;
     }
   }
 
