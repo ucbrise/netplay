@@ -175,6 +175,7 @@ class outcast {
           nanosleep(&tspec, NULL);
           
           std::pair<uint32_t, size_t> retr = handle->get_retransmissions();
+          fprintf(stderr, "[%" PRIu32 "] Number of retransmissions = %zu\n", retr.first, retr.second);
           if (retr.second > RETR_THRESHOLD) {
             timestamp_t t0 = get_timestamp();
             handle->diagnose_outcast_1(retr.first, src_dist, switch_dist);
