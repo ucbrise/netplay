@@ -167,8 +167,8 @@ class priority {
         tspec.tv_nsec = 1e8;
 
         std::unordered_map<uint32_t, std::pair<size_t, size_t>> pkt_dist;
-        std::vector<size_t> off1(15, 0);
-        std::vector<size_t> off2(15, 0);
+        std::vector<size_t> off1(16, 0);
+        std::vector<size_t> off2(16, 0);
 
         typedef std::unordered_map<uint32_t, std::pair<size_t, size_t>>::iterator iter;
 
