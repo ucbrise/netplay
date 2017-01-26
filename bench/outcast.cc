@@ -165,13 +165,13 @@ class outcast {
         tspec.tv_sec = 0;
         tspec.tv_nsec = 1e8;
 
-        std::map<uint32_t, size_t> src_dist;
-        std::map<int32_t, size_t> switch_dist;
+        // std::map<uint32_t, size_t> src_dist;
+        // std::map<int32_t, size_t> switch_dist;
 
-        typedef std::map<uint32_t, size_t>::iterator src_iter;
-        typedef std::map<int32_t, size_t>::iterator switch_iter;
+        // typedef std::map<uint32_t, size_t>::iterator src_iter;
+        // typedef std::map<int32_t, size_t>::iterator switch_iter;
 
-        // sleep(5);
+        sleep(5);
         while (!done.load()) {
           nanosleep(&tspec, NULL);
 
