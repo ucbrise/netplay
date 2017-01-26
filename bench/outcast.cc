@@ -115,6 +115,7 @@ class outcast {
     for (size_t i = 0; i < count; i++) {
       unsigned char* pkt = new unsigned char[PACKET_SIZE];
       item_count += fread(pkt, PACKET_SIZE, 1, f);
+      print_bytes(pkt);
       pkt_data_.push_back(pkt);
     }
     fprintf(stderr, "Loaded %zu packets; Item count = %zu.\n", pkt_data_.size(), item_count);
@@ -229,6 +230,14 @@ class outcast {
     using namespace ::std::chrono;
     auto ts = steady_clock::now().time_since_epoch();
     return duration_cast<std::chrono::microseconds>(ts).count();
+  }
+
+  void print_bytes(unsigned char* bytes) {
+    fprintf(stderr, "Bytes: ");
+    for (size_t i = 0; i < PACKET_SIZE; i++) {
+      fprintf(stderr, "%u ", bytes[i]);
+    }
+    fprintf(stderr, "\n");
   }
 
   packet_store *store_;
