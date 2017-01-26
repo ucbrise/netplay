@@ -114,7 +114,7 @@ class outcast {
     size_t item_count = 0;
     for (size_t i = 0; i < count; i++) {
       unsigned char* pkt = new unsigned char[PACKET_SIZE];
-      item_count += fread(pkt, PACKET_SIZE, 1, f);
+      item_count += fread(pkt, sizeof(unsigned char), PACKET_SIZE, f);
       print_bytes(pkt);
       pkt_data_.push_back(pkt);
     }
