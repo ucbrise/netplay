@@ -75,7 +75,7 @@ struct flow_stats {
 };
 
 struct loss_info {
-  uint64_t retransmissions;
+  size_t retransmissions;
 
   loss_info() {
     retransmissions = 0;
@@ -224,7 +224,7 @@ class packet_store: public slog::log_store {
       return store_.num_pkts();
     }
 
-    uint64_t get_retransmissions(uint32_t ts) {
+    size_t get_retransmissions(uint32_t ts) {
       return store_.get_retransmissions(ts);
     }
 
@@ -343,7 +343,7 @@ class packet_store: public slog::log_store {
     return num_records();
   }
 
-  uint64_t get_retransmissions(uint32_t ts) {
+  size_t get_retransmissions(uint32_t ts) {
     return loss_idx_->get(ts)->retransmissions;
   }
 

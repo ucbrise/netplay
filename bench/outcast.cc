@@ -161,14 +161,14 @@ class outcast {
       workers.push_back(std::thread([&done, this] {
         packet_store::handle* handle = store_->get_handle();
         struct timespec tspec;
-        tspec.tv_sec = 1;
-        tspec.tv_nsec = 0;
+        tspec.tv_sec = 0;
+        tspec.tv_nsec = 1e8;
         while (!done.load()) {
           nanosleep(&tspec, NULL);
           uint64_t now = curusec();
           uint32_t now_s = now / 1e6;
-          uint64_t num_retransmissions = handle->get_retransmissions(now_s);
-          fprintf(stderr, "Number of retransmissions = %" PRIu64 "\n", num_retransmissions);
+          size_t num_retransmissions = handle->get_retransmissions(now_s);
+          fprintf(stderr, "Number of retransmissions = %zu\n", num_retransmissions);
         }
         delete handle;
       }));
