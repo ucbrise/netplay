@@ -167,6 +167,7 @@ class outcast {
 
         std::unordered_map<uint32_t, size_t> src_dist;
         std::unordered_map<int32_t, size_t> switch_dist;
+        std::vector<size_t> off(15, 0);
 
         typedef std::unordered_map<uint32_t, size_t>::iterator src_iter;
         typedef std::unordered_map<int32_t, size_t>::iterator switch_iter;
@@ -175,28 +176,24 @@ class outcast {
         while (!done.load()) {
           nanosleep(&tspec, NULL);
 
-          std::pair<uint32_t, size_t> retr = handle->get_retransmissions();
-          fprintf(stderr, "[%" PRIu32 "] Number of retransmissions = %zu\n", retr.first, retr.second);
-          if (retr.second > RETR_THRESHOLD) {
-            timestamp_t t0 = get_timestamp();
-            handle->diagnose_outcast_3(retr.first, src_dist, switch_dist);
-            timestamp_t t1 = get_timestamp();
-            timestamp_t tdiff = t1 - t0;
+          size_t retr = handle->get_retransmissions();
+          timestamp_t t0 = get_timestamp();
+          handle->diagnose_outcast_3(off, src_dist, switch_dist);
+          timestamp_t t1 = get_timestamp();
+          timestamp_t tdiff = t1 - t0;
 
-            fprintf(stderr, "[%" PRIu32 "] Number of retransmissions = %zu\n", retr.first, retr.second);
-            fprintf(stderr, "Time taken = %lu us\n", tdiff);
-            fprintf(stderr, "Diagnosis:\n");
-            fprintf(stderr, "Src Dist:\n");
-            for (src_iter s = src_dist.begin(); s != src_dist.end(); s++) {
-              print_ip(s->first);
-              fprintf(stderr, ": %zu\n", s->second);
-            }
-            fprintf(stderr, "Switch Dist:\n");
-            for (switch_iter s = switch_dist.begin(); s != switch_dist.end(); s++)
-              fprintf(stderr, "%" PRId32 ": %zu\n", s->first, s->second);
-
-            // break;
+          fprintf(stderr, "Number of retransmissions = %zu\n", retr);
+          fprintf(stderr, "Time taken = %lu us\n", tdiff);
+          fprintf(stderr, "Diagnosis:\n");
+          fprintf(stderr, "Src Dist:\n");
+          for (src_iter s = src_dist.begin(); s != src_dist.end(); s++) {
+            print_ip(s->first);
+            fprintf(stderr, ": %zu\n", s->second);
           }
+          fprintf(stderr, "Switch Dist:\n");
+          for (switch_iter s = switch_dist.begin(); s != switch_dist.end(); s++)
+            fprintf(stderr, "%" PRId32 ": %zu\n", s->first, s->second);
+
         }
         delete handle;
       }));

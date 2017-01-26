@@ -74,26 +74,23 @@ struct flow_stats {
   }
 
   size_t storage_size() {
-    return sizeof(uint32_t) + sizeof(uint64_t);
+    return sizeof(uint32_t) + sizeof(uint64_t) + list->storage_size();
   }
 };
 
 struct loss_info {
-  std::atomic<size_t> retransmissions;
   slog::entry_list* list;
 
   loss_info() {
-    retransmissions.store(0);
     list = new slog::entry_list;
   }
 
-  void increment(uint64_t pkt_id) {
-    retransmissions.fetch_add(1);
+  void add(uint64_t pkt_id) {
     list->push_back(pkt_id);
   }
 
   size_t get() {
-    return retransmissions.load();
+    return list->size();
   }
 
   void push_back(uint64_t val) {
@@ -101,11 +98,10 @@ struct loss_info {
   }
 
   size_t storage_size() {
-    return sizeof(uint32_t);
+    return list->storage_size();
   }
 };
 
-typedef slog::__index_depth2<65536, 65536, loss_info> loss_idx;
 typedef slog::__index_depth2<65536, 65536, flow_stats> flow_idx;
 
 /**
@@ -161,7 +157,6 @@ class packet_store: public slog::log_store {
         struct tcp_hdr *tcp = (struct tcp_hdr *) (ip + 1);
         int32_t *path = (int32_t *) (tcp + 1);
         uint64_t pkt_ts = *((uint64_t *) (path + 6));
-        store_.cur_ts = pkt_ts;
 
         uint32_t pkt_s = pkt_ts / 1e6;
         store_.timestamp_idx_->add_entry(pkt_s, id);
@@ -169,13 +164,12 @@ class packet_store: public slog::log_store {
         // store_.srcport_idx_->add_entry(tcp->src_port, id);
         // store_.dstport_idx_->add_entry(tcp->dst_port, id);
         flow_stats* stats = store_.flow_idx_->get(ip->src_addr);
-        loss_info* retr = store_.loss_idx_->get(pkt_s);
         stats->add(id);
         if (tcp->sent_seq > stats->cur_seq) {
           stats->cur_seq = tcp->sent_seq;
           stats->cur_ts = pkt_ts;
         } else if (pkt_ts - stats->cur_ts > 3000) {
-          retr->increment(id);
+          store_.retr_.add(id);
         }
 
         store_.olog_->set_without_alloc(id, off, pkt_size);
@@ -243,7 +237,7 @@ class packet_store: public slog::log_store {
       return store_.num_pkts();
     }
 
-    std::pair<uint32_t, size_t> get_retransmissions() {
+    size_t get_retransmissions() {
       return store_.get_retransmissions();
     }
 
@@ -257,9 +251,9 @@ class packet_store: public slog::log_store {
       store_.diagnose_outcast_2(ts, src_dist, switch_dist);
     }
 
-    size_t diagnose_outcast_3(size_t off, std::unordered_map<uint32_t, size_t>& src_dist,
+    void diagnose_outcast_3(std::vector<size_t>& off, std::unordered_map<uint32_t, size_t>& src_dist,
                             std::unordered_map<int32_t, size_t>& switch_dist) {
-      return store_.diagnose_outcast_3(off, src_dist, switch_dist);
+      store_.diagnose_outcast_3(off, src_dist, switch_dist);
     }
 
    private:
@@ -273,8 +267,6 @@ class packet_store: public slog::log_store {
    * Source IP, Destination IP, Source Port, Destination Port and Timestamp.
    */
   packet_store() {
-    cur_ts = 0;
-
     srcip_idx_id_ = add_index(4);
     dstip_idx_id_ = add_index(4);
     srcport_idx_id_ = add_index(2);
@@ -288,7 +280,6 @@ class packet_store: public slog::log_store {
     timestamp_idx_ = idx4_->at(2);
 
     flow_idx_ = new flow_idx;
-    loss_idx_ = new loss_idx;
 
     char_idx_ = new complex_character_index();
     num_filters_.store(0U, std::memory_order_release);
@@ -379,9 +370,8 @@ class packet_store: public slog::log_store {
     return num_records();
   }
 
-  std::pair<uint32_t, size_t> get_retransmissions() {
-    uint32_t cur_s = cur_ts / 1e6;
-    return std::pair<uint32_t, size_t>(cur_s, loss_idx_->at(cur_s)->get());
+  size_t get_retransmissions() {
+    return retr_.get();
   }
 
   void diagnose_outcast_1(uint32_t ts, std::unordered_map<uint32_t, size_t>& src_dist,
@@ -411,7 +401,7 @@ class packet_store: public slog::log_store {
 
   void diagnose_outcast_2(uint32_t ts, std::unordered_map<uint32_t, size_t>& src_dist,
                           std::unordered_map<int32_t, size_t>& switch_dist) {
-    auto pkt_ids = loss_idx_->get(ts)->list;
+    auto pkt_ids = timestamp_idx_->get(ts);
     size_t size = pkt_ids->size();
     for (size_t i = 0; i < size; i++) {
       uint64_t pkt_id = pkt_ids->at(i);
@@ -434,13 +424,19 @@ class packet_store: public slog::log_store {
     }
   }
 
-  size_t diagnose_outcast_3(size_t off, std::unordered_map<uint32_t, size_t>& src_dist,
+  void diagnose_outcast_3(std::vector<size_t>& off, std::unordered_map<uint32_t, size_t>& src_dist,
                           std::unordered_map<int32_t, size_t>& switch_dist) {
-
-    auto pkt_ids = loss_idx_->get((uint32_t)off)->list;
-    size_t size = pkt_ids->size();
-    for (size_t i = 0; i < size; i++) {
-      uint64_t pkt_id = pkt_ids->at(i);
+    uint32_t sips[15] = {33620490, 50397450, 33686026, 50397962, 33686538,
+                         33686282, 50463498, 33621002, 33685770, 50463242,
+                         33620746, 50398218, 50462986, 50397706, 50463754
+                        };
+    for (size_t i = 0; i < 15; i++) {
+      flow_stats *stats = flow_idx_->at(i);
+      if (stats->list->size() <= off[i]) 
+        continue;
+      size_t size = (stats->list->size() - off[i]);
+      src_dist[sips[i]] += size;
+      uint64_t pkt_id = stats->list->at(0);
       uint64_t off;
       uint16_t len;
       olog_->lookup(pkt_id, off, len);
@@ -448,18 +444,14 @@ class packet_store: public slog::log_store {
       unsigned char *pkt = ptr + sizeof(uint64_t);
       struct ether_hdr *eth = (struct ether_hdr *) pkt;
       struct ipv4_hdr *ip = (struct ipv4_hdr *) (eth + 1);
-      src_dist[ip->src_addr]++;
       struct tcp_hdr *tcp = (struct tcp_hdr *) (ip + 1);
       int32_t *path = (int32_t *)  (tcp + 1);
-
       uint32_t pos = 0;
       while (pos < 6 && path[pos] != -1) {
-        switch_dist[path[pos]]++;
+        switch_dist[path[pos]] += size;
         pos++;
       }
     }
-
-    return 0;
   }
 
  private:
@@ -504,9 +496,7 @@ class packet_store: public slog::log_store {
   slog::__index4* timestamp_idx_;
 
   flow_idx* flow_idx_;
-  loss_idx* loss_idx_;
-
-  uint64_t cur_ts;
+  loss_info retr_;
 
   /* Complex characters */
   /* Packet filters */
