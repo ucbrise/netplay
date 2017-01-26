@@ -171,6 +171,7 @@ class outcast {
         typedef std::map<uint32_t, size_t>::iterator src_iter;
         typedef std::map<int32_t, size_t>::iterator switch_iter;
 
+        sleep(5);
         while (!done.load()) {
           nanosleep(&tspec, NULL);
 
