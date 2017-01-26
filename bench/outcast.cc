@@ -163,7 +163,7 @@ class outcast {
         packet_store::handle* handle = store_->get_handle();
         struct timespec tspec;
         tspec.tv_sec = 0;
-        tspec.tv_nsec = 5 * 1e8;
+        tspec.tv_nsec = 1e7;
 
         std::map<uint32_t, size_t> src_dist;
         std::map<int32_t, size_t> switch_dist;
