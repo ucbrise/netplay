@@ -186,7 +186,7 @@ class priority {
             fprintf(stderr, "Time taken = %lu us\n", tdiff);
             fprintf(stderr, "Diagnosis:\n");
             fprintf(stderr, "Source IP: Retransmissions, Recvd. Packets:\n");
-            for (iter s = pkt_dist.begin(); s != pkt_dis.end(); s++) {
+            for (iter s = pkt_dist.begin(); s != pkt_dist.end(); s++) {
               print_ip(s->first);
               fprintf(stderr, ": %zu, %zu\n", s->second.first, s->second.second);
             }
