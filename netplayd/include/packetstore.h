@@ -418,18 +418,19 @@ class packet_store: public slog::log_store {
 
   void diagnose_priority(std::vector<size_t>& off1, std::vector<size_t>& off2,
                          std::unordered_map<uint32_t, std::pair<size_t, size_t>>& pkt_dist) {
-    uint32_t sips[15] = {
-      33620490, 50397450, 33686026, 50397962, 33686538,
+    uint32_t sips[16] = {
+      0, 33620490, 50397450, 33686026, 50397962, 33686538,
       33686282, 50463498, 33621002, 33685770, 50463242,
       33620746, 50398218, 50462986, 50397706, 50463754
     };
 
-    for (size_t i = 0; i < 15; i++) {
+    for (size_t i = 0; i < 16; i++) {
       flow_stats *stats = flow_idx_->at(sips[i]);
       size_t tot_num_pkts = stats->list->size();
       size_t tot_num_retrs = stats->retr->size();
       if (tot_num_pkts == 0 || tot_num_pkts < off1[i]) {
-        fprintf(stderr, "Continuing for src_ip: ");
+        fprintf(stderr, "tot_num_pkts=%zu, off1=%zu", tot_num_pkts, off1[i]);
+        fprintf(stderr, "; Continuing for src_ip: ");
         print_ip(sips[i]);
         continue;
       }
