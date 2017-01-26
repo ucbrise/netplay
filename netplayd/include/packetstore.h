@@ -58,11 +58,13 @@ struct flow_stats {
   uint32_t cur_seq;
   uint64_t cur_ts;
   slog::entry_list* list;
+  slog::entry_list* retr;
 
   flow_stats() {
     cur_seq = 0;
     cur_ts = 0;
     list = new slog::entry_list;
+    retr = new slog::entry_list;
   }
 
   void add(uint64_t pkt_id) {
@@ -141,10 +143,11 @@ class packet_store: public slog::log_store {
         // store_.dstport_idx_->add_entry(tcp->dst_port, id);
         flow_stats* stats = store_.flow_idx_->get(ip->src_addr);
         stats->add(id);
-        if (tcp->sent_seq > stats->cur_seq) {
+        if (tcp->sent_seq > stats->cur_seq || stats->cur_seq - tcp->sent_seq > (UINT32_MAX / 2)) {
           stats->cur_seq = tcp->sent_seq;
           stats->cur_ts = pkt_ts;
         } else if (pkt_ts - stats->cur_ts > 3000) {
+          stats->retr->push_back(id);
           store_.retr_->push_back(id);
         }
 

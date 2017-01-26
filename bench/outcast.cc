@@ -202,6 +202,7 @@ class outcast {
             enable = true;
             fprintf(stderr, "Number of retransmissions = %zu\n", retr - prev_retr);
           }
+          fprintf(stderr, "Number of retransmissions = %zu\n", retr - prev_retr);
           prev_retr = retr;
         }
         delete handle;
