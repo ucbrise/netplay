@@ -162,8 +162,8 @@ class outcast {
       workers.push_back(std::thread([&done, this] {
         packet_store::handle* handle = store_->get_handle();
         struct timespec tspec;
-        tspec.tv_sec = 1;
-        tspec.tv_nsec = 0;
+        tspec.tv_sec = 0;
+        tspec.tv_nsec = 1e8;
 
         std::map<uint32_t, size_t> src_dist;
         std::map<int32_t, size_t> switch_dist;
@@ -171,6 +171,7 @@ class outcast {
         typedef std::map<uint32_t, size_t>::iterator src_iter;
         typedef std::map<int32_t, size_t>::iterator switch_iter;
 
+        sleep(5);
         while (!done.load()) {
           nanosleep(&tspec, NULL);
 
@@ -194,7 +195,7 @@ class outcast {
             for (switch_iter s = switch_dist.begin(); s != switch_dist.end(); s++)
               fprintf(stderr, "%" PRId32 ": %zu\n", s->first, s->second);
 
-            // break;
+            break;
           }
         }
         delete handle;
