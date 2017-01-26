@@ -164,6 +164,7 @@ class packet_store: public slog::log_store {
           stats->cur_seq = tcp->sent_seq;
           stats->cur_ts = pkt_ts;
         } else if (pkt_ts - stats->cur_ts > 3000) {
+          fprintf(stderr, "Packet ts = %" PRIu64 ", flow ts = %" PRIu64 "\n", pkt_ts, stats->cur_ts);
           retr->increment();
         }
 
