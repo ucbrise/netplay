@@ -75,14 +75,14 @@ struct flow_stats {
 };
 
 struct loss_info {
-  size_t retransmissions;
+  std::atomic<size_t> retransmissions;
 
   loss_info() {
-    retransmissions = 0;
+    retransmissions.store(0);
   }
 
   void increment() {
-    ++retransmissions;
+    retransmissions.fetch_add(1);
   }
 
   void push_back(uint64_t val) {
@@ -156,6 +156,7 @@ class packet_store: public slog::log_store {
           stats->cur_seq = tcp->sent_seq;
           stats->cur_ts = now;
         } else if (now - stats->cur_ts > 3000) {
+          fprintf(stderr, "Retransmission\n");
           store_.loss_idx_->get(now_s)->increment();
         }
 
