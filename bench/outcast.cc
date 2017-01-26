@@ -181,6 +181,7 @@ class outcast {
             timestamp_t t1 = get_timestamp();
             timestamp_t tdiff = t1 - t0;
 
+            fprintf(stderr, "[%" PRIu32 "] Number of retransmissions = %zu\n", retr.first, retr.second);
             fprintf(stderr, "Time taken = %lu us\n", tdiff);
             fprintf(stderr, "Diagnosis:\n");
             fprintf(stderr, "Src Dist:\n");
@@ -193,8 +194,6 @@ class outcast {
 
             break;
           }
-
-          // fprintf(stderr, "[%" PRIu32 "] Number of retransmissions = %zu\n", retr.first, retr.second);
         }
         delete handle;
       }));
