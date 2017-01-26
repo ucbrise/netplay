@@ -165,12 +165,12 @@ class packet_store: public slog::log_store {
         flow_stats* stats = store_.flow_idx_->get(ip->src_addr);
         loss_info* retr = store_.loss_idx_->get(pkt_s);
         if (tcp->sent_seq > stats->cur_seq) {
-          fprintf(stderr, "here\n");
+          fprintf(stderr, "here; stats->seq = %" PRIu32 "\n", stats->cur_seq);
           stats->cur_seq = tcp->sent_seq;
           stats->cur_ts = pkt_ts;
         } else if (pkt_ts - stats->cur_ts > 3000) {
           retr->increment(id);
-        }
+        } 
 
         store_.olog_->set_without_alloc(id, off, pkt_size);
         off += store_.append_pkt(off, 0, pkt, pkt_size);
