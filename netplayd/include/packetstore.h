@@ -349,7 +349,7 @@ class packet_store: public slog::log_store {
   }
 
   size_t get_retransmissions(uint32_t ts) {
-    return loss_idx_->at(ts)->get();
+    return loss_idx_->get(ts)->get();
   }
 
   // void diagnose_outcast_1(uint32_t ts) {
