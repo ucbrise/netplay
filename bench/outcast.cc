@@ -168,7 +168,7 @@ class outcast {
           uint64_t now = curusec();
           uint32_t now_s = now / 1e6;
           size_t num_retransmissions = handle->get_retransmissions(now_s);
-          fprintf(stderr, "Number of retransmissions = %zu\n", num_retransmissions);
+          fprintf(stderr, "[%" PRIu32 "] Number of retransmissions = %zu\n", now_s, num_retransmissions);
         }
         delete handle;
       }));
