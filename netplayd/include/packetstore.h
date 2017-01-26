@@ -245,6 +245,11 @@ class packet_store: public slog::log_store {
       return store_.diagnose_outcast_1(ts, src_dist, switch_dist);
     }
 
+    void diagnose_outcast_2(uint32_t ts, std::map<uint32_t, size_t>& src_dist,
+                            std::map<int32_t, size_t>& switch_dist) {
+      return store_.diagnose_outcast_2(ts, src_dist, switch_dist);
+    }
+
    private:
     packet_store& store_;
   };
