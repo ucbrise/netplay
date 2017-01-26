@@ -158,63 +158,63 @@ class priority {
         fprintf(stderr, "Error calling pthread_setaffinity_np: %d\n", rc);
     }
 
-    {
-      fprintf(stderr, "Starting monitor thread.\n");
-      workers.push_back(std::thread([&done, this] {
-        packet_store::handle* handle = store_->get_handle();
-        struct timespec tspec;
-        tspec.tv_sec = 0;
-        tspec.tv_nsec = 1e8;
+    // {
+    //   fprintf(stderr, "Starting monitor thread.\n");
+    //   workers.push_back(std::thread([&done, this] {
+    //     packet_store::handle* handle = store_->get_handle();
+    //     struct timespec tspec;
+    //     tspec.tv_sec = 0;
+    //     tspec.tv_nsec = 1e8;
 
-        // std::unordered_map<uint32_t, std::pair<size_t, size_t>> pkt_dist;
-        std::vector<size_t> off1(15, 0);
-        std::vector<size_t> off2(15, 0);
+    //     // std::unordered_map<uint32_t, std::pair<size_t, size_t>> pkt_dist;
+    //     std::vector<size_t> off1(15, 0);
+    //     std::vector<size_t> off2(15, 0);
 
-        // typedef std::unordered_map<uint32_t, std::pair<size_t, size_t>>::iterator iter;
+    //     // typedef std::unordered_map<uint32_t, std::pair<size_t, size_t>>::iterator iter;
 
-        // sleep(5);
-        bool enable = false;
-        size_t prev_retr = 0;
-        while (!done.load()) {
-          nanosleep(&tspec, NULL);
-          // if (enable) {
-          //   timestamp_t t0 = get_timestamp();
-          //   handle->diagnose_priority(off1, off2, pkt_dist);
-          //   timestamp_t t1 = get_timestamp();
-          //   timestamp_t tdiff = t1 - t0;
+    //     // sleep(5);
+    //     bool enable = false;
+    //     size_t prev_retr = 0;
+    //     while (!done.load()) {
+    //       nanosleep(&tspec, NULL);
+    //       // if (enable) {
+    //       //   timestamp_t t0 = get_timestamp();
+    //       //   handle->diagnose_priority(off1, off2, pkt_dist);
+    //       //   timestamp_t t1 = get_timestamp();
+    //       //   timestamp_t tdiff = t1 - t0;
 
-          //   fprintf(stderr, "Time taken = %lu us\n", tdiff);
-          //   fprintf(stderr, "Diagnosis:\n");
-          //   fprintf(stderr, "Source IP: Retransmissions, Recvd. Packets:\n");
-          //   for (iter s = pkt_dist.begin(); s != pkt_dist.end(); s++) {
-          //     print_ip(s->first);
-          //     fprintf(stderr, ": %zu, %zu\n", s->second.first, s->second.second);
-          //   }
-          // }
+    //       //   fprintf(stderr, "Time taken = %lu us\n", tdiff);
+    //       //   fprintf(stderr, "Diagnosis:\n");
+    //       //   fprintf(stderr, "Source IP: Retransmissions, Recvd. Packets:\n");
+    //       //   for (iter s = pkt_dist.begin(); s != pkt_dist.end(); s++) {
+    //       //     print_ip(s->first);
+    //       //     fprintf(stderr, ": %zu, %zu\n", s->second.first, s->second.second);
+    //       //   }
+    //       // }
 
-          size_t retr = handle->get_retransmissions();
-          if (!enable && retr - prev_retr > RETR_THRESHOLD) {
-            handle->init_pkt_offs(off1);
-            handle->init_retr_offs(off2);
+    //       size_t retr = handle->get_retransmissions();
+    //       if (!enable && retr - prev_retr > RETR_THRESHOLD) {
+    //         handle->init_pkt_offs(off1);
+    //         handle->init_retr_offs(off2);
 
-            // enable = true;
-            fprintf(stderr, "Number of retransmissions = %zu\n", retr - prev_retr);
-          }
-          prev_retr = retr;
-        }
-        delete handle;
-      }));
+    //         // enable = true;
+    //         fprintf(stderr, "Number of retransmissions = %zu\n", retr - prev_retr);
+    //       }
+    //       prev_retr = retr;
+    //     }
+    //     delete handle;
+    //   }));
 
-      // Create a cpu_set_t object representing a set of CPUs. Clear it and mark
-      // only CPU 0 as set.
-      cpu_set_t cpuset;
-      CPU_ZERO(&cpuset);
-      CPU_SET(1, &cpuset);
-      int rc = pthread_setaffinity_np(workers.back().native_handle(),
-                                      sizeof(cpu_set_t), &cpuset);
-      if (rc != 0)
-        fprintf(stderr, "Error calling pthread_setaffinity_np: %d\n", rc);
-    }
+    //   // Create a cpu_set_t object representing a set of CPUs. Clear it and mark
+    //   // only CPU 0 as set.
+    //   cpu_set_t cpuset;
+    //   CPU_ZERO(&cpuset);
+    //   CPU_SET(1, &cpuset);
+    //   int rc = pthread_setaffinity_np(workers.back().native_handle(),
+    //                                   sizeof(cpu_set_t), &cpuset);
+    //   if (rc != 0)
+    //     fprintf(stderr, "Error calling pthread_setaffinity_np: %d\n", rc);
+    // }
 
     if (measure_cpu) {
       fprintf(stderr, "Starting CPU measure thread.\n");
