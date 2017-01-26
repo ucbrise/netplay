@@ -243,7 +243,7 @@ class outcast {
     ofs << thput << "\n";
     ofs.close();
 
-    fprintf(stderr, "Packet Capture Throughput: %lf; Time taken %lf.\n", thput, totsecs);
+    fprintf(stderr, "Packet Capture Throughput: %lf.\n", thput);
     fprintf(stderr, "Completed outcast experiment.\n");
   }
 
