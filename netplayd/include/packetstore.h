@@ -412,8 +412,10 @@ class packet_store: public slog::log_store {
     for (size_t i = 0; i < 15; i++) {
       flow_stats *stats = flow_idx_->at(sips[i]);
       size_t tot_num_pkts = stats->list->size();
-      if (tot_num_pkts == 0 || tot_num_pkts < off[i])
+      if (tot_num_pkts == 0 || tot_num_pkts < off[i]) {
+        fprintf(stderr, "Continuing...\n");
         continue;
+      }
       size_t size = (tot_num_pkts - off[i]);
       off[i] = tot_num_pkts;
       src_dist[sips[i]] += size;
