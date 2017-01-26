@@ -184,7 +184,6 @@ class outcast {
             timestamp_t t1 = get_timestamp();
             timestamp_t tdiff = t1 - t0;
 
-            fprintf(stderr, "Number of retransmissions = %zu\n", retr);
             fprintf(stderr, "Time taken = %lu us\n", tdiff);
             fprintf(stderr, "Diagnosis:\n");
             fprintf(stderr, "Src Dist:\n");
@@ -201,6 +200,7 @@ class outcast {
           if (!enable && retr - prev_retr > RETR_THRESHOLD) {
             handle->init_offs(off);
             enable = true;
+            fprintf(stderr, "Number of retransmissions = %zu\n", retr - prev_retr);
           }
           prev_retr = retr;
         }
