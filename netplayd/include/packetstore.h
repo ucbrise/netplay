@@ -433,6 +433,8 @@ class packet_store: public slog::log_store {
       if (tot_num_pkts == 0 || tot_num_pkts < off[i]) {
         fprintf(stderr, "Continuing...\n");
         continue;
+      } else {
+        fprintf(stderr, "tot_num_pkts = %zu, off[%zu]=%zu\n", tot_num_pkts, i, off[i]);
       }
       size_t size = (tot_num_pkts - off[i]);
       off[i] = tot_num_pkts;
