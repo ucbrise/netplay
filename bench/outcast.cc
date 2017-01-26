@@ -66,7 +66,7 @@ static timestamp_t get_timestamp() {
 
 #define PACKET_SIZE             86
 #define RTE_BURST_SIZE          32
-#define RETR_THRESHOLD          100
+#define RETR_THRESHOLD          65536
 
 class array_generator {
  public:
@@ -162,8 +162,8 @@ class outcast {
       workers.push_back(std::thread([&done, this] {
         packet_store::handle* handle = store_->get_handle();
         struct timespec tspec;
-        tspec.tv_sec = 1;
-        tspec.tv_nsec = 0;
+        tspec.tv_sec = 0;
+        tspec.tv_nsec = 1e8;
 
         std::map<uint32_t, size_t> src_dist;
         std::map<int32_t, size_t> switch_dist;
