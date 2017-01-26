@@ -64,7 +64,7 @@ static timestamp_t get_timestamp() {
   return now.tv_usec + (timestamp_t) now.tv_sec * 1000000;
 }
 
-#define PACKET_SIZE             78
+#define PACKET_SIZE             86
 #define RTE_BURST_SIZE          32
 
 class array_generator {

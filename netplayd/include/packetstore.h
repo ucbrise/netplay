@@ -152,6 +152,9 @@ class packet_store: public slog::log_store {
         // store_.dstip_idx_->add_entry(ip->dst_addr, id);
 
         struct tcp_hdr *tcp = (struct tcp_hdr *) (ip + 1);
+        int32_t *path = (int32_t *) (tcp + 1);
+        uint64_t pkt_ts = *((uint64_t *) (path + 6));
+
         // store_.srcport_idx_->add_entry(tcp->src_port, id);
         // store_.dstport_idx_->add_entry(tcp->dst_port, id);
         flow_stats* stats = store_.flow_idx_->get(tcp->src_port);
@@ -159,8 +162,8 @@ class packet_store: public slog::log_store {
         stats->num_pkts++;
         if (tcp->sent_seq > stats->cur_seq) {
           stats->cur_seq = tcp->sent_seq;
-          stats->cur_ts = now;
-        } else if (now - stats->cur_ts > 3000) {
+          stats->cur_ts = pkt_ts;
+        } else if (pkt_ts - stats->cur_ts > 3000) {
           retr->increment();
         }
 
