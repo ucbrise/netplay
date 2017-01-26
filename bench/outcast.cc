@@ -1,0 +1,280 @@
+#include <unistd.h>
+#include <pthread.h>
+#include <sys/time.h>
+
+#include <ctime>
+#include <chrono>
+#include <random>
+#include <fstream>
+#include <sstream>
+#include <cstring>
+#include <cassert>
+#include <vector>
+#include <string>
+#include <atomic>
+#include <thread>
+#include <mutex>
+#include <iostream>
+
+#include <execinfo.h>
+#include <signal.h>
+#include <string.h>
+#include <ucontext.h>
+#include <unistd.h>
+#include <cxxabi.h>
+
+#include <rte_config.h>
+#include <rte_malloc.h>
+#include <rte_ring.h>
+#include <rte_cycles.h>
+#include <rte_timer.h>
+#include <rte_errno.h>
+#include <rte_eth_ring.h>
+#include <rte_ethdev.h>
+#include <rte_eal.h>
+#include <rte_ether.h>
+#include <rte_ip.h>
+#include <rte_tcp.h>
+#include <rte_udp.h>
+#include <rte_lpm.h>
+#include <rte_mbuf.h>
+
+#include "rand_generators.h"
+#include "critical_error_handler.h"
+#include "packetstore.h"
+#include "character_builder.h"
+#include "bench_vport.h"
+#include "dpdk_utils.h"
+#include "cpu_utilization.h"
+#include "rate_limiter.h"
+
+using namespace ::netplay::dpdk;
+using namespace ::netplay;
+using namespace ::slog;
+using namespace ::std::chrono;
+
+const char* usage = "Usage: %s [-r rate-limit] [-c]\n";
+
+typedef uint64_t timestamp_t;
+
+static timestamp_t get_timestamp() {
+  struct timeval now;
+  gettimeofday(&now, NULL);
+
+  return now.tv_usec + (timestamp_t) now.tv_sec * 1000000;
+}
+
+#define PACKET_SIZE             78
+#define RTE_BURST_SIZE          32
+
+class array_generator {
+ public:
+  array_generator(struct rte_mempool* mempool, unsigned char** pkt_data) {
+    cur_pos_ = 0;
+    pkt_data_ = pkt_data;
+
+    int ret = netplay::dpdk::mempool::mbuf_alloc_bulk(pkts_, PACKET_SIZE,
+              RTE_BURST_SIZE, mempool);
+    if (ret != 0) {
+      fprintf(stderr, "Error allocating packets %d\n", ret);
+      exit(-1);
+    }
+  }
+
+  struct rte_mbuf** generate_batch(size_t size) {
+    // Get next batch
+    for (size_t i = 0; i < size; i++) {
+      unsigned char* pkt = rte_pktmbuf_mtod(pkts_[i], unsigned char*);
+      memcpy(pkt, pkt_data_[cur_pos_ + i], PACKET_SIZE);
+    }
+    cur_pos_ += size;
+    return pkts_;
+  }
+
+ private:
+  uint64_t cur_pos_;
+  unsigned char** pkt_data_;
+  struct rte_mbuf* pkts_[RTE_BURST_SIZE];
+};
+
+class outcast {
+ public:
+  outcast(const std::string& trace_file) {
+    store_ = new packet_store();
+    FILE *f = fopen(trace_file.c_str(), "rb");
+    if (!f) {
+      fprintf(stderr, "Could not open file %s\n", trace_file.c_str());
+      exit(-1);
+    }
+
+    fseek(f, 0L, SEEK_END);
+    size_t size = ftell(f);
+
+    size_t count = size / PACKET_SIZE;
+    for (size_t i = 0; i < count; i++) {
+      unsigned char* pkt = new unsigned char[PACKET_SIZE];
+      size_t bytes = fread(pkt, PACKET_SIZE, 1, f);
+      assert(bytes == PACKET_SIZE);
+      pkt_data_.push_back(pkt);
+    }
+    fprintf(stderr, "Loaded %zu packets.\n", pkt_data_.size());
+  }
+
+  void run_outcast(const uint64_t rate_limit, const bool measure_cpu) {
+
+    typedef rate_limiter<pktstore_vport, array_generator> pktgen_type;
+    std::vector<std::thread> workers;
+
+    std::atomic<bool> done;
+    done.store(false);
+    double thput;
+    struct rte_mempool* mempool = init_dpdk("pktbench", 0, 0);
+
+    {
+      workers.push_back(std::thread([rate_limit, &thput, &done, &mempool, this] {
+        packet_store::handle* handle = store_->get_handle();
+        pktstore_vport* vport = new pktstore_vport(handle);
+        array_generator* gen = new array_generator(mempool, &pkt_data_[0]);
+        pktgen_type pktgen(vport, gen, rate_limit, pkt_data_.size());
+
+        fprintf(stderr, "Starting outcast.\n");
+        timestamp_t start = get_timestamp();
+        pktgen.generate();
+        done.store(true);
+        timestamp_t end = get_timestamp();
+        double totsecs = (double) (end - start) / (1000.0 * 1000.0);
+        thput = ((double) pktgen.total_sent() / totsecs);
+        fprintf(stderr, "Packet Capture Throughput: %lf; Time taken %lf.\n", thput, totsecs);
+
+        delete vport;
+        delete gen;
+        delete handle;
+      }));
+
+      // Create a cpu_set_t object representing a set of CPUs. Clear it and mark
+      // only CPU 0 as set.
+      cpu_set_t cpuset;
+      CPU_ZERO(&cpuset);
+      CPU_SET(0, &cpuset);
+      int rc = pthread_setaffinity_np(workers.back().native_handle(),
+                                      sizeof(cpu_set_t), &cpuset);
+      if (rc != 0)
+        fprintf(stderr, "Error calling pthread_setaffinity_np: %d\n", rc);
+    }
+
+    {
+      workers.push_back(std::thread([&done, this] {
+        packet_store::handle* handle = store_->get_handle();
+        struct timespec tspec;
+        tspec.tv_sec = 1;
+        tspec.tv_nsec = 0;
+        while (!done.load()) {
+          nanosleep(&tspec, NULL);
+          uint64_t now = curusec();
+          uint32_t now_s = now / 1e6;
+          uint64_t num_retransmissions = handle->get_retransmissions(now_s);
+          fprintf(stderr, "Number of retransmissions = %" PRIu64 "\n", num_retransmissions);
+        }
+        delete handle;
+      }));
+
+      // Create a cpu_set_t object representing a set of CPUs. Clear it and mark
+      // only CPU 0 as set.
+      cpu_set_t cpuset;
+      CPU_ZERO(&cpuset);
+      CPU_SET(1, &cpuset);
+      int rc = pthread_setaffinity_np(workers.back().native_handle(),
+                                      sizeof(cpu_set_t), &cpuset);
+      if (rc != 0)
+        fprintf(stderr, "Error calling pthread_setaffinity_np: %d\n", rc);
+    }
+
+    if (measure_cpu) {
+      std::thread cpu_measure_thread([rate_limit, &done, this] {
+        std::ofstream util_stream("outcast_util_" + std::to_string(rate_limit) + ".txt");
+        cpu_utilization util;
+        while (!done.load()) {
+          sleep(1);
+          util_stream << util.current() << "\n";
+          util_stream.flush();
+        }
+        util_stream.close();
+      });
+
+      // Create a cpu_set_t object representing a set of CPUs. Clear it and mark
+      // only CPU i as set.
+      cpu_set_t cpuset;
+      CPU_ZERO(&cpuset);
+      CPU_SET(2, &cpuset);
+      int rc = pthread_setaffinity_np(cpu_measure_thread.native_handle(),
+                                      sizeof(cpu_set_t), &cpuset);
+      if (rc != 0)
+        fprintf(stderr, "Error calling pthread_setaffinity_np: %d\n", rc);
+
+      cpu_measure_thread.join();
+    }
+
+    for (auto& th : workers)
+      th.join();
+
+    std::ofstream ofs("outcast_thput_" + std::to_string(rate_limit) + ".txt");
+    ofs << thput << "\n";
+    ofs.close();
+
+    fprintf(stderr, "Completed outcast experiment.\n");
+  }
+
+ private:
+  inline uint64_t curusec() {
+    using namespace ::std::chrono;
+    auto ts = steady_clock::now().time_since_epoch();
+    return duration_cast<std::chrono::microseconds>(ts).count();
+  }
+
+  packet_store *store_;
+  std::vector<unsigned char*> pkt_data_;
+};
+
+void print_usage(char *exec) {
+  fprintf(stderr, usage, exec);
+}
+
+int main(int argc, char** argv) {
+  struct sigaction sigact;
+
+  sigact.sa_sigaction = crit_err_hdlr;
+  sigact.sa_flags = SA_RESTART | SA_SIGINFO;
+
+  if (sigaction(SIGSEGV, &sigact, (struct sigaction *)NULL) != 0) {
+    fprintf(stderr, "error setting signal handler for %d (%s)\n",
+            SIGSEGV, strsignal(SIGSEGV));
+
+    exit(EXIT_FAILURE);
+  }
+
+  int c;
+  uint64_t rate_limit = 0;
+  bool measure_cpu = false;
+  std::string trace_file;
+  while ((c = getopt(argc, argv, "t:r:c")) != -1) {
+    switch (c) {
+    case 't':
+      trace_file = std::string(optarg);
+      break;
+    case 'r':
+      rate_limit = atoll(optarg);
+      break;
+    case 'c':
+      measure_cpu = true;
+      break;
+    default:
+      fprintf(stderr, "Could not parse command line arguments.\n");
+      print_usage(argv[0]);
+    }
+  }
+
+  outcast expt(trace_file);
+  expt.run_outcast(rate_limit, measure_cpu);
+
+  return 0;
+}

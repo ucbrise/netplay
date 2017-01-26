@@ -54,6 +54,49 @@
 
 namespace netplay {
 
+struct flow_stats {
+  uint32_t cur_seq;
+  uint64_t cur_ts;
+  uint64_t num_pkts;
+
+  flow_stats() {
+    cur_seq = 0;
+    cur_ts = 0;
+    num_pkts = 0;
+  }
+
+  void push_back(uint64_t val) {
+    assert(val > 0);
+  }
+
+  size_t storage_size() {
+    return sizeof(uint32_t) + sizeof(uint64_t);
+  }
+};
+
+struct loss_info {
+  uint64_t retransmissions;
+
+  loss_info() {
+    retransmissions = 0;
+  }
+
+  void increment() {
+    ++retransmissions;
+  }
+
+  void push_back(uint64_t val) {
+    assert(val > 0);
+  }
+
+  size_t storage_size() {
+    return sizeof(uint32_t);
+  }
+};
+
+typedef slog::__index_depth2<65536, 65536, loss_info> loss_idx;
+typedef slog::__index_depth2<65536, 65536, flow_stats> flow_idx;
+
 /**
  * A data store for packet headers.
  *
@@ -74,8 +117,15 @@ class packet_store: public slog::log_store {
         store_(store) {
     }
 
+    inline uint64_t curusec() {
+      using namespace ::std::chrono;
+      auto ts = steady_clock::now().time_since_epoch();
+      return duration_cast<std::chrono::microseconds>(ts).count();
+    }
+
     void insert_pktburst(struct rte_mbuf** pkts, uint16_t cnt) {
-      std::time_t now = std::time(nullptr);
+      uint64_t now = curusec();
+      uint32_t now_s = now / 1e6;
       uint64_t id = store_.olog_->request_id_block(cnt);
       uint64_t nbytes = cnt * sizeof(uint64_t);
       for (int i = 0; i < cnt; i++)
@@ -83,48 +133,31 @@ class packet_store: public slog::log_store {
       uint64_t off = store_.request_bytes(nbytes);
 
       size_t num_chars = store_.num_filters_.load(std::memory_order_acquire);
-      auto char_index = store_.char_idx_->get(now);
+      auto char_index = store_.char_idx_->get(now_s);
 
-#if INDEX_TS == 1
-      auto time_list = store_.timestamp_idx_->get(now);
+      auto time_list = store_.timestamp_idx_->get(now_s);
       time_list->push_back_range(id, id + cnt - 1);
-#endif
 
       for (int i = 0; i < cnt; i++) {
         unsigned char* pkt = rte_pktmbuf_mtod(pkts[i], unsigned char*);
         uint16_t pkt_size = rte_pktmbuf_pkt_len(pkts[i]);
 
-#if INDEX_SRC_IP == 1 || INDEX_DST_IP == 1 || INDEX_SRC_PORT == 1 || INDEX_DST_PORT == 1
         struct ether_hdr *eth = (struct ether_hdr *) pkt;
         struct ipv4_hdr *ip = (struct ipv4_hdr *) (eth + 1);
+        // store_.srcip_idx_->add_entry(ip->src_addr, id);
+        // store_.dstip_idx_->add_entry(ip->dst_addr, id);
 
-#if INDEX_SRC_IP == 1
-        store_.srcip_idx_->add_entry(ip->src_addr, id);
-#endif // INDEX_SRC_IP == 1
-#if INDEX_DST_IP == 1
-        store_.dstip_idx_->add_entry(ip->dst_addr, id);
-#endif // INDEX_DST_IP == 1
-
-#if INDEX_SRC_PORT == 1 || INDEX_DST_PORT == 1
-        if (ip->next_proto_id == IPPROTO_TCP) {
-          struct tcp_hdr *tcp = (struct tcp_hdr *) (ip + 1);
-#if INDEX_SRC_PORT == 1
-          store_.srcport_idx_->add_entry(tcp->src_port, id);
-#endif // INDEX_SRC_PORT == 1
-#if INDEX_DST_PORT == 1
-          store_.dstport_idx_->add_entry(tcp->dst_port, id);
-#endif // INDEX_DST_PORT == 1
-        } else if (ip->next_proto_id == IPPROTO_UDP) {
-          struct udp_hdr *udp = (struct udp_hdr *) (ip + 1);
-#if INDEX_SRC_PORT == 1
-          store_.srcport_idx_->add_entry(udp->src_port, id);
-#endif // INDEX_SRC_PORT == 1
-#if INDEX_DST_PORT == 1
-          store_.dstport_idx_->add_entry(udp->dst_port, id);
-#endif // INDEX_DST_PORT == 1
+        struct tcp_hdr *tcp = (struct tcp_hdr *) (ip + 1);
+        // store_.srcport_idx_->add_entry(tcp->src_port, id);
+        // store_.dstport_idx_->add_entry(tcp->dst_port, id);
+        flow_stats* stats = store_.flow_idx_->get(tcp->src_port);
+        stats->num_pkts++;
+        if (tcp->sent_seq > stats->cur_seq) {
+          stats->cur_seq = tcp->sent_seq;
+          stats->cur_ts = now;
+        } else if (now - stats->cur_ts > 3000) {
+          store_.loss_idx_->get(now_s)->increment();
         }
-#endif // INDEX_SRC_PORT == 1 || INDEX_DST_PORT == 1
-#endif // INDEX_SRC_IP == 1 || INDEX_DST_IP == 1 || INDEX_SRC_PORT == 1 || INDEX_DST_PORT == 1
 
         store_.olog_->set_without_alloc(id, off, pkt_size);
         off += store_.append_pkt(off, now, pkt, pkt_size);
@@ -191,6 +224,10 @@ class packet_store: public slog::log_store {
       return store_.num_pkts();
     }
 
+    uint64_t get_retransmissions(uint32_t ts) {
+      return store_.get_retransmissions(ts);
+    }
+
    private:
     packet_store& store_;
   };
@@ -213,6 +250,9 @@ class packet_store: public slog::log_store {
     srcport_idx_ = idx2_->at(0);
     dstport_idx_ = idx2_->at(1);
     timestamp_idx_ = idx4_->at(2);
+
+    flow_idx_ = new flow_idx;
+    loss_idx_ = new loss_idx;
 
     char_idx_ = new complex_character_index();
     num_filters_.store(0U, std::memory_order_release);
@@ -303,6 +343,28 @@ class packet_store: public slog::log_store {
     return num_records();
   }
 
+  uint64_t get_retransmissions(uint32_t ts) {
+    return loss_idx_->get(ts)->retransmissions;
+  }
+
+  // void diagnose_outcast_1(uint32_t ts) {
+  //   auto pkt_ids = timestamp_idx_->get(ts);
+  //   size_t size = pkt_ids->size();
+  //   for (size_t i = 0; i < size; i++) {
+  //     uint64_t pkt_id = pkt_ids->at(i);
+  //     uint64_t off;
+  //     uint16_t len;
+  //     olog_->lookup(pkt_id, off, len);
+  //     unsigned char *ptr = (unsigned char*) dlog_->ptr(offset);
+  //     unsigned char *pkt = ptr + sizeof(uint64_t);
+  //     struct ether_hdr *eth = (struct ether_hdr *) pkt;
+  //     struct ipv4_hdr *ip = (struct ipv4_hdr *) (eth + 1);
+  //     struct tcp_hdr *tcp = (struct tcp_hdr *) (ip + 1);
+  //     int32_t *path = (int32_t *)  (tcp + 1);
+  //     while (i < 6 && path[i + 1] != -1) i++;
+  //   }
+  // }
+
  private:
   /**
    * Append a packet to the packet store.
@@ -333,6 +395,9 @@ class packet_store: public slog::log_store {
   slog::__index2* srcport_idx_;
   slog::__index2* dstport_idx_;
   slog::__index4* timestamp_idx_;
+
+  flow_idx* flow_idx_;
+  loss_idx* loss_idx_;
 
   /* Complex characters */
   /* Packet filters */
