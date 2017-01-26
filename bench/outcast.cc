@@ -184,8 +184,6 @@ class outcast {
           if (retr - prev_retr > RETR_THRESHOLD)
             enable = true;
 
-          fprintf(stderr, "Number of retransmissions = %zu\n", retr - prev_retr);
-
           prev_retr = retr;
 
           if (enable) {
