@@ -69,7 +69,7 @@ static timestamp_t get_timestamp() {
 
 class array_generator {
  public:
-  array_generator(struct rte_mempool* mempool, unsigned char** pkt_data) {
+  array_generator(struct rte_mempool* mempool, unsigned char* pkt_data) {
     cur_pos_ = 0;
     pkt_data_ = pkt_data;
 
@@ -85,7 +85,8 @@ class array_generator {
     // Get next batch
     for (size_t i = 0; i < size; i++) {
       unsigned char* pkt = rte_pktmbuf_mtod(pkts_[i], unsigned char*);
-      memcpy(pkt, pkt_data_[cur_pos_ + i], PACKET_SIZE);
+      size_t off = cur_pos_ + i;
+      memcpy(pkt, pkt_data_ + off * PACKET_SIZE, PACKET_SIZE);
     }
     cur_pos_ += size;
     return pkts_;
@@ -93,7 +94,7 @@ class array_generator {
 
  private:
   uint64_t cur_pos_;
-  unsigned char** pkt_data_;
+  unsigned char* pkt_data_;
   struct rte_mbuf* pkts_[RTE_BURST_SIZE];
 };
 
@@ -101,24 +102,21 @@ class outcast {
  public:
   outcast(const std::string& trace_file) {
     store_ = new packet_store();
-    FILE *f = fopen(trace_file.c_str(), "r");
-    if (!f) {
-      fprintf(stderr, "Could not open file %s\n", trace_file.c_str());
-      exit(-1);
+    FILE *f = fopen(trace_file.c_str(), "rb");
+    fseek(f, 0, SEEK_END);
+    size_ = ftell(f);
+    fseek(f, 0, SEEK_SET);
+
+    pkt_data_ = (unsigned char *) malloc(size_);
+    size_t item_count = fread(pkt_data_, size_, 1, f);
+    fclose(f);
+    pkt_count_ = size_ / PACKET_SIZE;
+
+    for (size_t i = 0; i < pkt_count_; i++) {
+      print_bytes(pkt_data_ + i * PACKET_SIZE);
     }
 
-    fseek(f, 0L, SEEK_END);
-    size_t size = ftell(f);
-
-    size_t count = size / PACKET_SIZE;
-    size_t item_count = 0;
-    for (size_t i = 0; i < count; i++) {
-      unsigned char* pkt = new unsigned char[PACKET_SIZE];
-      item_count += fread(pkt, sizeof(unsigned char), PACKET_SIZE, f);
-      print_bytes(pkt);
-      pkt_data_.push_back(pkt);
-    }
-    fprintf(stderr, "Loaded %zu packets; Item count = %zu.\n", pkt_data_.size(), item_count);
+    fprintf(stderr, "Loaded %zu packets; Item count = %zu.\n", pkt_count_, item_count);
   }
 
   void run_outcast(const uint64_t rate_limit, const bool measure_cpu) {
@@ -135,8 +133,8 @@ class outcast {
       workers.push_back(std::thread([rate_limit, &thput, &done, &mempool, this] {
         packet_store::handle* handle = store_->get_handle();
         pktstore_vport* vport = new pktstore_vport(handle);
-        array_generator* gen = new array_generator(mempool, &pkt_data_[0]);
-        pktgen_type pktgen(vport, gen, rate_limit, pkt_data_.size());
+        array_generator* gen = new array_generator(mempool, pkt_data_);
+        pktgen_type pktgen(vport, gen, rate_limit, pkt_count_);
 
         fprintf(stderr, "Starting outcast.\n");
         timestamp_t start = get_timestamp();
@@ -241,7 +239,9 @@ class outcast {
   }
 
   packet_store *store_;
-  std::vector<unsigned char*> pkt_data_;
+  unsigned char* pkt_data_;
+  size_t pkt_count_;
+  size_t size_;
 };
 
 void print_usage(char *exec) {
