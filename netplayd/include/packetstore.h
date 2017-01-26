@@ -159,7 +159,7 @@ class packet_store: public slog::log_store {
 
         // store_.srcport_idx_->add_entry(tcp->src_port, id);
         // store_.dstport_idx_->add_entry(tcp->dst_port, id);
-        flow_stats* stats = store_.flow_idx_->get(tcp->src_port);
+        flow_stats* stats = store_.flow_idx_->get(ip->src_addr);
         loss_info* retr = store_.loss_idx_->get(pkt_s);
         if (tcp->sent_seq > stats->cur_seq) {
           stats->cur_seq = tcp->sent_seq;
