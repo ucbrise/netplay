@@ -85,6 +85,10 @@ struct loss_info {
     retransmissions.fetch_add(1);
   }
 
+  size_t get() {
+    return retransmissions.load();
+  }
+
   void push_back(uint64_t val) {
     assert(val > 0);
   }
@@ -151,13 +155,13 @@ class packet_store: public slog::log_store {
         // store_.srcport_idx_->add_entry(tcp->src_port, id);
         // store_.dstport_idx_->add_entry(tcp->dst_port, id);
         flow_stats* stats = store_.flow_idx_->get(tcp->src_port);
+        loss_info* retr = store_.loss_idx_->get(now_s)
         stats->num_pkts++;
         if (tcp->sent_seq > stats->cur_seq) {
           stats->cur_seq = tcp->sent_seq;
           stats->cur_ts = now;
         } else if (now - stats->cur_ts > 3000) {
-          fprintf(stderr, "Retransmission\n");
-          store_.loss_idx_->get(now_s)->increment();
+          retr->increment();
         }
 
         store_.olog_->set_without_alloc(id, off, pkt_size);
@@ -345,7 +349,7 @@ class packet_store: public slog::log_store {
   }
 
   size_t get_retransmissions(uint32_t ts) {
-    return loss_idx_->get(ts)->retransmissions;
+    return loss_idx_->at(ts)->get();
   }
 
   // void diagnose_outcast_1(uint32_t ts) {
