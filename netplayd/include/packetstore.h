@@ -456,7 +456,7 @@ class packet_store: public slog::log_store {
     bytes[1] = (ip >> 8) & 0xFF;
     bytes[2] = (ip >> 16) & 0xFF;
     bytes[3] = (ip >> 24) & 0xFF;
-    fprintf(stderr, "%u.%u.%u.%u", bytes[0], bytes[1], bytes[2], bytes[3]);
+    fprintf(stderr, "%u.%u.%u.%u\n", bytes[0], bytes[1], bytes[2], bytes[3]);
   }
 
   /**
