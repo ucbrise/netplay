@@ -177,27 +177,27 @@ class priority {
         size_t prev_retr = 0;
         while (!done.load()) {
           nanosleep(&tspec, NULL);
-          if (enable) {
-            timestamp_t t0 = get_timestamp();
-            handle->diagnose_priority(off1, off2, pkt_dist);
-            timestamp_t t1 = get_timestamp();
-            timestamp_t tdiff = t1 - t0;
+          // if (enable) {
+          //   timestamp_t t0 = get_timestamp();
+          //   handle->diagnose_priority(off1, off2, pkt_dist);
+          //   timestamp_t t1 = get_timestamp();
+          //   timestamp_t tdiff = t1 - t0;
 
-            fprintf(stderr, "Time taken = %lu us\n", tdiff);
-            fprintf(stderr, "Diagnosis:\n");
-            fprintf(stderr, "Source IP: Retransmissions, Recvd. Packets:\n");
-            for (iter s = pkt_dist.begin(); s != pkt_dist.end(); s++) {
-              print_ip(s->first);
-              fprintf(stderr, ": %zu, %zu\n", s->second.first, s->second.second);
-            }
-          }
+          //   fprintf(stderr, "Time taken = %lu us\n", tdiff);
+          //   fprintf(stderr, "Diagnosis:\n");
+          //   fprintf(stderr, "Source IP: Retransmissions, Recvd. Packets:\n");
+          //   for (iter s = pkt_dist.begin(); s != pkt_dist.end(); s++) {
+          //     print_ip(s->first);
+          //     fprintf(stderr, ": %zu, %zu\n", s->second.first, s->second.second);
+          //   }
+          // }
 
           size_t retr = handle->get_retransmissions();
           if (!enable && retr - prev_retr > RETR_THRESHOLD) {
             handle->init_pkt_offs(off1);
             handle->init_retr_offs(off2);
 
-            enable = true;
+            // enable = true;
             fprintf(stderr, "Number of retransmissions = %zu\n", retr - prev_retr);
           }
           prev_retr = retr;
