@@ -195,7 +195,7 @@ class outcast {
             for (switch_iter s = switch_dist.begin(); s != switch_dist.end(); s++)
               fprintf(stderr, "%" PRId32 ": %zu\n", s->first, s->second);
 
-            break;
+            // break;
           }
         }
         delete handle;
