@@ -66,7 +66,7 @@ static timestamp_t get_timestamp() {
 
 #define PACKET_SIZE             86
 #define RTE_BURST_SIZE          32
-#define RETR_THRESHOLD          1000000
+#define RETR_THRESHOLD          100
 
 class array_generator {
  public:

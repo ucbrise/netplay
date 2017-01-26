@@ -403,15 +403,18 @@ class packet_store: public slog::log_store {
 
   void diagnose_outcast_3(std::vector<size_t>& off, std::unordered_map<uint32_t, size_t>& src_dist,
                           std::unordered_map<int32_t, size_t>& switch_dist) {
-    uint32_t sips[15] = {33620490, 50397450, 33686026, 50397962, 33686538,
-                         33686282, 50463498, 33621002, 33685770, 50463242,
-                         33620746, 50398218, 50462986, 50397706, 50463754
-                        };
+    uint32_t sips[15] = {
+      33620490, 50397450, 33686026, 50397962, 33686538,
+      33686282, 50463498, 33621002, 33685770, 50463242,
+      33620746, 50398218, 50462986, 50397706, 50463754
+    };
+
     for (size_t i = 0; i < 15; i++) {
-      flow_stats *stats = flow_idx_->at(i);
-      if (stats->list->size() <= off[i]) 
+      flow_stats *stats = flow_idx_->at(sips[i]);
+      size_t tot_num_pkts = stats->list->size();
+      if (tot_num_pkts == 0 || tot_num_pkts < off[i])
         continue;
-      size_t size = (stats->list->size() - off[i]);
+      size_t size = (tot_num_pkts - off[i]);
       src_dist[sips[i]] += size;
       uint64_t pkt_id = stats->list->at(0);
       uint64_t off;
