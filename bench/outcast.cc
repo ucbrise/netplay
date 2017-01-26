@@ -173,7 +173,7 @@ class outcast {
 
         while (!done.load()) {
           nanosleep(&tspec, NULL);
-          
+
           std::pair<uint32_t, size_t> retr = handle->get_retransmissions();
           // fprintf(stderr, "[%" PRIu32 "] Number of retransmissions = %zu\n", retr.first, retr.second);
           if (retr.second > RETR_THRESHOLD) {
@@ -186,9 +186,11 @@ class outcast {
             fprintf(stderr, "Time taken = %lu us\n", tdiff);
             fprintf(stderr, "Diagnosis:\n");
             fprintf(stderr, "Src Dist:\n");
-            for (src_iter s = src_dist.begin(); s != src_dist.end(); s++)
-              fprintf(stderr, "%" PRIu32 ": %zu\n", s->first, s->second);
-            
+            for (src_iter s = src_dist.begin(); s != src_dist.end(); s++) {
+              print_ip(s->first);
+              fprintf(stderr, ": %zu\n", s->second);
+            }
+
             fprintf(stderr, "Switch Dist:\n");
             for (switch_iter s = switch_dist.begin(); s != switch_dist.end(); s++)
               fprintf(stderr, "%" PRId32 ": %zu\n", s->first, s->second);
@@ -250,6 +252,15 @@ class outcast {
     using namespace ::std::chrono;
     auto ts = steady_clock::now().time_since_epoch();
     return duration_cast<std::chrono::microseconds>(ts).count();
+  }
+
+  void print_ip(uint32_t ip) {
+    unsigned char bytes[4];
+    bytes[0] = ip & 0xFF;
+    bytes[1] = (ip >> 8) & 0xFF;
+    bytes[2] = (ip >> 16) & 0xFF;
+    bytes[3] = (ip >> 24) & 0xFF;
+    printf("%u.%u.%u.%u", bytes[3], bytes[2], bytes[1], bytes[0]);
   }
 
   void print_bytes(unsigned char* bytes) {
