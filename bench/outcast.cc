@@ -178,14 +178,6 @@ class outcast {
         size_t prev_retr = 0;
         while (!done.load()) {
           nanosleep(&tspec, NULL);
-
-          size_t retr = handle->get_retransmissions();
-
-          if (retr - prev_retr > RETR_THRESHOLD)
-            enable = true;
-
-          prev_retr = retr;
-
           if (enable) {
             timestamp_t t0 = get_timestamp();
             handle->diagnose_outcast_3(off, src_dist, switch_dist);
@@ -204,6 +196,13 @@ class outcast {
             for (switch_iter s = switch_dist.begin(); s != switch_dist.end(); s++)
               fprintf(stderr, "%" PRId32 ": %zu\n", s->first, s->second);
           }
+
+          size_t retr = handle->get_retransmissions();
+          if (!enable && retr - prev_retr > RETR_THRESHOLD) {
+            handle->init_offs(off);
+            enable = true;
+          }
+          prev_retr = retr;
         }
         delete handle;
       }));

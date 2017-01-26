@@ -232,6 +232,10 @@ class packet_store: public slog::log_store {
       store_.diagnose_outcast_3(off, src_dist, switch_dist);
     }
 
+    void init_offs(std::vector<size_t>& off) {
+      store_.init_offs(off);
+    }
+
    private:
     packet_store& store_;
   };
@@ -398,6 +402,20 @@ class packet_store: public slog::log_store {
       if (path[pos] == -1) continue;
 
       switch_dist[path[pos]]++;
+    }
+  }
+
+  void init_offs(std::vector<size_t>& off) {
+    uint32_t sips[15] = {
+      33620490, 50397450, 33686026, 50397962, 33686538,
+      33686282, 50463498, 33621002, 33685770, 50463242,
+      33620746, 50398218, 50462986, 50397706, 50463754
+    };
+
+    for (size_t i = 0; i < 15; i++) {
+      flow_stats *stats = flow_idx_->at(sips[i]);
+      size_t tot_num_pkts = stats->list->size();
+      off[i] = tot_num_pkts;
     }
   }
 
