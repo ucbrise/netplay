@@ -214,15 +214,17 @@ class filter_benchmark {
       double avg = 0.0;
       size_t size = 0;
       for (size_t repeat = 0; repeat < repeat_max; repeat++) {
-        timestamp_t start = get_timestamp();
+        auto begin = std::chrono::high_resolution_clock::now();
         size_t cnt = characters_[i].execute<packet_counter>(end_time_, end_time_);
-        timestamp_t end = get_timestamp();
-        avg += (end - start);
+        auto end = std::chrono::high_resolution_clock::now();
+        auto tdiff = std::chrono::duration_cast<std::chrono::nanoseconds>(end-begin).count();
+        out << tdiff << "\n";
+
+        avg += tdiff;
         size += cnt;
       }
       avg /= repeat_max;
       size /= repeat_max;
-      out << (i + 1) << "\t" << size << "\t" << avg << "\n";
       fprintf(stderr, "q%zu: Count=%zu, Latency=%lf\n", (i + 1), size, avg);
     }
     out.close();
