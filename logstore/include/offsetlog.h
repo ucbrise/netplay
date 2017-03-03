@@ -24,16 +24,22 @@ class offsetlog {
     return record_id;
   }
 
-  void end(uint64_t record_id) {
-    while (!current_read_id_.compare_exchange_weak(record_id,
+  void end(const uint64_t record_id) {
+    uint64_t tmp = record_id;
+    while (!current_read_id_.compare_exchange_weak(tmp,
            record_id + 1, std::memory_order_release,
-           std::memory_order_acquire));
+           std::memory_order_acquire)) {
+      tmp = record_id;
+    }
   }
 
-  void end(uint64_t start_id, uint64_t count) {
-    while (!current_read_id_.compare_exchange_weak(start_id,
+  void end(const uint64_t start_id, const uint64_t count) {
+    uint64_t tmp = start_id;
+    while (!current_read_id_.compare_exchange_weak(tmp,
            start_id + count, std::memory_order_release,
-           std::memory_order_acquire));
+           std::memory_order_acquire)) {
+      tmp = start_id;
+    }
   }
 
   uint64_t request_id_block(uint64_t num_records) {
