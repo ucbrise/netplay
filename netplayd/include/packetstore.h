@@ -139,6 +139,7 @@ class packet_store: public slog::log_store {
         }
         id++;
       }
+      fprintf(stderr, "Ending op with id = %" PRIu64 "\n", id);
       store_.olog_->end(id, cnt);
     }
 
