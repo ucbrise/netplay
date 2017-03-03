@@ -38,6 +38,7 @@ class offsetlog {
     while (!current_read_id_.compare_exchange_weak(tmp,
            start_id + count, std::memory_order_release,
            std::memory_order_acquire)) {
+      fprintf(stderr, "Expected: %" PRIu64 ", actual: %" PRIu64 "\n", start_id, tmp);
       tmp = start_id;
     }
   }
