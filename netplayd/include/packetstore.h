@@ -77,7 +77,7 @@ class packet_store: public slog::log_store {
     void insert_pktburst(struct rte_mbuf** pkts, uint16_t cnt) {
       std::time_t now = std::time(nullptr);
       uint64_t id = store_.olog_->request_id_block(cnt);
-      fprintf(stderr, "Got id = %" PRIu64 "\n", id);
+      uint64_t start_id = id;
       uint64_t nbytes = cnt * sizeof(uint64_t);
       for (int i = 0; i < cnt; i++)
         nbytes += rte_pktmbuf_pkt_len(pkts[i]);
@@ -139,8 +139,7 @@ class packet_store: public slog::log_store {
         }
         id++;
       }
-      fprintf(stderr, "Ending op with id = %" PRIu64 "\n", id);
-      store_.olog_->end(id, cnt);
+      store_.olog_->end(start_id, cnt);
     }
 
     uint64_t approx_pkt_count(const id_t index_id, const uint64_t tok_beg,
