@@ -12,6 +12,6 @@ fi
 
 START=$(date +%s)
 make -j
-#make test ARGS="-VV"
+make test ARGS="-VV"
 END=$(date +%s)
 echo "Total Build time (real) = $(( $END - $START )) seconds"

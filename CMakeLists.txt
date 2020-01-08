@@ -79,10 +79,10 @@ add_subdirectory(bench)
 
 # Testing framework
 # Build google testing framework
-#add_subdirectory(3rdparty/gtest-1.7.0)
+add_subdirectory(3rdparty/gtest-1.7.0)
 
 # Build and run all tests for succinct
-#add_subdirectory(test)
+add_subdirectory(test)
 
-#enable_testing()
-#add_test(NPTest ${TESTS_PATH}/np_test)
+enable_testing()
+add_test(NPTest ${TESTS_PATH}/np_test)
